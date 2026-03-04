@@ -24,3 +24,97 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Input text color = black, placeholder darker */
+input,
+textarea,
+select {
+  color: #000 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+/* ====== PRINT STYLES — A4 Landscape, narrow margins ====== */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide navigation, buttons, inputs, and non-print elements */
+  nav,
+  .no-print,
+  button:not(.print-include),
+  input[type="date"],
+  input[type="time"],
+  select {
+    display: none !important;
+  }
+
+  /* Full width, no padding */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Remove shadows, borders, and backgrounds for clean print */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Clean cards for print */
+  .rounded-xl,
+  .rounded-2xl {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+  }
+
+  /* Tables full width */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #ccc !important;
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+  }
+
+  table th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+
+  /* Prevent page breaks inside groups */
+  [class*="space-y"]>div {
+    break-inside: avoid;
+  }
+
+  /* Force desktop table view on print, hide mobile cards */
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  [data-print-show] {
+    display: block !important;
+  }
+}

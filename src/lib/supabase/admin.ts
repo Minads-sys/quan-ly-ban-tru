@@ -1,0 +1,22 @@
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+
+/**
+ * Admin Supabase client using service_role key.
+ * Only use in server actions for admin operations (e.g., change password).
+ * NEVER expose service_role key to the client.
+ */
+export function createAdminClient() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!serviceRoleKey) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set in environment variables')
+    }
+
+    return createSupabaseClient(url, serviceRoleKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        },
+    })
+}
