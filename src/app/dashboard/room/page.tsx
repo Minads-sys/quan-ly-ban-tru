@@ -39,7 +39,7 @@ export default function RoomPage() {
 
         if (data.room) {
             setRoom(data.room as { name: string; default_capacity: number })
-            setCapacity((data.room as { default_capacity: number }).default_capacity)
+            setCapacity((data.room as { default_capacity: number }).default_capacity || 0)
         }
         setIsWithinTime(data.isWithinTime as boolean)
         setReportDate((data.reportDate as string) || '')
