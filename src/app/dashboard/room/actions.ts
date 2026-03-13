@@ -39,17 +39,9 @@ function getTomorrow(now: Date): string {
 
 /**
  * Xác định reportDate (ngày ăn) và trạng thái form dựa trên giờ hiện tại.
- *
- * Timeline trong 1 ngày (VD: moc1_open=07:00, moc1_close=16:00, moc2_open=23:59, moc2_close=07:00):
- *   00:00 ─ moc2_close : Mốc 2 (sửa bữa HÔM NAY) → reportDate = today
- *   moc2_close ─ moc1_open : Chờ mở (thực tế moc1_open = moc2_close)
- *   moc1_open ─ moc1_close : Mốc 1 (báo bữa NGÀY MAI) → reportDate = tomorrow
- *   moc1_close ─ moc2_open : Khóa (bếp đi chợ)
- *   moc2_open ─ 23:59      : Mốc 2 (sửa bữa NGÀY MAI) → reportDate = tomorrow
  */
 function getFormState(now: Date, settings: TimeSettings): FormState {
     if (settings.noLimit) {
-        // Không giới hạn: luôn mở, report cho ngày mai nếu sau mốc 2 close, else hôm nay
         const m2c = toMinutes(settings.moc2Close)
         const current = now.getHours() * 60 + now.getMinutes()
         const reportDate = current < m2c ? formatDate(now) : getTomorrow(now)
@@ -62,53 +54,19 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
     const m2o = toMinutes(settings.moc2Open)
     const m2c = toMinutes(settings.moc2Close)
 
-    // Window 1: 00:00 → moc2_close  (Mốc 2 cho HÔM NAY)
     if (current < m2c) {
-        return {
-            reportDate: formatDate(now),
-            phase: 'moc2',
-            isOpen: true,
-            phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})`
-        }
+        return { reportDate: formatDate(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})` }
     }
-
-    // Window 2: moc1_open → moc1_close  (Mốc 1 cho NGÀY MAI)
     if (current >= m1o && current < m1c) {
-        return {
-            reportDate: getTomorrow(now),
-            phase: 'moc1',
-            isOpen: true,
-            phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})`
-        }
+        return { reportDate: getTomorrow(now), phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }
     }
-
-    // Window 3: moc1_close → moc2_open  (KHÓA — bếp đi chợ)
     if (current >= m1c && current < m2o) {
-        return {
-            reportDate: getTomorrow(now),
-            phase: 'locked',
-            isOpen: false,
-            phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}`
-        }
+        return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
     }
-
-    // Window 4: moc2_open → 23:59  (Mốc 2 cho NGÀY MAI — bổ sung tối)
     if (current >= m2o) {
-        return {
-            reportDate: getTomorrow(now),
-            phase: 'moc2',
-            isOpen: true,
-            phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})`
-        }
+        return { reportDate: getTomorrow(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})` }
     }
-
-    // Fallback: giữa moc2_close và moc1_open (nếu khác nhau)
-    return {
-        reportDate: getTomorrow(now),
-        phase: 'locked',
-        isOpen: false,
-        phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}`
-    }
+    return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}` }
 }
 
 // ==================================================
@@ -132,7 +90,7 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 // ==================================================
-// Gửi hoặc cập nhật báo cáo suất ăn
+// Gửi hoặc cập nhật báo cáo suất ăn (GV Lớp dùng class_id)
 // ==================================================
 export async function submitReport(formData: FormData) {
     const supabase = await createClient()
@@ -143,12 +101,18 @@ export async function submitReport(formData: FormData) {
     // Lấy thông tin profile
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role, room_id')
+        .select('role, room_id, class_id')
         .eq('id', user.id)
         .single()
 
-    if (!profile || !profile.room_id) {
-        return { error: 'Không tìm thấy thông tin phòng' }
+    if (!profile) return { error: 'Không tìm thấy profile' }
+
+    // GV Lớp dùng class_id, fallback room_id cho backward compatibility
+    const classId = profile.class_id
+    const roomId = profile.room_id
+
+    if (!classId && !roomId) {
+        return { error: 'Không tìm thấy thông tin lớp/phòng. Liên hệ Admin.' }
     }
 
     // Parse form data
@@ -159,21 +123,19 @@ export async function submitReport(formData: FormData) {
     const note = (formData.get('note') as string) || null
     const reportDate = (formData.get('report_date') as string) || new Date().toISOString().split('T')[0]
 
-    // Parse absent list (JSON string)
     let absentList: { name: string; reason?: string }[] = []
     try {
         const absentListStr = formData.get('absent_list') as string
         if (absentListStr) absentList = JSON.parse(absentListStr)
     } catch { absentList = [] }
 
-    // Validation
     const saltyCount = capacity - absentCount - porridgeCount - vegetarianCount
     if (saltyCount < 0) {
         return { error: 'Số suất mặn không thể âm. Kiểm tra lại số liệu.' }
     }
 
-    // Kiểm tra giờ — chỉ cho room_manager
-    if (profile.role === 'room_manager') {
+    // Kiểm tra giờ — chỉ cho class_teacher/room_manager
+    if (['class_teacher', 'room_manager'].includes(profile.role)) {
         const settings = await getTimeSettings(supabase)
         const now = new Date()
         const state = getFormState(now, settings)
@@ -182,22 +144,24 @@ export async function submitReport(formData: FormData) {
             return { error: `${state.phaseLabel}. Không thể báo suất. Liên hệ Admin.` }
         }
 
-        // Đảm bảo report_date khớp với state
         if (reportDate !== state.reportDate) {
             return { error: `Ngày báo cáo không hợp lệ. Hiện tại đang ở giai đoạn: ${state.phaseLabel}` }
         }
     }
 
+    // Build query filter
+    const filterKey = classId ? 'class_id' : 'room_id'
+    const filterVal = classId || roomId
+
     // Kiểm tra đã có báo cáo chưa
     const { data: existing } = await supabase
         .from('daily_reports')
         .select('id, capacity, absent_count, salty_count, porridge_count, vegetarian_count, absent_list, moc1_snapshot')
-        .eq('room_id', profile.room_id)
+        .eq(filterKey, filterVal)
         .eq('report_date', reportDate)
         .single()
 
     if (existing) {
-        // Nếu đang ở Mốc 2 và chưa có snapshot → lưu snapshot Mốc 1
         const settings = await getTimeSettings(supabase)
         const state = getFormState(new Date(), settings)
         let moc1Snapshot = existing.moc1_snapshot
@@ -214,7 +178,6 @@ export async function submitReport(formData: FormData) {
             }
         }
 
-        // Update
         const { error } = await supabase
             .from('daily_reports')
             .update({
@@ -233,23 +196,37 @@ export async function submitReport(formData: FormData) {
 
         if (error) return { error: error.message }
     } else {
-        // Insert
+        const insertData: Record<string, unknown> = {
+            report_date: reportDate,
+            capacity,
+            absent_count: absentCount,
+            absent_list: absentList,
+            porridge_count: porridgeCount,
+            vegetarian_count: vegetarianCount,
+            salty_count: saltyCount,
+            note,
+            status: 'submitted',
+            created_by: user.id,
+            updated_by: user.id,
+        }
+
+        // Set class_id or room_id
+        if (classId) {
+            insertData.class_id = classId
+            // Also get room_id from class for backward compat
+            const { data: classData } = await supabase
+                .from('classes')
+                .select('room_id')
+                .eq('id', classId)
+                .single()
+            if (classData) insertData.room_id = classData.room_id
+        } else {
+            insertData.room_id = roomId
+        }
+
         const { error } = await supabase
             .from('daily_reports')
-            .insert({
-                room_id: profile.room_id,
-                report_date: reportDate,
-                capacity,
-                absent_count: absentCount,
-                absent_list: absentList,
-                porridge_count: porridgeCount,
-                vegetarian_count: vegetarianCount,
-                salty_count: saltyCount,
-                note,
-                status: 'submitted',
-                created_by: user.id,
-                updated_by: user.id,
-            })
+            .insert(insertData)
 
         if (error) return { error: error.message }
     }
@@ -259,7 +236,7 @@ export async function submitReport(formData: FormData) {
 }
 
 // ==================================================
-// Lấy thông tin phòng và báo cáo (dựa trên phase)
+// Lấy thông tin lớp/phòng và báo cáo (dựa trên phase)
 // ==================================================
 export async function getRoomData() {
     const supabase = await createClient()
@@ -269,34 +246,60 @@ export async function getRoomData() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('room_id')
+        .select('room_id, class_id')
         .eq('id', user.id)
         .single()
 
-    if (!profile?.room_id) return { error: 'Không tìm thấy phòng' }
+    // GV Lớp: dùng class_id
+    const classId = profile?.class_id
+    const roomId = profile?.room_id
 
-    // Lấy settings
+    if (!classId && !roomId) return { error: 'Không tìm thấy lớp/phòng' }
+
     const settings = await getTimeSettings(supabase)
     const now = new Date()
     const state = getFormState(now, settings)
 
-    // Lấy thông tin phòng
-    const { data: room } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('id', profile.room_id)
-        .single()
+    let roomInfo = null
 
-    // Lấy báo cáo cho ngày ăn đúng
+    if (classId) {
+        // Lấy thông tin từ bảng classes
+        const { data: classData } = await supabase
+            .from('classes')
+            .select('name, default_capacity, rooms(name)')
+            .eq('id', classId)
+            .single()
+
+        if (classData) {
+            const roomsData = classData.rooms as unknown as { name: string } | null
+            roomInfo = {
+                name: classData.name,
+                default_capacity: classData.default_capacity,
+                room_name: roomsData?.name || '',
+            }
+        }
+    } else if (roomId) {
+        const { data: room } = await supabase
+            .from('rooms')
+            .select('*')
+            .eq('id', roomId)
+            .single()
+        roomInfo = room
+    }
+
+    // Lấy báo cáo
+    const filterKey = classId ? 'class_id' : 'room_id'
+    const filterVal = classId || roomId
+
     const { data: report } = await supabase
         .from('daily_reports')
         .select('*')
-        .eq('room_id', profile.room_id)
+        .eq(filterKey, filterVal!)
         .eq('report_date', state.reportDate)
         .single()
 
     return {
-        room,
+        room: roomInfo,
         report,
         isWithinTime: state.isOpen,
         reportDate: state.reportDate,

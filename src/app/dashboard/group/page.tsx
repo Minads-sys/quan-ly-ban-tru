@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getGroupReports, approveReport, rejectReport, approveAll } from './actions'
 
-interface RoomWithReport {
+interface ClassWithReport {
     id: string
     name: string
     default_capacity: number
-    groups: { name: string } | null
+    room_id: string
+    rooms: { name: string; groups: { name: string } | null } | null
     report: {
         id: string
         capacity: number
@@ -24,21 +25,24 @@ interface RoomWithReport {
 const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: 'Nháp', color: 'bg-gray-100 text-gray-600' },
     submitted: { label: 'Chờ duyệt', color: 'bg-amber-100 text-amber-700' },
-    approved: { label: 'Đã duyệt', color: 'bg-emerald-100 text-emerald-700' },
+    room_approved: { label: 'Đã duyệt phòng', color: 'bg-blue-100 text-blue-700' },
+    school_approved: { label: 'Trường đã duyệt', color: 'bg-emerald-100 text-emerald-700' },
     rejected: { label: 'Từ chối', color: 'bg-red-100 text-red-700' },
 }
 
 export default function GroupPage() {
-    const [rooms, setRooms] = useState<RoomWithReport[]>([])
+    const [classes, setClasses] = useState<ClassWithReport[]>([])
     const [today, setToday] = useState('')
+    const [roomName, setRoomName] = useState('')
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports()
         if ('error' in data && data.error) return
-        setRooms((data.rooms || []) as RoomWithReport[])
+        setClasses((data.classes || []) as ClassWithReport[])
         setToday(data.today as string)
+        setRoomName((data.roomName as string) || '')
         setLoading(false)
     }, [])
 
@@ -67,8 +71,12 @@ export default function GroupPage() {
         setActionLoading(null)
     }
 
-    const pendingCount = rooms.filter(r => r.report?.status === 'submitted').length
-    const reportedCount = rooms.filter(r => r.report).length
+    const pendingCount = classes.filter(c => c.report?.status === 'submitted').length
+    const reportedCount = classes.filter(c => c.report).length
+
+    // Check school approval status
+    const schoolApprovedCount = classes.filter(c => c.report?.status === 'school_approved').length
+    const roomApprovedCount = classes.filter(c => c.report?.status === 'room_approved').length
 
     if (loading) {
         return (
@@ -84,13 +92,31 @@ export default function GroupPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        👥 Bảng duyệt suất ăn
+                        👥 Duyệt suất ăn — Phòng {roomName}
                     </h2>
                     <p className="text-gray-500 text-sm mt-1">
                         Ngày: <span className="font-semibold">{today}</span>
-                        {' · '}Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{rooms.length}</span>
+                        {' · '}Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{classes.length}</span>
                         {' · '}Chờ duyệt: <span className="font-semibold text-amber-600">{pendingCount}</span>
                     </p>
+                    {/* Show school approval status */}
+                    <div className="flex gap-2 mt-2">
+                        {roomApprovedCount > 0 && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                ✅ Đã duyệt phòng: {roomApprovedCount}
+                            </span>
+                        )}
+                        {schoolApprovedCount > 0 && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                🏫 Cấp trường: Đã duyệt ({schoolApprovedCount})
+                            </span>
+                        )}
+                        {reportedCount > 0 && schoolApprovedCount === 0 && roomApprovedCount === 0 && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                                🏫 Cấp trường: Chưa duyệt
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     {pendingCount > 0 && (
@@ -120,7 +146,7 @@ export default function GroupPage() {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Phòng</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Lớp</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Sĩ số</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Nghỉ</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">🍖 Mặn</th>
@@ -131,35 +157,35 @@ export default function GroupPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {rooms.map((room) => (
-                            <tr key={room.id} className="border-b border-gray-100 hover:bg-gray-50/50">
-                                <td className="px-4 py-3 font-medium text-gray-800">{room.name}</td>
-                                {room.report ? (
+                        {classes.map((cls) => (
+                            <tr key={cls.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                                <td className="px-4 py-3 font-medium text-gray-800">{cls.name}</td>
+                                {cls.report ? (
                                     <>
-                                        <td className="text-center px-3 py-3">{room.report.capacity}</td>
-                                        <td className="text-center px-3 py-3 text-red-600">{room.report.absent_count}</td>
-                                        <td className="text-center px-3 py-3 font-semibold text-blue-700">{room.report.salty_count}</td>
-                                        <td className="text-center px-3 py-3">{room.report.porridge_count}</td>
-                                        <td className="text-center px-3 py-3">{room.report.vegetarian_count}</td>
+                                        <td className="text-center px-3 py-3">{cls.report.capacity}</td>
+                                        <td className="text-center px-3 py-3 text-red-600">{cls.report.absent_count}</td>
+                                        <td className="text-center px-3 py-3 font-semibold text-blue-700">{cls.report.salty_count}</td>
+                                        <td className="text-center px-3 py-3">{cls.report.porridge_count}</td>
+                                        <td className="text-center px-3 py-3">{cls.report.vegetarian_count}</td>
                                         <td className="text-center px-3 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[room.report.status]?.color}`}>
-                                                {statusConfig[room.report.status]?.label}
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[cls.report.status]?.color}`}>
+                                                {statusConfig[cls.report.status]?.label}
                                             </span>
                                         </td>
                                         <td className="text-center px-3 py-3">
-                                            {room.report.status === 'submitted' && (
+                                            {cls.report.status === 'submitted' && (
                                                 <div className="flex gap-1.5 justify-center">
                                                     <button
-                                                        onClick={() => handleApprove(room.report!.id)}
-                                                        disabled={actionLoading === room.report!.id}
+                                                        onClick={() => handleApprove(cls.report!.id)}
+                                                        disabled={actionLoading === cls.report!.id}
                                                         className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium
                               hover:bg-emerald-100 transition-colors disabled:opacity-50"
                                                     >
                                                         Duyệt
                                                     </button>
                                                     <button
-                                                        onClick={() => handleReject(room.report!.id)}
-                                                        disabled={actionLoading === room.report!.id}
+                                                        onClick={() => handleReject(cls.report!.id)}
+                                                        disabled={actionLoading === cls.report!.id}
                                                         className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium
                               hover:bg-red-100 transition-colors disabled:opacity-50"
                                                     >
@@ -182,49 +208,49 @@ export default function GroupPage() {
 
             {/* Cards - Mobile */}
             <div className="sm:hidden space-y-3" data-print-hide>
-                {rooms.map((room) => (
-                    <div key={room.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                {classes.map((cls) => (
+                    <div key={cls.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-gray-800">{room.name}</h3>
-                            {room.report && (
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[room.report.status]?.color}`}>
-                                    {statusConfig[room.report.status]?.label}
+                            <h3 className="font-semibold text-gray-800">{cls.name}</h3>
+                            {cls.report && (
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[cls.report.status]?.color}`}>
+                                    {statusConfig[cls.report.status]?.label}
                                 </span>
                             )}
                         </div>
-                        {room.report ? (
+                        {cls.report ? (
                             <>
                                 <div className="grid grid-cols-4 gap-2 text-center mb-3">
                                     <div>
                                         <p className="text-xs text-gray-400">Sĩ số</p>
-                                        <p className="font-semibold">{room.report.capacity}</p>
+                                        <p className="font-semibold">{cls.report.capacity}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🍖 Mặn</p>
-                                        <p className="font-semibold text-blue-700">{room.report.salty_count}</p>
+                                        <p className="font-semibold text-blue-700">{cls.report.salty_count}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🥣 Cháo</p>
-                                        <p className="font-semibold">{room.report.porridge_count}</p>
+                                        <p className="font-semibold">{cls.report.porridge_count}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🥬 Chay</p>
-                                        <p className="font-semibold">{room.report.vegetarian_count}</p>
+                                        <p className="font-semibold">{cls.report.vegetarian_count}</p>
                                     </div>
                                 </div>
-                                {room.report.status === 'submitted' && (
+                                {cls.report.status === 'submitted' && (
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => handleApprove(room.report!.id)}
-                                            disabled={actionLoading === room.report!.id}
+                                            onClick={() => handleApprove(cls.report!.id)}
+                                            disabled={actionLoading === cls.report!.id}
                                             className="flex-1 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium
                         hover:bg-emerald-100 transition-colors disabled:opacity-50"
                                         >
                                             ✅ Duyệt
                                         </button>
                                         <button
-                                            onClick={() => handleReject(room.report!.id)}
-                                            disabled={actionLoading === room.report!.id}
+                                            onClick={() => handleReject(cls.report!.id)}
+                                            disabled={actionLoading === cls.report!.id}
                                             className="flex-1 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium
                         hover:bg-red-100 transition-colors disabled:opacity-50"
                                         >
@@ -240,10 +266,10 @@ export default function GroupPage() {
                 ))}
             </div>
 
-            {rooms.length === 0 && (
+            {classes.length === 0 && (
                 <div className="text-center py-16 text-gray-400">
                     <p className="text-4xl mb-3">📋</p>
-                    <p>Chưa có phòng nào trong nhóm</p>
+                    <p>Chưa có lớp nào trong phòng</p>
                 </div>
             )}
         </div>

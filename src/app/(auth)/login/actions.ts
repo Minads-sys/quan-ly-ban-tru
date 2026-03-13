@@ -28,11 +28,13 @@ export async function login(formData: FormData) {
             .eq('id', user.id)
             .single()
 
-        const role = profile?.role || 'room_manager'
+        const role = profile?.role || 'class_teacher'
         const redirectMap: Record<string, string> = {
             admin: '/dashboard/admin',
+            school_approver: '/dashboard/school',
             group_manager: '/dashboard/group',
-            room_manager: '/dashboard/room',
+            room_manager: '/dashboard/group',
+            class_teacher: '/dashboard/room',
             kitchen: '/dashboard/kitchen',
         }
 

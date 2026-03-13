@@ -131,7 +131,10 @@ export default function RoomPage() {
                 </h2>
                 {room && (
                     <p className="text-gray-500 mt-1">
-                        Phòng: <span className="font-semibold text-gray-700">{room.name}</span>
+                        Lớp: <span className="font-semibold text-gray-700">{room.name}</span>
+                        {'room_name' in room && (room as {room_name?: string}).room_name && (
+                            <span> · Phòng: <span className="font-semibold text-gray-700">{String((room as {room_name?: string}).room_name)}</span></span>
+                        )}
                         {' · '}Sĩ số: <span className="font-semibold text-gray-700">{room.default_capacity}</span>
                     </p>
                 )}

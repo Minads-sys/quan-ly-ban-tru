@@ -253,3 +253,96 @@ export async function changeUserPassword(userId: string, newPassword: string) {
         return { error: 'Cần cấu hình SUPABASE_SERVICE_ROLE_KEY trong .env.local để đổi mật khẩu' }
     }
 }
+
+// =============================================
+// CLASSES (Lớp học)
+// =============================================
+
+/** Lấy danh sách lớp */
+export async function getClasses() {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('classes')
+        .select('*, rooms(name, groups(name))')
+        .order('name')
+    return { classes: data || [] }
+}
+
+/** Tạo lớp mới */
+export async function createClass(name: string, roomId: string, defaultCapacity: number) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('classes').insert({
+        name,
+        room_id: roomId,
+        default_capacity: defaultCapacity,
+    })
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/settings')
+    return { success: true }
+}
+
+/** Cập nhật lớp */
+export async function updateClass(id: string, name: string, roomId: string, defaultCapacity: number) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('classes').update({
+        name,
+        room_id: roomId,
+        default_capacity: defaultCapacity,
+    }).eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/settings')
+    return { success: true }
+}
+
+/** Xóa lớp */
+export async function deleteClass(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('classes').delete().eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/settings')
+    return { success: true }
+}
+
+/** Import phòng từ Excel (parse rows: Tên phòng, Tên GV phòng, Sĩ số) */
+export async function importRoomsFromExcel(rows: { roomName: string; teacherName: string; capacity: number; groupId: string }[]) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Chưa đăng nhập' }
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') return { error: 'Không có quyền' }
+
+    const results: string[] = []
+
+    for (const row of rows) {
+        if (!row.roomName || !row.groupId) continue
+
+        // Tạo phòng
+        const { data: room, error: roomErr } = await supabase
+            .from('rooms')
+            .insert({
+                name: row.roomName,
+                group_id: row.groupId,
+                default_capacity: row.capacity || 0,
+            })
+            .select('id')
+            .single()
+
+        if (roomErr) {
+            results.push(`❌ ${row.roomName}: ${roomErr.message}`)
+            continue
+        }
+
+        results.push(`✅ ${row.roomName} (sĩ số: ${row.capacity})`)
+
+        // Tạo tài khoản GV phòng nếu có tên
+        if (row.teacherName && room) {
+            // Chỉ lưu tên, chưa tạo auth user (admin sẽ tạo sau trong tab Giáo viên)
+            results.push(`   → GV: ${row.teacherName}`)
+        }
+    }
+
+    revalidatePath('/dashboard/settings')
+    return { success: true, results }
+}
+
