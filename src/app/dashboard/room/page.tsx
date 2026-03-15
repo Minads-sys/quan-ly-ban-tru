@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { submitReport, getRoomData } from './actions'
+import { getBulkRoomData } from './bulk-actions'
 import { calculateSaltyMeals } from '@/utils/calculations'
+import { BulkReportForm } from './BulkReportForm'
 
 interface AbsentStudent {
     name: string
@@ -18,6 +20,11 @@ export default function RoomPage() {
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    const [viewMode, setViewMode] = useState<'single' | 'bulk'>('single')
+    
+    // Admin / approver roles
+    const [hasBulkAccess, setHasBulkAccess] = useState(false)
+    const [bulkData, setBulkData] = useState<{rooms: any[], reports: any[]} | null>(null)
 
     // Form state
     const [capacity, setCapacity] = useState(0)
@@ -30,8 +37,24 @@ export default function RoomPage() {
     const saltyCount = calculateSaltyMeals(capacity, absentCount, porridgeCount, vegetarianCount)
 
     const loadData = useCallback(async () => {
+        setLoading(true)
         const data = await getRoomData()
-        if ('error' in data && data.error) {
+        
+        // Cố gắng check quyền bulk
+        const bulkRes = await getBulkRoomData()
+        if (!bulkRes.error) {
+            setHasBulkAccess(true)
+            setBulkData({ rooms: bulkRes.rooms || [], reports: bulkRes.reports || [] })
+            if (!data.room) {
+                 // Nếu admin không có phòng riêng, mặc định mở tab bulk
+                 setViewMode('bulk')
+            }
+            if (bulkRes.phaseLabel) setPhaseLabel(bulkRes.phaseLabel)
+            if (bulkRes.reportDate) setReportDate(bulkRes.reportDate)
+            if (bulkRes.isWithinTime !== undefined) setIsWithinTime(bulkRes.isWithinTime)
+        }
+
+        if ('error' in data && data.error && !hasBulkAccess && !bulkRes.rooms) {
             setMessage({ type: 'error', text: data.error as string })
             setLoading(false)
             return
@@ -40,10 +63,10 @@ export default function RoomPage() {
         if (data.room) {
             setRoom(data.room as { name: string; default_capacity: number })
             setCapacity((data.room as { default_capacity: number }).default_capacity || 0)
+            if (data.phaseLabel) setPhaseLabel(data.phaseLabel as string)
+            if (data.reportDate) setReportDate(data.reportDate as string)
+            if (data.isWithinTime !== undefined) setIsWithinTime(data.isWithinTime as boolean)
         }
-        setIsWithinTime(data.isWithinTime as boolean)
-        setReportDate((data.reportDate as string) || '')
-        setPhaseLabel((data.phaseLabel as string) || '')
 
         if (data.report) {
             const r = data.report as Record<string, unknown>
@@ -57,7 +80,7 @@ export default function RoomPage() {
         }
 
         setLoading(false)
-    }, [])
+    }, [hasBulkAccess])
 
     useEffect(() => {
         loadData()
@@ -123,29 +146,68 @@ export default function RoomPage() {
         : ''
 
     return (
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    🧑‍🏫 Báo suất ăn
-                </h2>
-                {room && (
-                    <p className="text-gray-500 mt-1">
-                        Lớp: <span className="font-semibold text-gray-700">{room.name}</span>
-                        {'room_name' in room && (room as {room_name?: string}).room_name && (
-                            <span> · Phòng: <span className="font-semibold text-gray-700">{String((room as {room_name?: string}).room_name)}</span></span>
-                        )}
-                        {' · '}Sĩ số: <span className="font-semibold text-gray-700">{room.default_capacity}</span>
-                    </p>
-                )}
-                {existingReport && (
-                    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
-                        {statusLabel}
-                    </span>
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        🧑‍🏫 Báo suất ăn
+                    </h2>
+                    {viewMode === 'single' && room && (
+                        <p className="text-gray-500 mt-1">
+                            Lớp: <span className="font-semibold text-gray-700">{room.name}</span>
+                            {'room_name' in room && (room as {room_name?: string}).room_name && (
+                                <span> · Phòng: <span className="font-semibold text-gray-700">{String((room as {room_name?: string}).room_name)}</span></span>
+                            )}
+                            {' · '}Sĩ số: <span className="font-semibold text-gray-700">{room.default_capacity}</span>
+                        </p>
+                    )}
+                    {viewMode === 'single' && existingReport && (
+                        <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+                            {statusLabel}
+                        </span>
+                    )}
+                </div>
+
+                {/* Tabs / Toggle */}
+                {hasBulkAccess && (
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('single')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                viewMode === 'single'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Lớp của tôi
+                        </button>
+                        <button
+                            onClick={() => setViewMode('bulk')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                viewMode === 'bulk'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Báo suất hàng loạt
+                        </button>
+                    </div>
                 )}
             </div>
 
-            {/* Phase banner */}
+            {viewMode === 'bulk' && bulkData ? (
+                 <BulkReportForm
+                 rooms={bulkData.rooms}
+                 existingReports={bulkData.reports}
+                 isWithinTime={isWithinTime}
+                 phaseLabel={phaseLabel}
+                 reportDate={reportDate}
+                 onSuccess={loadData}
+             />
+            ) : (
+                <div className="max-w-lg mx-auto">
+                    {/* Phase banner */}
             {phaseLabel && (
                 <div className={`rounded-xl p-3 mb-4 text-sm font-medium border ${isWithinTime
                         ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -334,6 +396,8 @@ export default function RoomPage() {
                     {submitting ? 'Đang gửi...' : existingReport ? '📤 Cập nhật báo cáo' : '📤 Gửi báo cáo'}
                 </button>
             </form>
+         </div>
+         )}
         </div>
     )
 }
