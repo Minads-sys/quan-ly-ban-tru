@@ -42,9 +42,9 @@ export default function SettingsPage() {
     const [editGroupId, setEditGroupId] = useState<string | null>(null)
     const [editGroupName, setEditGroupName] = useState('')
 
-    const [roomForm, setRoomForm] = useState({ name: '', groupId: '', capacity: 30 })
+    const [roomForm, setRoomForm] = useState({ name: '', groupId: '', capacity: 30, teacherName: '' })
     const [editRoomId, setEditRoomId] = useState<string | null>(null)
-    const [editRoomForm, setEditRoomForm] = useState({ name: '', groupId: '', capacity: 30 })
+    const [editRoomForm, setEditRoomForm] = useState({ name: '', groupId: '', capacity: 30, teacherName: '' })
 
     const [classForm, setClassForm] = useState({ name: '', roomId: '', capacity: 30 })
     const [editClassId, setEditClassId] = useState<string | null>(null)
@@ -124,13 +124,13 @@ export default function SettingsPage() {
     // ---- ROOMS ----
     async function handleCreateRoom() {
         if (!roomForm.name.trim() || !roomForm.groupId) return
-        const result = await createRoom(roomForm.name.trim(), roomForm.groupId, roomForm.capacity)
+        const result = await createRoom(roomForm.name.trim(), roomForm.groupId, roomForm.capacity, roomForm.teacherName.trim())
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã tạo phòng!'); setRoomForm({ name: '', groupId: '', capacity: 30 }); loadAll() }
+        else { showMsg('success', 'Đã tạo phòng!'); setRoomForm({ name: '', groupId: '', capacity: 30, teacherName: '' }); loadAll() }
     }
     async function handleUpdateRoom() {
         if (!editRoomId) return
-        const result = await updateRoom(editRoomId, editRoomForm.name, editRoomForm.groupId, editRoomForm.capacity)
+        const result = await updateRoom(editRoomId, editRoomForm.name, editRoomForm.groupId, editRoomForm.capacity, editRoomForm.teacherName.trim())
         if (result.error) showMsg('error', result.error)
         else { showMsg('success', 'Đã sửa phòng!'); setEditRoomId(null); loadAll() }
     }
@@ -382,7 +382,7 @@ export default function SettingsPage() {
                     {/* Rooms Section */}
                     <div className="bg-white rounded-xl border border-gray-200 p-5">
                         <h3 className="font-semibold text-gray-700 mb-4">🏫 Quản lý Phòng</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-4">
                             <input type="text" placeholder="Tên phòng (VD: Phòng B31)"
                                 value={roomForm.name} onChange={e => setRoomForm({ ...roomForm, name: e.target.value })}
                                 className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none" />
@@ -391,6 +391,9 @@ export default function SettingsPage() {
                                 <option value="">Chọn nhóm</option>
                                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </select>
+                            <input type="text" placeholder="Tên Giáo Viên"
+                                value={roomForm.teacherName} onChange={e => setRoomForm({ ...roomForm, teacherName: e.target.value })}
+                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none" />
                             <input type="number" min={0} placeholder="Sĩ số"
                                 value={roomForm.capacity} onChange={e => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value) || 0 })}
                                 className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none" />
@@ -407,6 +410,9 @@ export default function SettingsPage() {
                                                 className="px-2 py-1 rounded border border-gray-200 text-sm outline-none">
                                                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                                             </select>
+                                            <input type="text" placeholder="Tên Giáo Viên" value={editRoomForm.teacherName}
+                                                onChange={e => setEditRoomForm({ ...editRoomForm, teacherName: e.target.value })}
+                                                className="w-24 px-2 py-1 rounded border border-gray-200 text-sm outline-none" />
                                             <input type="number" min={0} value={editRoomForm.capacity}
                                                 onChange={e => setEditRoomForm({ ...editRoomForm, capacity: parseInt(e.target.value) || 0 })}
                                                 className="w-16 px-2 py-1 rounded border border-gray-200 text-sm outline-none" />
@@ -423,7 +429,7 @@ export default function SettingsPage() {
                                                 </span>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button onClick={() => { setEditRoomId(r.id); setEditRoomForm({ name: r.name, groupId: r.group_id, capacity: r.default_capacity }) }}
+                                                <button onClick={() => { setEditRoomId(r.id); setEditRoomForm({ name: r.name, groupId: r.group_id, capacity: r.default_capacity, teacherName: r.teacherName || '' }) }}
                                                     className="text-xs text-blue-600 font-medium hover:text-blue-700">Sửa</button>
                                                 <button onClick={() => handleDeleteRoom(r.id)}
                                                     className="text-xs text-red-500 font-medium hover:text-red-600">Xóa</button>

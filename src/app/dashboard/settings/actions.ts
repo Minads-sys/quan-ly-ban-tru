@@ -119,12 +119,13 @@ export async function getRooms() {
 }
 
 /** Tạo phòng mới */
-export async function createRoom(name: string, groupId: string, defaultCapacity: number) {
+export async function createRoom(name: string, groupId: string, defaultCapacity: number, teacherName: string) {
     const supabase = await createClient()
     const { error } = await supabase.from('rooms').insert({
         name,
         group_id: groupId,
         default_capacity: defaultCapacity,
+        teacher_name: teacherName || null,
     })
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -132,12 +133,13 @@ export async function createRoom(name: string, groupId: string, defaultCapacity:
 }
 
 /** Cập nhật phòng */
-export async function updateRoom(id: string, name: string, groupId: string, defaultCapacity: number) {
+export async function updateRoom(id: string, name: string, groupId: string, defaultCapacity: number, teacherName: string) {
     const supabase = await createClient()
     const { error } = await supabase.from('rooms').update({
         name,
         group_id: groupId,
         default_capacity: defaultCapacity,
+        teacher_name: teacherName || null,
     }).eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')

@@ -130,6 +130,12 @@ export default function SchoolPage() {
                     const groupRooms = rooms.filter(r => r.group_id === group.id)
                     const groupPending = groupRooms.filter(r => getRoomReport(r.id).hasRoomApproved).length
 
+                    const groupTotalCapacity = groupRooms.reduce((sum, r) => sum + getRoomReport(r.id).totalCapacity, 0)
+                    const groupTotalAbsent = groupRooms.reduce((sum, r) => sum + getRoomReport(r.id).totalAbsent, 0)
+                    const groupTotalSalty = groupRooms.reduce((sum, r) => sum + getRoomReport(r.id).totalSalty, 0)
+                    const groupTotalPorridge = groupRooms.reduce((sum, r) => sum + getRoomReport(r.id).totalPorridge, 0)
+                    const groupTotalVegetarian = groupRooms.reduce((sum, r) => sum + getRoomReport(r.id).totalVegetarian, 0)
+
                     return (
                         <div key={group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                             {/* Group header */}
@@ -145,17 +151,17 @@ export default function SchoolPage() {
                             </div>
 
                             {/* Rooms table */}
-                            <div className="hidden sm:block">
+                            <div className="hidden sm:block overflow-x-auto max-h-[60vh]">
                                 <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-gray-500 text-xs border-b border-gray-200">
+                                    <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm">
+                                        <tr className="border-b border-gray-200">
                                             <th className="text-left px-4 py-2 font-medium">Phòng</th>
                                             <th className="text-left px-4 py-2 font-medium">Giáo viên</th>
-                                            <th className="text-center px-2 py-2 font-medium">Sĩ số</th>
-                                            <th className="text-center px-2 py-2 font-medium">Nghỉ</th>
-                                            <th className="text-center px-2 py-2 font-medium">🍖 Mặn</th>
-                                            <th className="text-center px-2 py-2 font-medium">🥣 Cháo</th>
-                                            <th className="text-center px-2 py-2 font-medium">🥬 Chay</th>
+                                            <th className="text-center px-2 py-2 font-medium">Sĩ số<br/><span className="text-xs text-blue-600">{groupTotalCapacity}</span></th>
+                                            <th className="text-center px-2 py-2 font-medium">Nghỉ<br/><span className="text-xs text-red-600">{groupTotalAbsent}</span></th>
+                                            <th className="text-center px-2 py-2 font-medium">🍖 Mặn<br/><span className="text-xs text-blue-700">{groupTotalSalty}</span></th>
+                                            <th className="text-center px-2 py-2 font-medium">🥣 Cháo<br/><span className="text-xs text-amber-600">{groupTotalPorridge}</span></th>
+                                            <th className="text-center px-2 py-2 font-medium">🥬 Chay<br/><span className="text-xs text-emerald-600">{groupTotalVegetarian}</span></th>
                                             <th className="text-center px-2 py-2 font-medium">TT</th>
                                             <th className="text-center px-2 py-2 font-medium">Thao tác</th>
                                         </tr>
@@ -170,8 +176,8 @@ export default function SchoolPage() {
                                                     <td className="text-center px-2 py-2">{rd.totalCapacity}</td>
                                                     <td className="text-center px-2 py-2 text-red-500">{rd.totalAbsent}</td>
                                                     <td className="text-center px-2 py-2 font-semibold text-blue-700">{rd.totalSalty}</td>
-                                                    <td className="text-center px-2 py-2">{rd.totalPorridge}</td>
-                                                    <td className="text-center px-2 py-2">{rd.totalVegetarian}</td>
+                                                    <td className="text-center px-2 py-2 font-semibold text-amber-600">{rd.totalPorridge}</td>
+                                                    <td className="text-center px-2 py-2 font-semibold text-emerald-600">{rd.totalVegetarian}</td>
                                                     <td className="text-center px-2 py-2">
                                                         {rd.allApproved ? (
                                                             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">🏫 Đã duyệt</span>

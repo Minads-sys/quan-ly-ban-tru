@@ -79,6 +79,13 @@ export default function GroupPage() {
     const schoolApprovedCount = classes.filter(c => c.report?.status === 'school_approved').length
     const roomApprovedCount = classes.filter(c => c.report?.status === 'room_approved').length
 
+    // Calculate totals
+    const totalCapacity = classes.reduce((sum, cls) => sum + (cls.report?.capacity || 0), 0)
+    const totalAbsent = classes.reduce((sum, cls) => sum + (cls.report?.absent_count || 0), 0)
+    const totalSalty = classes.reduce((sum, cls) => sum + (cls.report?.salty_count || 0), 0)
+    const totalPorridge = classes.reduce((sum, cls) => sum + (cls.report?.porridge_count || 0), 0)
+    const totalVegetarian = classes.reduce((sum, cls) => sum + (cls.report?.vegetarian_count || 0), 0)
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -143,19 +150,19 @@ export default function GroupPage() {
             </div>
 
             {/* Table - Desktop */}
-            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm" data-print-show>
+            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm max-h-[70vh]" data-print-show>
                 <table className="w-full text-sm">
-                    <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Phòng</th>
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Giáo viên</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">Sĩ số</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">Nghỉ</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">🍖 Mặn</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">🥣 Cháo</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">🥬 Chay</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">Trạng thái</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-600">Thao tác</th>
+                    <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm">
+                        <tr className="border-b border-gray-200">
+                            <th className="text-left px-4 py-3 font-semibold">Phòng</th>
+                            <th className="text-left px-4 py-3 font-semibold">Giáo viên</th>
+                            <th className="text-center px-3 py-3 font-semibold">Sĩ số<br/><span className="text-xs text-blue-600">{totalCapacity}</span></th>
+                            <th className="text-center px-3 py-3 font-semibold">Nghỉ<br/><span className="text-xs text-red-600">{totalAbsent}</span></th>
+                            <th className="text-center px-3 py-3 font-semibold">🍖 Mặn<br/><span className="text-xs text-blue-700">{totalSalty}</span></th>
+                            <th className="text-center px-3 py-3 font-semibold">🥣 Cháo<br/><span className="text-xs text-amber-600">{totalPorridge}</span></th>
+                            <th className="text-center px-3 py-3 font-semibold">🥬 Chay<br/><span className="text-xs text-emerald-600">{totalVegetarian}</span></th>
+                            <th className="text-center px-3 py-3 font-semibold">Trạng thái</th>
+                            <th className="text-center px-3 py-3 font-semibold">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -168,8 +175,8 @@ export default function GroupPage() {
                                         <td className="text-center px-3 py-3">{cls.report.capacity}</td>
                                         <td className="text-center px-3 py-3 text-red-600">{cls.report.absent_count}</td>
                                         <td className="text-center px-3 py-3 font-semibold text-blue-700">{cls.report.salty_count}</td>
-                                        <td className="text-center px-3 py-3">{cls.report.porridge_count}</td>
-                                        <td className="text-center px-3 py-3">{cls.report.vegetarian_count}</td>
+                                        <td className="text-center px-3 py-3 font-semibold text-amber-600">{cls.report.porridge_count}</td>
+                                        <td className="text-center px-3 py-3 font-semibold text-emerald-600">{cls.report.vegetarian_count}</td>
                                         <td className="text-center px-3 py-3">
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig[cls.report.status]?.color}`}>
                                                 {statusConfig[cls.report.status]?.label}
@@ -234,11 +241,11 @@ export default function GroupPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🥣 Cháo</p>
-                                        <p className="font-semibold">{cls.report.porridge_count}</p>
+                                        <p className="font-semibold text-amber-600">{cls.report.porridge_count}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🥬 Chay</p>
-                                        <p className="font-semibold">{cls.report.vegetarian_count}</p>
+                                        <p className="font-semibold text-emerald-600">{cls.report.vegetarian_count}</p>
                                     </div>
                                 </div>
                                 {cls.report.status === 'submitted' && (
