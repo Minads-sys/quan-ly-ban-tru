@@ -8,6 +8,7 @@ interface ClassWithReport {
     name: string
     default_capacity: number
     room_id: string
+    teacherName?: string
     rooms: { name: string; groups: { name: string } | null } | null
     report: {
         id: string
@@ -147,6 +148,7 @@ export default function GroupPage() {
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
                             <th className="text-left px-4 py-3 font-semibold text-gray-600">Phòng</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Giáo viên</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Sĩ số</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Nghỉ</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">🍖 Mặn</th>
@@ -160,6 +162,7 @@ export default function GroupPage() {
                         {classes.map((cls) => (
                             <tr key={cls.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                                 <td className="px-4 py-3 font-medium text-gray-800">{cls.name}</td>
+                                <td className="px-4 py-3 text-gray-500 text-xs">{cls.teacherName}</td>
                                 {cls.report ? (
                                     <>
                                         <td className="text-center px-3 py-3">{cls.report.capacity}</td>
@@ -196,7 +199,7 @@ export default function GroupPage() {
                                         </td>
                                     </>
                                 ) : (
-                                    <td colSpan={7} className="text-center px-3 py-3 text-gray-400 italic">
+                                    <td colSpan={8} className="text-center px-3 py-3 text-gray-400 italic">
                                         Chưa báo suất
                                     </td>
                                 )}

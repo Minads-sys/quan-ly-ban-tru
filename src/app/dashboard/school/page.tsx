@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getSchoolReports, approveRoom, approveGroup, approveSchool } from './actions'
 
 interface GroupData { id: string; name: string }
-interface RoomData { id: string; name: string; group_id: string; groups: { name: string } | null }
+interface RoomData { id: string; name: string; group_id: string; teacherName?: string; groups: { name: string } | null }
 interface ClassData { id: string; name: string; room_id: string; default_capacity: number }
 interface ReportData {
     id: string; class_id: string; room_id: string
@@ -150,6 +150,7 @@ export default function SchoolPage() {
                                     <thead>
                                         <tr className="text-gray-500 text-xs border-b border-gray-200">
                                             <th className="text-left px-4 py-2 font-medium">Phòng</th>
+                                            <th className="text-left px-4 py-2 font-medium">Giáo viên</th>
                                             <th className="text-center px-2 py-2 font-medium">Sĩ số</th>
                                             <th className="text-center px-2 py-2 font-medium">Nghỉ</th>
                                             <th className="text-center px-2 py-2 font-medium">🍖 Mặn</th>
@@ -165,6 +166,7 @@ export default function SchoolPage() {
                                             return (
                                                 <tr key={room.id} className="border-t border-gray-100 hover:bg-gray-50/50">
                                                     <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
+                                                    <td className="px-4 py-2 text-gray-500 text-xs">{room.teacherName}</td>
                                                     <td className="text-center px-2 py-2">{rd.totalCapacity}</td>
                                                     <td className="text-center px-2 py-2 text-red-500">{rd.totalAbsent}</td>
                                                     <td className="text-center px-2 py-2 font-semibold text-blue-700">{rd.totalSalty}</td>

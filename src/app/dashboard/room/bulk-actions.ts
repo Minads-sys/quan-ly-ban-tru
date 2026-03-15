@@ -3,66 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Helper: Lấy settings thời gian (sao chép logic từ actions.ts để độc lập hoặc có thể export từ actions.ts, tạm copy)
-interface TimeSettings {
-    moc1Open: string
-    moc1Close: string
-    moc2Open: string
-    moc2Close: string
-    noLimit: boolean
-}
-
-type Phase = 'moc1' | 'moc2' | 'locked'
-
-interface FormState {
-    reportDate: string
-    phase: Phase
-    isOpen: boolean
-    phaseLabel: string
-}
-
-function toMinutes(timeStr: string): number {
-    const [h, m] = timeStr.split(':').map(Number)
-    return h * 60 + m
-}
-
-function formatDate(d: Date): string {
-    return d.toISOString().split('T')[0]
-}
-
-function getTomorrow(now: Date): string {
-    const t = new Date(now.getTime() + 86400000)
-    return formatDate(t)
-}
-
-function getFormState(now: Date, settings: TimeSettings): FormState {
-    if (settings.noLimit) {
-        const m2c = toMinutes(settings.moc2Close)
-        const current = now.getHours() * 60 + now.getMinutes()
-        const reportDate = current < m2c ? formatDate(now) : getTomorrow(now)
-        return { reportDate, phase: 'moc1', isOpen: true, phaseLabel: 'Không giới hạn' }
-    }
-
-    const current = now.getHours() * 60 + now.getMinutes()
-    const m1o = toMinutes(settings.moc1Open)
-    const m1c = toMinutes(settings.moc1Close)
-    const m2o = toMinutes(settings.moc2Open)
-    const m2c = toMinutes(settings.moc2Close)
-
-    if (current < m2c) {
-        return { reportDate: formatDate(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})` }
-    }
-    if (current >= m1o && current < m1c) {
-        return { reportDate: getTomorrow(now), phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }
-    }
-    if (current >= m1c && current < m2o) {
-        return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
-    }
-    if (current >= m2o) {
-        return { reportDate: getTomorrow(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})` }
-    }
-    return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}` }
-}
+import { TimeSettings, getFormState } from '@/utils/formState'
 
 async function getTimeSettings(supabase: any): Promise<TimeSettings> {
     const { data } = await supabase

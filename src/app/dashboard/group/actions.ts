@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getSettings } from '@/app/dashboard/settings/actions'
+import { getFormState, mapTimeSettings } from '@/utils/formState'
 
 /** Lấy danh sách lớp + báo cáo trong phòng (cho room_manager) */
 export async function getGroupReports() {
@@ -19,12 +21,21 @@ export async function getGroupReports() {
     if (!profile) return { error: 'Không tìm thấy profile' }
 
     const isAdmin = profile.role === 'admin'
-    const today = new Date().toISOString().split('T')[0]
+    
+    // Determine the active target date for reports
+    const { settings } = await getSettings()
+    const now = new Date()
+    const state = getFormState(now, mapTimeSettings(settings))
+    const activeDate = state.reportDate
 
     // Lấy các phòng quản lý
     let roomsQuery = supabase
         .from('rooms')
-        .select('*, groups(name)')
+        .select(`
+            *,
+            groups(name),
+            profiles!room_id(full_name, role)
+        `)
         .order('name')
 
     if (!isAdmin) {
@@ -33,7 +44,7 @@ export async function getGroupReports() {
         } else if (profile.room_id) {
             roomsQuery = roomsQuery.eq('id', profile.room_id)
         } else {
-            return { classes: [], today, roomName: '' } // fallback structure name until renamed
+            return { classes: [], today: activeDate, roomName: '' } // fallback structure name until renamed
         }
     }
 
@@ -47,16 +58,24 @@ export async function getGroupReports() {
         const { data } = await supabase
             .from('daily_reports')
             .select('*')
-            .eq('report_date', today)
+            .eq('report_date', activeDate)
             .in('room_id', roomIds)
         reports = data || []
     }
 
     // Map reports vào rooms (giữ tên biến classes để tương thích UI tạm thời, hoặc đổi luôn)
-    const roomsWithReports = dbRooms?.map(r => ({
-        ...r,
-        report: reports.find(rep => rep.room_id === r.id) || null,
-    })) || []
+    const roomsWithReports = dbRooms?.map(r => {
+        const managers = (r.profiles || []).filter((p: any) => p.role === 'room_manager')
+        const teacherName = managers.length > 0 
+            ? managers.map((m: any) => m.full_name).join(', ') 
+            : (r.teacher_name || '')
+
+        return {
+            ...r,
+            teacherName,
+            report: reports.find(rep => rep.room_id === r.id) || null,
+        }
+    }) || []
 
     // Lấy thông tin nhóm/phòng cho header
     let headerName = 'Tất cả'
@@ -68,7 +87,7 @@ export async function getGroupReports() {
         headerName = room?.name || ''
     }
 
-    return { classes: roomsWithReports, today, roomName: headerName }
+    return { classes: roomsWithReports, today: activeDate, roomName: headerName }
 }
 
 /** Duyệt phòng: chuyển tất cả submitted → room_approved */
@@ -128,7 +147,11 @@ export async function approveAll() {
 
     if (!profile) return { error: 'Không tìm thấy profile' }
 
-    const today = new Date().toISOString().split('T')[0]
+    // Determine the active target date
+    const { settings } = await getSettings()
+    const now = new Date()
+    const state = getFormState(now, mapTimeSettings(settings))
+    const activeDate = state.reportDate
 
     // Lấy room_ids trong phạm vi quản lý
     let roomsQuery = supabase.from('rooms').select('id')
@@ -152,7 +175,7 @@ export async function approveAll() {
             status: 'room_approved',
             updated_by: user.id,
         })
-        .eq('report_date', today)
+        .eq('report_date', activeDate)
         .eq('status', 'submitted')
         .in('room_id', roomIds)
 
