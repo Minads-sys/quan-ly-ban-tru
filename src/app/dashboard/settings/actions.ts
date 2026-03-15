@@ -104,7 +104,10 @@ export async function getRooms() {
     // Map data to extract room managers
     const mappedRooms = (data || []).map((room: any) => {
         const managers = (room.profiles || []).filter((p: any) => p.role === 'room_manager')
-        const teacherName = managers.length > 0 ? managers.map((m: any) => m.full_name).join(', ') : ''
+        // Prefer auth profile name, fallback to teacher_name column in rooms
+        const teacherName = managers.length > 0 
+            ? managers.map((m: any) => m.full_name).join(', ') 
+            : (room.teacher_name || '')
         
         return {
             ...room,
@@ -340,6 +343,7 @@ export async function importRoomsFromExcel(rows: { roomName: string; teacherName
                 name: row.roomName,
                 group_id: row.groupId,
                 default_capacity: row.capacity || 0,
+                teacher_name: row.teacherName || null
             })
             .select('id')
             .single()
@@ -351,10 +355,8 @@ export async function importRoomsFromExcel(rows: { roomName: string; teacherName
 
         results.push(`✅ ${row.roomName} (sĩ số: ${row.capacity})`)
 
-        // Tạo tài khoản GV phòng nếu có tên
-        if (row.teacherName && room) {
-            // Chỉ lưu tên, chưa tạo auth user (admin sẽ tạo sau trong tab Giáo viên)
-            results.push(`   → GV: ${row.teacherName}`)
+        if (row.teacherName) {
+             results.push(`   → GV: ${row.teacherName} (Chỉ lưu tên, chưa tạo tài khoản)`)
         }
     }
 

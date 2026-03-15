@@ -212,7 +212,7 @@ export async function getBulkRoomData() {
     const { data: roomsData, error: roomsError } = await supabase
         .from('rooms')
         .select(`
-            id, name, default_capacity,
+            id, name, default_capacity, teacher_name,
             groups(name),
             profiles!room_id(full_name, role)
         `)
@@ -222,7 +222,10 @@ export async function getBulkRoomData() {
 
     const rooms = (roomsData || []).map((room: any) => {
         const managers = (room.profiles || []).filter((p: any) => p.role === 'room_manager')
-        const teacherName = managers.length > 0 ? managers.map((m: any) => m.full_name).join(', ') : ''
+        const teacherName = managers.length > 0 
+            ? managers.map((m: any) => m.full_name).join(', ') 
+            : (room.teacher_name || '')
+            
         return {
             id: room.id,
             name: room.name,

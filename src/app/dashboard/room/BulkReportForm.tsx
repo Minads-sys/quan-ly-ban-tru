@@ -244,11 +244,11 @@ export function BulkReportForm({
                             <th className="px-4 py-3 border-b border-gray-200">Trạng thái</th>
                             <th className="px-4 py-3 border-b border-gray-200">Phòng</th>
                             <th className="px-4 py-3 min-w-[140px] border-b border-gray-200">Giáo viên</th>
-                            <th className="px-3 py-3 w-24 text-center border-b border-gray-200">Sĩ số</th>
-                            <th className="px-3 py-3 w-24 text-center border-b border-gray-200">Nghỉ</th>
-                            <th className="px-3 py-3 w-24 text-center">Cháo</th>
-                            <th className="px-3 py-3 w-24 text-center">Chay</th>
-                            <th className="px-3 py-3 w-24 text-center">Mặn</th>
+                            <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Sĩ số</th>
+                            <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Nghỉ</th>
+                            <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Cháo</th>
+                            <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Chay</th>
+                            <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Mặn</th>
                             <th className="px-3 py-3 min-w-[200px] border-b border-gray-200">Ghi chú</th>
                         </tr>
                     </thead>
@@ -306,42 +306,46 @@ export function BulkReportForm({
                                 </td>
                                 <td className="px-2 py-2">
                                     <input
-                                        type="number"
-                                        min={0}
-                                        value={row.capacity}
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={row.capacity || ''}
                                         onChange={(e) => handleInputChange(row.roomId, 'capacity', parseInt(e.target.value) || 0)}
                                         disabled={isRowDisabled}
-                                        className="w-full px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="w-full min-w-[64px] px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
                                     />
                                 </td>
                                 <td className="px-2 py-2">
                                     <input
-                                        type="number"
-                                        min={0}
-                                        value={row.absentCount}
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={row.absentCount || ''}
                                         onChange={(e) => handleInputChange(row.roomId, 'absentCount', parseInt(e.target.value) || 0)}
                                         disabled={isRowDisabled}
-                                        className="w-full px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="w-full min-w-[64px] px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
                                     />
                                 </td>
                                 <td className="px-2 py-2">
                                     <input
-                                        type="number"
-                                        min={0}
-                                        value={row.porridgeCount}
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={row.porridgeCount || ''}
                                         onChange={(e) => handleInputChange(row.roomId, 'porridgeCount', parseInt(e.target.value) || 0)}
                                         disabled={isRowDisabled}
-                                        className="w-full px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="w-full min-w-[64px] px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
                                     />
                                 </td>
                                 <td className="px-2 py-2">
                                     <input
-                                        type="number"
-                                        min={0}
-                                        value={row.vegetarianCount}
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={row.vegetarianCount || ''}
                                         onChange={(e) => handleInputChange(row.roomId, 'vegetarianCount', parseInt(e.target.value) || 0)}
                                         disabled={isRowDisabled}
-                                        className="w-full px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
+                                        className="w-full min-w-[64px] px-2 py-1.5 text-center border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400"
                                     />
                                 </td>
                                 <td className="px-2 py-2 text-center">
