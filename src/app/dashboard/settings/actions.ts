@@ -94,9 +94,25 @@ export async function getRooms() {
     const supabase = await createClient()
     const { data } = await supabase
         .from('rooms')
-        .select('*, groups(name)')
+        .select(`
+            *,
+            groups(name),
+            profiles!room_id(full_name, role)
+        `)
         .order('name')
-    return { rooms: data || [] }
+        
+    // Map data to extract room managers
+    const mappedRooms = (data || []).map((room: any) => {
+        const managers = (room.profiles || []).filter((p: any) => p.role === 'room_manager')
+        const teacherName = managers.length > 0 ? managers.map((m: any) => m.full_name).join(', ') : ''
+        
+        return {
+            ...room,
+            teacherName
+        }
+    })
+
+    return { rooms: mappedRooms }
 }
 
 /** Tạo phòng mới */

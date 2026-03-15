@@ -7,6 +7,8 @@ interface RoomData {
     id: string
     name: string
     default_capacity: number
+    teacherName?: string
+    groupName?: string
 }
 
 interface ReportData {
@@ -33,6 +35,8 @@ interface BulkReportFormProps {
 type RowData = {
     roomId: string
     roomName: string
+    teacherName: string
+    groupName: string
     capacity: number
     absentCount: number
     porridgeCount: number
@@ -53,6 +57,13 @@ export function BulkReportForm({
 }: BulkReportFormProps) {
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    const [filterGroup, setFilterGroup] = useState<string>('all')
+
+    // groups list for filter
+    const uniqueGroups = useMemo(() => {
+        const groupsList = rooms.map(r => r.groupName || 'Chưa xếp nhóm')
+        return Array.from(new Set(groupsList)).sort()
+    }, [rooms])
 
     // Initialize rows based on rooms and existing reports
     const initialRows = useMemo(() => {
@@ -62,6 +73,8 @@ export function BulkReportForm({
                 return {
                     roomId: room.id,
                     roomName: room.name,
+                    teacherName: room.teacherName || '',
+                    groupName: room.groupName || 'Chưa xếp nhóm',
                     capacity: report.capacity,
                     absentCount: report.absent_count,
                     porridgeCount: report.porridge_count,
@@ -75,6 +88,8 @@ export function BulkReportForm({
                 return {
                     roomId: room.id,
                     roomName: room.name,
+                    teacherName: room.teacherName || '',
+                    groupName: room.groupName || 'Chưa xếp nhóm',
                     capacity: room.default_capacity,
                     absentCount: 0,
                     porridgeCount: 0,
@@ -157,10 +172,18 @@ export function BulkReportForm({
         }
     }
 
+    const isSubmitting = submitting
     const isDisabled = !isWithinTime || submitting
+    const totalChanged = rows.filter(r => r.isChanged).length
+    const hasInvalidSalty = rows.some((r) => r.saltyCount < 0)
+
+    const filteredRows = useMemo(() => {
+        if (filterGroup === 'all') return rows
+        return rows.filter(r => r.groupName === filterGroup)
+    }, [rows, filterGroup])
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col max-h-[85vh]">
              {/* Phase banner */}
              {phaseLabel && (
                 <div className={`p-4 border-b ${isWithinTime
@@ -193,22 +216,44 @@ export function BulkReportForm({
                 </div>
             )}
 
-            <div className="overflow-x-auto">
+            {/* Header controls: Filter and Submit */}
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">Lọc theo nhóm:</label>
+                    <select
+                        value={filterGroup}
+                        onChange={e => setFilterGroup(e.target.value)}
+                        className="px-3 py-1.5 border border-gray-200 bg-white rounded-lg text-sm outline-none focus:border-blue-500 min-w-[150px]"
+                    >
+                        <option value="all">Tất cả các nhóm</option>
+                        {uniqueGroups.map(g => (
+                            <option key={g} value={g}>{g}</option>
+                        ))}
+                    </select>
+                </div>
+                
+                <div className="text-sm font-medium text-gray-600">
+                    Phòng thay đổi: <span className="text-blue-600 font-bold">{totalChanged}</span>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto overflow-y-auto flex-1 relative">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                    <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th className="px-4 py-3">Phòng</th>
-                            <th className="px-3 py-3 w-24 text-center">Sĩ số</th>
-                            <th className="px-3 py-3 w-24 text-center">Nghỉ</th>
+                            <th className="px-4 py-3 border-b border-gray-200">Trạng thái</th>
+                            <th className="px-4 py-3 border-b border-gray-200">Phòng</th>
+                            <th className="px-4 py-3 min-w-[140px] border-b border-gray-200">Giáo viên</th>
+                            <th className="px-3 py-3 w-24 text-center border-b border-gray-200">Sĩ số</th>
+                            <th className="px-3 py-3 w-24 text-center border-b border-gray-200">Nghỉ</th>
                             <th className="px-3 py-3 w-24 text-center">Cháo</th>
                             <th className="px-3 py-3 w-24 text-center">Chay</th>
                             <th className="px-3 py-3 w-24 text-center">Mặn</th>
-                            <th className="px-4 py-3 min-w-[200px]">Ghi chú</th>
-                            <th className="px-4 py-3 text-center">Trạng thái</th>
+                            <th className="px-3 py-3 min-w-[200px] border-b border-gray-200">Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {rows.map((row) => {
+                        {filteredRows.map((row) => {
                             const hasError = row.saltyCount < 0
                             
                             const statusColor = {
@@ -233,10 +278,31 @@ export function BulkReportForm({
                             const isRowDisabled = isDisabled || row.status === 'school_approved' || row.status === 'room_approved'
 
                             return (
-                            <tr key={row.roomId} className={`hover:bg-blue-50/50 transition-colors ${row.isChanged ? 'bg-blue-50/30' : ''}`}>
-                                <td className="px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
-                                    {row.roomName}
-                                    {row.isChanged && <span className="ml-1 text-[10px] text-blue-500 font-bold" title="Chưa lưu">*</span>}
+                            <tr key={row.roomId} className={`hover:bg-blue-50/50 transition-colors ${row.isChanged ? 'bg-amber-50' : 'odd:bg-white even:bg-gray-50'}`}>
+                                <td className="px-4 py-3 text-center border-r border-gray-100 min-w-[100px]">
+                                    {row.isChanged ? (
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span title="Chưa lưu thay đổi">⚠️</span>
+                                            <span className="text-[10px] text-amber-600 mt-1 font-medium">Chưa lưu</span>
+                                        </div>
+                                    ) : row.status !== 'unsubmitted' ? (
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${statusColor}`}>
+                                                {statusLabel}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">Trống</span>
+                                    )}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
+                                    <div className="flex flex-col">
+                                        <span>{row.roomName}</span>
+                                        <span className="text-xs text-gray-400 font-normal mt-0.5">{row.groupName}</span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                    {row.teacherName || <span className="italic opacity-50">Chưa xếp</span>}
                                 </td>
                                 <td className="px-2 py-2">
                                     <input
@@ -293,28 +359,30 @@ export function BulkReportForm({
                                         className="w-full px-3 py-1.5 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-400 text-sm"
                                     />
                                 </td>
-                                <td className="px-4 py-3 text-center">
-                                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColor}`}>
-                                        {statusLabel}
-                                    </span>
-                                </td>
                             </tr>
                         )})}
+                        {filteredRows.length === 0 && (
+                            <tr>
+                                <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                                    Không có dữ liệu phòng phù hợp.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
             
-            <div className="p-4 border-t border-gray-200 bg-gray-50 text-right">
+            <div className="p-4 border-t border-gray-200 bg-gray-50 text-right shrink-0">
                 <button
                     onClick={handleSubmit}
-                    disabled={isDisabled || submitting || rows.filter(r => r.isChanged).length === 0}
-                    className="py-2.5 px-6 bg-gradient-to-r from-blue-500 to-emerald-500
-                    text-white font-semibold rounded-lg shadow-sm
-                    hover:from-blue-600 hover:to-emerald-600
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    transition-all duration-200"
+                    disabled={isDisabled || hasInvalidSalty || totalChanged === 0}
+                    className={`py-2.5 px-6 font-semibold rounded-lg shadow-sm transition-all duration-200 ${
+                        isDisabled || hasInvalidSalty || totalChanged === 0
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    }`}
                 >
-                    {submitting ? 'Đang gửi...' : `📤 Gửi báo cáo hàng loạt (${rows.filter(r => r.isChanged).length} thay đổi)`}
+                    {submitting ? 'Đang lưu...' : `💾 Lưu các thay đổi (${totalChanged})`}
                 </button>
             </div>
         </div>

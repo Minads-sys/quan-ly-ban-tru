@@ -13,7 +13,7 @@ import {
 type Tab = 'time' | 'rooms' | 'classes' | 'users'
 
 interface Group { id: string; name: string; rooms: { count: number }[] }
-interface Room { id: string; name: string; group_id: string; default_capacity: number; groups: { name: string } | null }
+interface Room { id: string; name: string; group_id: string; default_capacity: number; groups: { name: string } | null; teacherName?: string }
 interface ClassItem { id: string; name: string; room_id: string; default_capacity: number; rooms: { name: string; groups: { name: string } | null } | null }
 interface User {
     id: string; email: string; full_name: string; role: string;
@@ -417,7 +417,10 @@ export default function SettingsPage() {
                                         <>
                                             <div>
                                                 <span className="font-medium text-gray-700 text-sm">{r.name}</span>
-                                                <span className="text-xs text-gray-400 ml-2">{r.groups?.name} · Sĩ số: {r.default_capacity}</span>
+                                                <span className="text-xs text-gray-400 ml-2">
+                                                    {r.groups?.name} · Sĩ số: {r.default_capacity} 
+                                                    {r.teacherName && ` · GV: ${r.teacherName}`}
+                                                </span>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button onClick={() => { setEditRoomId(r.id); setEditRoomForm({ name: r.name, groupId: r.group_id, capacity: r.default_capacity }) }}

@@ -208,13 +208,29 @@ export async function getBulkRoomData() {
     const now = new Date()
     const state = getFormState(now, settings)
 
-    // Lấy tất cả phòng
-    const { data: rooms, error: roomsError } = await supabase
+    // Lấy tất cả phòng kèm giáo viên và nhóm
+    const { data: roomsData, error: roomsError } = await supabase
         .from('rooms')
-        .select('id, name, default_capacity')
+        .select(`
+            id, name, default_capacity,
+            groups(name),
+            profiles!room_id(full_name, role)
+        `)
         .order('name')
         
     if (roomsError) return { error: roomsError.message }
+
+    const rooms = (roomsData || []).map((room: any) => {
+        const managers = (room.profiles || []).filter((p: any) => p.role === 'room_manager')
+        const teacherName = managers.length > 0 ? managers.map((m: any) => m.full_name).join(', ') : ''
+        return {
+            id: room.id,
+            name: room.name,
+            default_capacity: room.default_capacity,
+            teacherName,
+            groupName: room.groups?.name || 'Chưa xếp nhóm'
+        }
+    })
 
     // Lấy báo cáo ngày hiện tại
     const { data: reports, error: reportsError } = await supabase
