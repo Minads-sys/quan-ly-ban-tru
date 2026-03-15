@@ -21,49 +21,54 @@ export async function getGroupReports() {
     const isAdmin = profile.role === 'admin'
     const today = new Date().toISOString().split('T')[0]
 
-    // Lấy các lớp trong phòng mình (room_manager) hoặc tất cả (admin)
-    let classesQuery = supabase
-        .from('classes')
-        .select('*, rooms(name, groups(name))')
+    // Lấy các phòng quản lý
+    let roomsQuery = supabase
+        .from('rooms')
+        .select('*, groups(name)')
         .order('name')
 
-    if (!isAdmin && profile.room_id) {
-        classesQuery = classesQuery.eq('room_id', profile.room_id)
+    if (!isAdmin) {
+        if (profile.role === 'group_manager' && profile.group_id) {
+            roomsQuery = roomsQuery.eq('group_id', profile.group_id)
+        } else if (profile.room_id) {
+            roomsQuery = roomsQuery.eq('id', profile.room_id)
+        } else {
+            return { classes: [], today, roomName: '' } // fallback structure name until renamed
+        }
     }
 
-    const { data: classes } = await classesQuery
+    const { data: dbRooms } = await roomsQuery
 
-    // Lấy báo cáo hôm nay cho các lớp
-    const classIds = classes?.map(c => c.id) || []
+    // Lấy báo cáo hôm nay cho các phòng
+    const roomIds = dbRooms?.map(r => r.id) || []
     let reports: Record<string, unknown>[] = []
 
-    if (classIds.length > 0) {
+    if (roomIds.length > 0) {
         const { data } = await supabase
             .from('daily_reports')
             .select('*')
             .eq('report_date', today)
-            .in('class_id', classIds)
+            .in('room_id', roomIds)
         reports = data || []
     }
 
-    // Map reports vào classes
-    const classesWithReports = classes?.map(cls => ({
-        ...cls,
-        report: reports.find(r => r.class_id === cls.id) || null,
+    // Map reports vào rooms (giữ tên biến classes để tương thích UI tạm thời, hoặc đổi luôn)
+    const roomsWithReports = dbRooms?.map(r => ({
+        ...r,
+        report: reports.find(rep => rep.room_id === r.id) || null,
     })) || []
 
-    // Lấy thông tin phòng
-    let roomName = ''
-    if (profile.room_id) {
-        const { data: room } = await supabase
-            .from('rooms')
-            .select('name')
-            .eq('id', profile.room_id)
-            .single()
-        roomName = room?.name || ''
+    // Lấy thông tin nhóm/phòng cho header
+    let headerName = 'Tất cả'
+    if (profile.role === 'group_manager' && profile.group_id) {
+         const { data: group } = await supabase.from('groups').select('name').eq('id', profile.group_id).single()
+         headerName = group?.name || ''
+    } else if (profile.room_id) {
+        const { data: room } = await supabase.from('rooms').select('name').eq('id', profile.room_id).single()
+        headerName = room?.name || ''
     }
 
-    return { classes: classesWithReports, today, roomName }
+    return { classes: roomsWithReports, today, roomName: headerName }
 }
 
 /** Duyệt phòng: chuyển tất cả submitted → room_approved */
@@ -117,7 +122,7 @@ export async function approveAll() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role, room_id')
+        .select('role, room_id, group_id')
         .eq('id', user.id)
         .single()
 
@@ -125,15 +130,21 @@ export async function approveAll() {
 
     const today = new Date().toISOString().split('T')[0]
 
-    // Lấy class_ids trong phòng
-    let classesQuery = supabase.from('classes').select('id')
-    if (profile.role !== 'admin' && profile.room_id) {
-        classesQuery = classesQuery.eq('room_id', profile.room_id)
+    // Lấy room_ids trong phạm vi quản lý
+    let roomsQuery = supabase.from('rooms').select('id')
+    if (profile.role !== 'admin') {
+        if (profile.role === 'group_manager' && profile.group_id) {
+            roomsQuery = roomsQuery.eq('group_id', profile.group_id)
+        } else if (profile.room_id) {
+            roomsQuery = roomsQuery.eq('id', profile.room_id)
+        } else {
+            return { error: 'Không quyền truy cập' }
+        }
     }
-    const { data: classes } = await classesQuery
-    const classIds = classes?.map(c => c.id) || []
+    const { data: rooms } = await roomsQuery
+    const roomIds = rooms?.map(r => r.id) || []
 
-    if (classIds.length === 0) return { error: 'Không có lớp' }
+    if (roomIds.length === 0) return { error: 'Không có phòng' }
 
     const { error } = await supabase
         .from('daily_reports')
@@ -143,7 +154,7 @@ export async function approveAll() {
         })
         .eq('report_date', today)
         .eq('status', 'submitted')
-        .in('class_id', classIds)
+        .in('room_id', roomIds)
 
     if (error) return { error: error.message }
 

@@ -146,7 +146,7 @@ export default function GroupPage() {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Lớp</th>
+                            <th className="text-left px-4 py-3 font-semibold text-gray-600">Phòng</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Sĩ số</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">Nghỉ</th>
                             <th className="text-center px-3 py-3 font-semibold text-gray-600">🍖 Mặn</th>
@@ -269,7 +269,7 @@ export default function GroupPage() {
             {classes.length === 0 && (
                 <div className="text-center py-16 text-gray-400">
                     <p className="text-4xl mb-3">📋</p>
-                    <p>Chưa có lớp nào trong phòng</p>
+                    <p>Chưa có phòng nào trong danh sách quản lý</p>
                 </div>
             )}
         </div>

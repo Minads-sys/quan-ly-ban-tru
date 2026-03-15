@@ -57,21 +57,12 @@ export async function approveRoom(roomId: string) {
 
     const today = new Date().toISOString().split('T')[0]
 
-    // Lấy class_ids trong phòng này
-    const { data: classesInRoom } = await supabase
-        .from('classes')
-        .select('id')
-        .eq('room_id', roomId)
-
-    const classIds = classesInRoom?.map(c => c.id) || []
-    if (classIds.length === 0) return { error: 'Không tìm thấy lớp trong phòng' }
-
     const { error } = await supabase
         .from('daily_reports')
         .update({ status: 'school_approved', updated_by: user.id })
         .eq('report_date', today)
         .eq('status', 'room_approved')
-        .in('class_id', classIds)
+        .eq('room_id', roomId)
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/school')
@@ -95,21 +86,12 @@ export async function approveGroup(groupId: string) {
     const roomIds = roomsInGroup?.map(r => r.id) || []
     if (roomIds.length === 0) return { error: 'Không có phòng trong nhóm' }
 
-    // Lấy class_ids trong các phòng
-    const { data: classesInRooms } = await supabase
-        .from('classes')
-        .select('id')
-        .in('room_id', roomIds)
-
-    const classIds = classesInRooms?.map(c => c.id) || []
-    if (classIds.length === 0) return { error: 'Không có lớp trong nhóm' }
-
     const { error } = await supabase
         .from('daily_reports')
         .update({ status: 'school_approved', updated_by: user.id })
         .eq('report_date', today)
         .eq('status', 'room_approved')
-        .in('class_id', classIds)
+        .in('room_id', roomIds)
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/school')

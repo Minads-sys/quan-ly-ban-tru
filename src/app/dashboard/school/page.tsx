@@ -67,18 +67,28 @@ export default function SchoolPage() {
 
     // Aggregate data
     function getRoomReport(roomId: string) {
-        const roomClasses = classes.filter(c => c.room_id === roomId)
-        const roomReports = reports.filter(r => roomClasses.some(c => c.id === r.class_id))
-        const totalCapacity = roomReports.reduce((s, r) => s + r.capacity, 0)
-        const totalAbsent = roomReports.reduce((s, r) => s + r.absent_count, 0)
-        const totalSalty = roomReports.reduce((s, r) => s + r.salty_count, 0)
-        const totalPorridge = roomReports.reduce((s, r) => s + r.porridge_count, 0)
-        const totalVegetarian = roomReports.reduce((s, r) => s + r.vegetarian_count, 0)
-        const pendingApproval = roomReports.filter(r => r.status === 'room_approved').length
-        const allApproved = roomReports.length > 0 && roomReports.every(r => r.status === 'school_approved')
-        const hasRoomApproved = pendingApproval > 0
-
-        return { totalCapacity, totalAbsent, totalSalty, totalPorridge, totalVegetarian, pendingApproval, allApproved, hasRoomApproved, reportCount: roomReports.length, classCount: roomClasses.length }
+        const roomReport = reports.find(r => r.room_id === roomId)
+        
+        if (!roomReport) {
+            return {
+                 totalCapacity: 0, totalAbsent: 0, totalSalty: 0,
+                 totalPorridge: 0, totalVegetarian: 0,
+                 pendingApproval: 0, allApproved: false,
+                 hasRoomApproved: false, reportCount: 0
+            }
+        }
+        
+        return {
+             totalCapacity: roomReport.capacity,
+             totalAbsent: roomReport.absent_count,
+             totalSalty: roomReport.salty_count,
+             totalPorridge: roomReport.porridge_count,
+             totalVegetarian: roomReport.vegetarian_count,
+             pendingApproval: roomReport.status === 'room_approved' ? 1 : 0,
+             allApproved: roomReport.status === 'school_approved',
+             hasRoomApproved: roomReport.status === 'room_approved' || roomReport.status === 'school_approved',
+             reportCount: 1
+        }
     }
 
     const totalPendingRooms = rooms.filter(r => getRoomReport(r.id).hasRoomApproved).length
@@ -140,7 +150,6 @@ export default function SchoolPage() {
                                     <thead>
                                         <tr className="text-gray-500 text-xs border-b border-gray-200">
                                             <th className="text-left px-4 py-2 font-medium">Phòng</th>
-                                            <th className="text-center px-2 py-2 font-medium">Lớp</th>
                                             <th className="text-center px-2 py-2 font-medium">Sĩ số</th>
                                             <th className="text-center px-2 py-2 font-medium">Nghỉ</th>
                                             <th className="text-center px-2 py-2 font-medium">🍖 Mặn</th>
@@ -156,7 +165,6 @@ export default function SchoolPage() {
                                             return (
                                                 <tr key={room.id} className="border-t border-gray-100 hover:bg-gray-50/50">
                                                     <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
-                                                    <td className="text-center px-2 py-2 text-gray-400">{rd.classCount}</td>
                                                     <td className="text-center px-2 py-2">{rd.totalCapacity}</td>
                                                     <td className="text-center px-2 py-2 text-red-500">{rd.totalAbsent}</td>
                                                     <td className="text-center px-2 py-2 font-semibold text-blue-700">{rd.totalSalty}</td>
