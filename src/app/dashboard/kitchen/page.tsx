@@ -273,14 +273,14 @@ export default function KitchenPage() {
                                         </td>
                                         <td className="text-center px-2 py-2">—</td>
                                         <td className="text-center px-2 py-2">—</td>
-                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
-                                            {gs.totalSalty > 0 && <span title="Số công mặn">Mặn: {Math.ceil(gs.totalSalty / 20)}</span>}
+                                        <td className="text-center px-2 py-2 whitespace-nowrap">
+                                            {gs.totalSalty > 0 && <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 text-base font-bold shadow-sm" title="Số công mặn">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
                                         </td>
-                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
-                                            {gs.totalPorridge > 0 && <span title="Số công cháo">Cháo: {Math.ceil(gs.totalPorridge / 20)}</span>}
+                                        <td className="text-center px-2 py-2 whitespace-nowrap">
+                                            {gs.totalPorridge > 0 && <div className="inline-block bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 text-base font-bold shadow-sm" title="Số công cháo">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
                                         </td>
-                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
-                                            {gs.totalVegetarian > 0 && <span title="Số công chay">Chay: {Math.ceil(gs.totalVegetarian / 20)}</span>}
+                                        <td className="text-center px-2 py-2 whitespace-nowrap">
+                                            {gs.totalVegetarian > 0 && <div className="inline-block bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 text-base font-bold shadow-sm" title="Số công chay">Chay: {Math.ceil(gs.totalVegetarian / 20)}</div>}
                                         </td>
                                         <td className="text-center px-2 py-2 bg-rose-100/50">—</td>
                                         <td className="text-center px-2 py-2">—</td>
@@ -320,10 +320,10 @@ export default function KitchenPage() {
                                         <span>Tổng số công:</span>
                                         <b className="text-rose-600 text-base">{gs.cong}</b>
                                     </div>
-                                    <div className="flex justify-between text-xs opacity-90">
-                                        {gs.totalSalty > 0 && <span>Mặn: {Math.ceil(gs.totalSalty / 20)}</span>}
-                                        {gs.totalPorridge > 0 && <span>Cháo: {Math.ceil(gs.totalPorridge / 20)}</span>}
-                                        {gs.totalVegetarian > 0 && <span>Chay: {Math.ceil(gs.totalVegetarian / 20)}</span>}
+                                    <div className="flex justify-between text-xs opacity-90 mt-2">
+                                        {gs.totalSalty > 0 && <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-200 font-bold">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
+                                        {gs.totalPorridge > 0 && <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded border border-amber-200 font-bold">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
+                                        {gs.totalVegetarian > 0 && <div className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded border border-emerald-200 font-bold">Chay: {Math.ceil(gs.totalVegetarian / 20)}</div>}
                                     </div>
                                 </div>
                             </div>
