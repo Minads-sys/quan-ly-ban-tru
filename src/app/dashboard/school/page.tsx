@@ -26,11 +26,12 @@ export default function SchoolPage() {
     const [classes, setClasses] = useState<ClassData[]>([])
     const [reports, setReports] = useState<ReportData[]>([])
     const [today, setToday] = useState('')
+    const [selectedDate, setSelectedDate] = useState('')
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const loadData = useCallback(async () => {
-        const data = await getSchoolReports()
+        const data = await getSchoolReports(selectedDate || undefined)
         if ('error' in data && data.error) return
         setGroups((data.groups || []) as GroupData[])
         setRooms((data.rooms || []) as RoomData[])
@@ -38,13 +39,13 @@ export default function SchoolPage() {
         setReports((data.reports || []) as ReportData[])
         setToday(data.today as string)
         setLoading(false)
-    }, [])
+    }, [selectedDate])
 
     useEffect(() => { loadData() }, [loadData])
 
     async function handleApproveRoom(roomId: string) {
         setActionLoading(roomId)
-        await approveRoom(roomId)
+        await approveRoom(roomId, selectedDate || undefined)
         await loadData()
         setActionLoading(null)
     }
@@ -52,7 +53,7 @@ export default function SchoolPage() {
     async function handleApproveGroup(groupId: string) {
         if (!confirm('Bạn có chắc muốn duyệt toàn bộ nhóm này?')) return
         setActionLoading(`group-${groupId}`)
-        await approveGroup(groupId)
+        await approveGroup(groupId, selectedDate || undefined)
         await loadData()
         setActionLoading(null)
     }
@@ -60,7 +61,7 @@ export default function SchoolPage() {
     async function handleApproveSchool() {
         if (!confirm('Bạn có chắc muốn duyệt TOÀN BỘ TRƯỜNG? Tất cả báo cáo đã duyệt phòng sẽ được duyệt cấp trường.')) return
         setActionLoading('school')
-        await approveSchool()
+        await approveSchool(selectedDate || undefined)
         await loadData()
         setActionLoading(null)
     }
@@ -108,9 +109,17 @@ export default function SchoolPage() {
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         🏫 Duyệt cấp Trường
                     </h2>
+                    <div className="flex items-center gap-2 text-sm mt-2 mb-1">
+                        <span className="text-gray-500">Ngày:</span>
+                        <input 
+                            type="date"
+                            value={selectedDate || today}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-2 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-gray-700 bg-white"
+                        />
+                    </div>
                     <p className="text-gray-500 text-sm mt-1">
-                        Ngày: <span className="font-semibold">{today}</span>
-                        {' · '}Chờ duyệt: <span className="font-semibold text-blue-600">{totalPendingRooms} phòng</span>
+                        Chờ duyệt: <span className="font-semibold text-blue-600">{totalPendingRooms} phòng</span>
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -173,7 +182,7 @@ export default function SchoolPage() {
                                                 <tr key={room.id} className="border-t border-gray-100 hover:bg-gray-50/50">
                                                     <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
                                                     <td className="px-4 py-2 text-gray-500 text-xs">{room.teacherName}</td>
-                                                    <td className="text-center px-2 py-2">{rd.totalCapacity}</td>
+                                                    <td className="text-center px-2 py-2 font-bold text-gray-800">{rd.totalCapacity}</td>
                                                     <td className="text-center px-2 py-2 text-red-500">{rd.totalAbsent}</td>
                                                     <td className="text-center px-2 py-2 font-semibold text-blue-700">{rd.totalSalty}</td>
                                                     <td className="text-center px-2 py-2 font-semibold text-amber-600">{rd.totalPorridge}</td>
@@ -220,7 +229,7 @@ export default function SchoolPage() {
                                                 ) : null}
                                             </div>
                                             <div className="grid grid-cols-4 gap-2 text-center text-xs mb-2">
-                                                <div><p className="text-gray-400">SN</p><p className="font-semibold">{rd.totalCapacity}</p></div>
+                                                <div><p className="text-gray-400">SN</p><p className="font-bold text-gray-800">{rd.totalCapacity}</p></div>
                                                 <div><p className="text-gray-400">🍖 Mặn</p><p className="font-semibold text-blue-700">{rd.totalSalty}</p></div>
                                                 <div><p className="text-gray-400">🥣 Cháo</p><p className="font-semibold">{rd.totalPorridge}</p></div>
                                                 <div><p className="text-gray-400">🥬 Chay</p><p className="font-semibold">{rd.totalVegetarian}</p></div>

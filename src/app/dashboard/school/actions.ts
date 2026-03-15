@@ -6,7 +6,7 @@ import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
 
 /** Lấy tất cả reports theo nhóm cho school_approver */
-export async function getSchoolReports() {
+export async function getSchoolReports(selectedDate?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -22,10 +22,13 @@ export async function getSchoolReports() {
         return { error: 'Không có quyền' }
     }
 
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     // Lấy tất cả nhóm
     const { data: groups } = await supabase
@@ -72,15 +75,18 @@ export async function getSchoolReports() {
 }
 
 /** Duyệt cấp trường cho 1 phòng (tất cả báo cáo room_approved → school_approved) */
-export async function approveRoom(roomId: string) {
+export async function approveRoom(roomId: string, selectedDate?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Chưa đăng nhập' }
 
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     const { error } = await supabase
         .from('daily_reports')
@@ -95,15 +101,18 @@ export async function approveRoom(roomId: string) {
 }
 
 /** Duyệt toàn bộ nhóm */
-export async function approveGroup(groupId: string) {
+export async function approveGroup(groupId: string, selectedDate?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Chưa đăng nhập' }
 
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     // Lấy room_ids trong nhóm
     const { data: roomsInGroup } = await supabase
@@ -127,15 +136,18 @@ export async function approveGroup(groupId: string) {
 }
 
 /** Duyệt toàn trường */
-export async function approveSchool() {
+export async function approveSchool(selectedDate?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Chưa đăng nhập' }
 
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     const { error } = await supabase
         .from('daily_reports')

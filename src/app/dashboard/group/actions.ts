@@ -6,7 +6,7 @@ import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
 
 /** Lấy danh sách lớp + báo cáo trong phòng (cho room_manager) */
-export async function getGroupReports() {
+export async function getGroupReports(selectedDate?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -23,10 +23,13 @@ export async function getGroupReports() {
     const isAdmin = profile.role === 'admin'
     
     // Determine the active target date for reports
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     // Lấy các phòng quản lý
     let roomsQuery = supabase
@@ -133,7 +136,7 @@ export async function rejectReport(reportId: string) {
 }
 
 /** Duyệt tất cả submitted trong phòng → room_approved */
-export async function approveAll() {
+export async function approveAll(selectedDate?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -148,10 +151,13 @@ export async function approveAll() {
     if (!profile) return { error: 'Không tìm thấy profile' }
 
     // Determine the active target date
-    const { settings } = await getSettings()
-    const now = new Date()
-    const state = getFormState(now, mapTimeSettings(settings))
-    const activeDate = state.reportDate
+    let activeDate = selectedDate
+    if (!activeDate) {
+        const { settings } = await getSettings()
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settings))
+        activeDate = state.reportDate
+    }
 
     // Lấy room_ids trong phạm vi quản lý
     let roomsQuery = supabase.from('rooms').select('id')

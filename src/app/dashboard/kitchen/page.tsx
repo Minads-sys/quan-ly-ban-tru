@@ -169,23 +169,23 @@ export default function KitchenPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs font-medium opacity-80">🍖 Suất mặn</p>
+                    <p className="text-sm font-semibold opacity-90">🍖 Suất mặn</p>
                     <p className="text-3xl font-bold mt-1">{totalSalty}</p>
                 </div>
                 <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs font-medium opacity-80">🥬 Suất chay</p>
+                    <p className="text-sm font-semibold opacity-90">🥬 Suất chay</p>
                     <p className="text-3xl font-bold mt-1">{totalVegetarian}</p>
                 </div>
                 <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs font-medium opacity-80">🥣 Suất cháo</p>
+                    <p className="text-sm font-semibold opacity-90">🥣 Suất cháo</p>
                     <p className="text-3xl font-bold mt-1">{totalPorridge}</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs font-medium opacity-80">📊 Tổng suất</p>
+                    <p className="text-sm font-semibold opacity-90">📊 Tổng suất</p>
                     <p className="text-3xl font-bold mt-1">{totalMeals}</p>
                 </div>
                 <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs font-medium opacity-80">⚙️ Số Công</p>
+                    <p className="text-sm font-semibold opacity-90">⚙️ Số Công</p>
                     <p className="text-3xl font-bold mt-1">{totalCong}</p>
                     <p className="text-xs opacity-70 mt-0.5">= ⌈{totalMeals}/20⌉</p>
                 </div>
@@ -206,18 +206,18 @@ export default function KitchenPage() {
                         </div>
 
                         {/* Rooms Table */}
-                        <div className="hidden sm:block" data-print-show>
+                        <div className="hidden sm:block overflow-x-auto max-h-[60vh]" data-print-show>
                             <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-gray-500 text-xs">
-                                        <th className="text-left px-4 py-2 font-medium">Phòng</th>
-                                        <th className="text-center px-2 py-2 font-medium">Sĩ số</th>
-                                        <th className="text-center px-2 py-2 font-medium">Nghỉ</th>
-                                        <th className="text-center px-2 py-2 font-medium">🍖 Mặn</th>
-                                        <th className="text-center px-2 py-2 font-medium">🥣 Cháo</th>
-                                        <th className="text-center px-2 py-2 font-medium">🥬 Chay</th>
-                                        <th className="text-center px-2 py-2 font-medium bg-blue-50">M1 Mặn</th>
-                                        <th className="text-center px-2 py-2 font-medium">TT</th>
+                                <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 font-semibold">Phòng</th>
+                                        <th className="text-center px-2 py-3 font-semibold">Sĩ số</th>
+                                        <th className="text-center px-2 py-3 font-semibold">Nghỉ</th>
+                                        <th className="text-center px-2 py-3 font-semibold">🍖 Mặn</th>
+                                        <th className="text-center px-2 py-3 font-semibold">🥣 Cháo</th>
+                                        <th className="text-center px-2 py-3 font-semibold">🥬 Chay</th>
+                                        <th className="text-center px-2 py-3 font-semibold bg-gray-200/50">M1 Mặn</th>
+                                        <th className="text-center px-2 py-3 font-semibold">TT</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -226,12 +226,12 @@ export default function KitchenPage() {
                                             <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
                                             {room.report ? (
                                                 <>
-                                                    <td className="text-center px-2 py-2">{room.report.capacity}</td>
+                                                    <td className="text-center px-2 py-2 font-bold text-gray-800">{room.report.capacity}</td>
                                                     <td className="text-center px-2 py-2 text-red-500">{room.report.absent_count}</td>
-                                                    <td className="text-center px-2 py-2 font-semibold text-blue-700">{room.report.salty_count}</td>
-                                                    <td className="text-center px-2 py-2">{room.report.porridge_count}</td>
-                                                    <td className="text-center px-2 py-2">{room.report.vegetarian_count}</td>
-                                                    <td className="text-center px-2 py-2 bg-blue-50 text-blue-600 text-xs">
+                                                    <td className="text-center px-2 py-2 font-bold text-blue-700">{room.report.salty_count}</td>
+                                                    <td className="text-center px-2 py-2 font-bold text-amber-600">{room.report.porridge_count}</td>
+                                                    <td className="text-center px-2 py-2 font-bold text-emerald-600">{room.report.vegetarian_count}</td>
+                                                    <td className="text-center px-2 py-2 bg-gray-50 text-gray-600 text-xs font-semibold">
                                                         {room.report.moc1_snapshot ? room.report.moc1_snapshot.salty_count : '—'}
                                                     </td>
                                                     <td className="text-center px-2 py-2">
@@ -245,14 +245,33 @@ export default function KitchenPage() {
                                     ))}
                                     {/* Subtotal */}
                                     <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-sm">
-                                        <td className="px-4 py-2 text-gray-600">Tổng</td>
+                                        <td className="px-4 py-3 text-gray-700">Tổng suất:</td>
+                                        <td className="text-center px-2 py-3">—</td>
+                                        <td className="text-center px-2 py-3">—</td>
+                                        <td className="text-center px-2 py-3 text-blue-700">{gs.totalSalty}</td>
+                                        <td className="text-center px-2 py-3 text-amber-600">{gs.totalPorridge}</td>
+                                        <td className="text-center px-2 py-3 text-emerald-600">{gs.totalVegetarian}</td>
+                                        <td className="text-center px-2 py-3 bg-gray-100">—</td>
+                                        <td className="text-center px-2 py-3">—</td>
+                                    </tr>
+                                    {/* Subtotal Công */}
+                                    <tr className="border-b-2 border-gray-200 bg-rose-50 font-semibold text-sm">
+                                        <td className="px-4 py-2 text-rose-700 flex items-center justify-between">
+                                            <span>Tổng số công: <b className="text-rose-600 text-base">{gs.cong}</b></span>
+                                        </td>
                                         <td className="text-center px-2 py-2">—</td>
                                         <td className="text-center px-2 py-2">—</td>
-                                        <td className="text-center px-2 py-2 text-blue-700">{gs.totalSalty}</td>
-                                        <td className="text-center px-2 py-2">{gs.totalPorridge}</td>
-                                        <td className="text-center px-2 py-2">{gs.totalVegetarian}</td>
-                                        <td className="text-center px-2 py-2 bg-blue-50">—</td>
-                                        <td className="text-center px-2 py-2 text-rose-600">{gs.cong}C</td>
+                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
+                                            {gs.totalSalty > 0 && <span title="Số công mặn">Mặn: {Math.ceil(gs.totalSalty / 20)}</span>}
+                                        </td>
+                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
+                                            {gs.totalPorridge > 0 && <span title="Số công cháo">Cháo: {Math.ceil(gs.totalPorridge / 20)}</span>}
+                                        </td>
+                                        <td className="text-center px-2 py-2 text-rose-600 whitespace-nowrap">
+                                            {gs.totalVegetarian > 0 && <span title="Số công chay">Chay: {Math.ceil(gs.totalVegetarian / 20)}</span>}
+                                        </td>
+                                        <td className="text-center px-2 py-2 bg-rose-100/50">—</td>
+                                        <td className="text-center px-2 py-2">—</td>
                                     </tr>
                                 </tbody>
                             </table>

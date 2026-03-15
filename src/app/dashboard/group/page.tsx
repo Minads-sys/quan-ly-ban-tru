@@ -34,18 +34,19 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 export default function GroupPage() {
     const [classes, setClasses] = useState<ClassWithReport[]>([])
     const [today, setToday] = useState('')
+    const [selectedDate, setSelectedDate] = useState('')
     const [roomName, setRoomName] = useState('')
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const loadData = useCallback(async () => {
-        const data = await getGroupReports()
+        const data = await getGroupReports(selectedDate || undefined)
         if ('error' in data && data.error) return
         setClasses((data.classes || []) as ClassWithReport[])
         setToday(data.today as string)
         setRoomName((data.roomName as string) || '')
         setLoading(false)
-    }, [])
+    }, [selectedDate])
 
     useEffect(() => {
         loadData()
@@ -67,7 +68,7 @@ export default function GroupPage() {
 
     async function handleApproveAll() {
         setActionLoading('all')
-        await approveAll()
+        await approveAll(selectedDate || undefined)
         await loadData()
         setActionLoading(null)
     }
@@ -102,9 +103,17 @@ export default function GroupPage() {
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         👥 Duyệt suất ăn — Phòng {roomName}
                     </h2>
+                    <div className="flex items-center gap-2 text-sm mt-2 mb-1">
+                        <span className="text-gray-500">Ngày:</span>
+                        <input 
+                            type="date"
+                            value={selectedDate || today}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-2 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-gray-700 bg-white"
+                        />
+                    </div>
                     <p className="text-gray-500 text-sm mt-1">
-                        Ngày: <span className="font-semibold">{today}</span>
-                        {' · '}Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{classes.length}</span>
+                        Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{classes.length}</span>
                         {' · '}Chờ duyệt: <span className="font-semibold text-amber-600">{pendingCount}</span>
                     </p>
                     {/* Show school approval status */}
@@ -172,7 +181,7 @@ export default function GroupPage() {
                                 <td className="px-4 py-3 text-gray-500 text-xs">{cls.teacherName}</td>
                                 {cls.report ? (
                                     <>
-                                        <td className="text-center px-3 py-3">{cls.report.capacity}</td>
+                                        <td className="text-center px-3 py-3 font-bold text-gray-800">{cls.report.capacity}</td>
                                         <td className="text-center px-3 py-3 text-red-600">{cls.report.absent_count}</td>
                                         <td className="text-center px-3 py-3 font-semibold text-blue-700">{cls.report.salty_count}</td>
                                         <td className="text-center px-3 py-3 font-semibold text-amber-600">{cls.report.porridge_count}</td>
@@ -233,7 +242,7 @@ export default function GroupPage() {
                                 <div className="grid grid-cols-4 gap-2 text-center mb-3">
                                     <div>
                                         <p className="text-xs text-gray-400">Sĩ số</p>
-                                        <p className="font-semibold">{cls.report.capacity}</p>
+                                        <p className="font-bold text-gray-800">{cls.report.capacity}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400">🍖 Mặn</p>
