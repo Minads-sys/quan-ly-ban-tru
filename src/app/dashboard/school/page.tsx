@@ -231,8 +231,8 @@ export default function SchoolPage() {
                                             <div className="grid grid-cols-4 gap-2 text-center text-xs mb-2">
                                                 <div><p className="text-gray-400">SN</p><p className="font-bold text-gray-800">{rd.totalCapacity}</p></div>
                                                 <div><p className="text-gray-400">🍖 Mặn</p><p className="font-semibold text-blue-700">{rd.totalSalty}</p></div>
-                                                <div><p className="text-gray-400">🥣 Cháo</p><p className="font-semibold">{rd.totalPorridge}</p></div>
-                                                <div><p className="text-gray-400">🥬 Chay</p><p className="font-semibold">{rd.totalVegetarian}</p></div>
+                                                <div><p className="text-gray-400">🥣 Cháo</p><p className="font-bold text-amber-600">{rd.totalPorridge}</p></div>
+                                                <div><p className="text-gray-400">🥬 Chay</p><p className="font-bold text-emerald-600">{rd.totalVegetarian}</p></div>
                                             </div>
                                             {rd.hasRoomApproved && !rd.allApproved && (
                                                 <button onClick={() => handleApproveRoom(room.id)}
@@ -244,6 +244,18 @@ export default function SchoolPage() {
                                         </div>
                                     )
                                 })}
+                                {/* Mobile Group Total */}
+                                {groupRooms.length > 0 && (
+                                    <div className="p-4 bg-gray-50 border-t-2 border-gray-200">
+                                        <h4 className="font-semibold text-gray-700 text-center mb-2">Tổng nhóm</h4>
+                                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                                            <div><p className="text-gray-500">SN</p><p className="font-bold text-blue-600">{groupTotalCapacity}</p></div>
+                                            <div><p className="text-gray-500">🍖 Mặn</p><p className="font-bold text-blue-700">{groupTotalSalty}</p></div>
+                                            <div><p className="text-gray-500">🥣 Cháo</p><p className="font-bold text-amber-600">{groupTotalPorridge}</p></div>
+                                            <div><p className="text-gray-500">🥬 Chay</p><p className="font-bold text-emerald-600">{groupTotalVegetarian}</p></div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )

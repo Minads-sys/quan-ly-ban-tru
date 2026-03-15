@@ -235,19 +235,19 @@ export default function AdminPage() {
                     </div>
 
                     {/* Desktop Table */}
-                    <div className="hidden sm:block">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-gray-500 text-xs border-b border-gray-200">
-                                    <th className="text-left px-4 py-2 font-medium">Nhóm</th>
-                                    <th className="text-left px-3 py-2 font-medium">Phòng</th>
-                                    <th className="text-center px-2 py-2 font-medium">SN</th>
-                                    <th className="text-center px-2 py-2 font-medium">Nghỉ</th>
-                                    <th className="text-center px-2 py-2 font-medium">Mặn</th>
-                                    <th className="text-center px-2 py-2 font-medium">Cháo</th>
-                                    <th className="text-center px-2 py-2 font-medium">Chay</th>
-                                    <th className="text-center px-2 py-2 font-medium">TT</th>
-                                    <th className="text-center px-2 py-2 font-medium">Thao tác</th>
+                    <div className="hidden sm:block overflow-x-auto max-h-[70vh]">
+                        <table className="w-full text-sm relative">
+                            <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
+                                <tr>
+                                    <th className="text-left px-4 py-3 font-semibold">Nhóm</th>
+                                    <th className="text-left px-3 py-3 font-semibold">Phòng</th>
+                                    <th className="text-center px-2 py-3 font-semibold text-gray-800">SN</th>
+                                    <th className="text-center px-2 py-3 font-semibold text-red-600">Nghỉ</th>
+                                    <th className="text-center px-2 py-3 font-semibold text-blue-700">Mặn</th>
+                                    <th className="text-center px-2 py-3 font-semibold text-amber-600">Cháo</th>
+                                    <th className="text-center px-2 py-3 font-semibold text-emerald-600">Chay</th>
+                                    <th className="text-center px-2 py-3 font-semibold">TT</th>
+                                    <th className="text-center px-2 py-3 font-semibold">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -255,11 +255,11 @@ export default function AdminPage() {
                                     <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/50">
                                         <td className="px-4 py-2 text-gray-500 text-xs">{r.rooms?.groups?.name || '—'}</td>
                                         <td className="px-3 py-2 font-medium text-gray-700">{r.rooms?.name || '—'}</td>
-                                        <td className="text-center px-2 py-2">{r.capacity}</td>
+                                        <td className="text-center px-2 py-2 font-bold text-gray-800">{r.capacity}</td>
                                         <td className="text-center px-2 py-2 text-red-500">{r.absent_count}</td>
-                                        <td className="text-center px-2 py-2 font-semibold text-blue-700">{r.salty_count}</td>
-                                        <td className="text-center px-2 py-2">{r.porridge_count}</td>
-                                        <td className="text-center px-2 py-2">{r.vegetarian_count}</td>
+                                        <td className="text-center px-2 py-2 font-bold text-blue-700">{r.salty_count}</td>
+                                        <td className="text-center px-2 py-2 font-bold text-amber-600">{r.porridge_count}</td>
+                                        <td className="text-center px-2 py-2 font-bold text-emerald-600">{r.vegetarian_count}</td>
                                         <td className="text-center px-2 py-2">
                                             {r.status === 'approved' ? '✅' : r.status === 'submitted' ? '⏳' : '⚪'}
                                         </td>
@@ -293,10 +293,10 @@ export default function AdminPage() {
                                     </button>
                                 </div>
                                 <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                                    <span>SN:{r.capacity}</span>
-                                    <span className="text-blue-600 font-semibold">Mặn:{r.salty_count}</span>
-                                    <span>Cháo:{r.porridge_count}</span>
-                                    <span>Chay:{r.vegetarian_count}</span>
+                                    <span>SN: <b className="text-gray-800">{r.capacity}</b></span>
+                                    <span className="text-blue-700 font-bold">Mặn: {r.salty_count}</span>
+                                    <span className="text-amber-600 font-bold">Cháo: {r.porridge_count}</span>
+                                    <span className="text-emerald-600 font-bold">Chay: {r.vegetarian_count}</span>
                                 </div>
                             </div>
                         ))}

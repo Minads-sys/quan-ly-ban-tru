@@ -283,6 +283,29 @@ export default function GroupPage() {
                         )}
                     </div>
                 ))}
+                {classes.length > 0 && (
+                    <div className="bg-gray-50 rounded-xl border-2 border-gray-200 p-4 shadow-sm mt-4">
+                        <h3 className="font-bold text-gray-800 mb-3 text-center">Tổng cộng Nhóm</h3>
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                            <div>
+                                <p className="text-xs text-gray-500">Sĩ số</p>
+                                <p className="font-bold text-blue-600">{totalCapacity}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">🍖 Mặn</p>
+                                <p className="font-bold text-blue-700">{totalSalty}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">🥣 Cháo</p>
+                                <p className="font-bold text-amber-600">{totalPorridge}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">🥬 Chay</p>
+                                <p className="font-bold text-emerald-600">{totalVegetarian}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {classes.length === 0 && (

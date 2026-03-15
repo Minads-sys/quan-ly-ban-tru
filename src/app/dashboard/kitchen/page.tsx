@@ -135,7 +135,7 @@ export default function KitchenPage() {
     return (
         <div>
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 print:hidden">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         🍳 Báo cáo Bếp / Kế toán
@@ -196,17 +196,29 @@ export default function KitchenPage() {
                 {groupSummaries.map((gs) => (
                     <div key={gs.group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         {/* Group Header */}
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                            <h3 className="font-bold text-gray-700">{gs.group.name}</h3>
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between print:hidden">
+                            <h3 className="font-bold text-gray-700 text-lg">{gs.group.name}</h3>
                             <div className="flex gap-4 text-xs text-gray-500">
                                 <span>Báo: <b className="text-blue-600">{gs.reportedCount}/{gs.totalRooms}</b></span>
-                                <span>Tổng: <b className="text-purple-600">{gs.totalMeals}</b></span>
-                                <span>Công: <b className="text-rose-600">{gs.cong}</b></span>
+                            </div>
+                        </div>
+
+                        {/* Large Group Overview Cards (for easy reading & printing) */}
+                        <div className="grid grid-cols-2 gap-4 p-4 border-b border-gray-200">
+                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center">
+                                <h3 className="text-lg font-bold text-gray-800 mb-1">{gs.group.name}</h3>
+                                <p className="text-sm font-semibold text-gray-600">📊 TỔNG SUẤT</p>
+                                <p className="text-4xl font-extrabold text-blue-700 mt-2">{gs.totalMeals}</p>
+                            </div>
+                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center">
+                                <p className="text-lg font-bold text-transparent mb-1 select-none">.</p>
+                                <p className="text-sm font-semibold text-gray-600">⚙️ TỔNG SỐ CÔNG</p>
+                                <p className="text-4xl font-extrabold text-rose-600 mt-2">{gs.cong}</p>
                             </div>
                         </div>
 
                         {/* Rooms Table */}
-                        <div className="hidden sm:block overflow-x-auto max-h-[60vh]" data-print-show>
+                        <div className="hidden sm:block overflow-x-auto max-h-[60vh] print:overflow-visible print:max-h-none print:block" data-print-show>
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
                                     <tr>
@@ -283,17 +295,38 @@ export default function KitchenPage() {
                                 <div key={room.id} className="px-4 py-3">
                                     <p className="font-medium text-gray-700 text-sm">{room.name}</p>
                                     {room.report ? (
-                                        <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                                            <span>SN:{room.report.capacity}</span>
-                                            <span className="text-blue-600 font-semibold">Mặn:{room.report.salty_count}</span>
-                                            <span>Cháo:{room.report.porridge_count}</span>
-                                            <span>Chay:{room.report.vegetarian_count}</span>
+                                        <div className="flex justify-between mt-1 text-sm">
+                                            <span>SN: <b className="text-gray-800">{room.report.capacity}</b></span>
+                                            <span className="text-blue-700 font-bold">Mặn: {room.report.salty_count}</span>
+                                            <span className="text-amber-600 font-bold">Cháo: {room.report.porridge_count}</span>
+                                            <span className="text-emerald-600 font-bold">Chay: {room.report.vegetarian_count}</span>
                                         </div>
                                     ) : (
                                         <p className="text-xs text-gray-400 italic mt-1">Chưa báo</p>
                                     )}
                                 </div>
                             ))}
+                            
+                            {/* Mobile Subtotal and Công */}
+                            <div className="p-4 bg-gray-50 border-t-2 border-gray-200 space-y-3">
+                                <div className="flex justify-between text-sm font-semibold">
+                                    <span className="text-gray-700">Tổng suất:</span>
+                                    <span className="text-blue-700">M: {gs.totalSalty}</span>
+                                    <span className="text-amber-600">C: {gs.totalPorridge}</span>
+                                    <span className="text-emerald-600">V: {gs.totalVegetarian}</span>
+                                </div>
+                                <div className="bg-rose-50 border border-rose-100 p-3 rounded-lg text-sm text-rose-700 font-semibold shadow-sm">
+                                    <div className="flex justify-between mb-1.5 border-b border-rose-100/50 pb-1.5">
+                                        <span>Tổng số công:</span>
+                                        <b className="text-rose-600 text-base">{gs.cong}</b>
+                                    </div>
+                                    <div className="flex justify-between text-xs opacity-90">
+                                        {gs.totalSalty > 0 && <span>Mặn: {Math.ceil(gs.totalSalty / 20)}</span>}
+                                        {gs.totalPorridge > 0 && <span>Cháo: {Math.ceil(gs.totalPorridge / 20)}</span>}
+                                        {gs.totalVegetarian > 0 && <span>Chay: {Math.ceil(gs.totalVegetarian / 20)}</span>}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ))}
