@@ -43,7 +43,6 @@ export async function getKitchenSummary(date?: string) {
     })
 
     const totalMeals = totalSalty + totalVegetarian + totalPorridge
-    const totalCong = calculateCong(totalMeals)
 
     // Tổng hợp theo nhóm
     const groupSummaries = groups?.map((group) => {
@@ -75,11 +74,14 @@ export async function getKitchenSummary(date?: string) {
             totalVegetarian: groupVegetarian,
             totalPorridge: groupPorridge,
             totalMeals: groupTotal,
-            cong: calculateCong(groupTotal),
+            cong: calculateCong(groupSalty) + calculateCong(groupPorridge) + calculateCong(groupVegetarian),
             reportedCount: groupReports.length,
             totalRooms: groupRooms.length,
         }
     }) || []
+
+    // totalCong = sum of each group's công (avoids ceiling-rounding discrepancy)
+    const totalCong = groupSummaries.reduce((sum, gs) => sum + gs.cong, 0)
 
     return {
         date: reportDate,

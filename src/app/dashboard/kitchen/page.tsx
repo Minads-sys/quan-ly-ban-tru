@@ -187,7 +187,7 @@ export default function KitchenPage() {
                 <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
                     <p className="text-sm font-semibold opacity-90">⚙️ Số Công</p>
                     <p className="text-3xl font-bold mt-1">{totalCong}</p>
-                    <p className="text-xs opacity-70 mt-0.5">= ⌈{totalMeals}/20⌉</p>
+                    <p className="text-xs opacity-70 mt-0.5">= Σ công các nhóm</p>
                 </div>
             </div>
 
