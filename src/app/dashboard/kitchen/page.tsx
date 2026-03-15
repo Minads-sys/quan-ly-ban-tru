@@ -205,15 +205,21 @@ export default function KitchenPage() {
 
                         {/* Large Group Overview Cards (for easy reading & printing) */}
                         <div className="grid grid-cols-2 gap-4 p-4 border-b border-gray-200">
-                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center">
+                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-blue-50/30">
                                 <h3 className="text-lg font-bold text-gray-800 mb-1">{gs.group.name}</h3>
                                 <p className="text-sm font-semibold text-gray-600">📊 TỔNG SUẤT</p>
                                 <p className="text-4xl font-extrabold text-blue-700 mt-2">{gs.totalMeals}</p>
                             </div>
-                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center">
-                                <p className="text-lg font-bold text-transparent mb-1 select-none">.</p>
+                            <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-rose-50/30 flex flex-col items-center justify-center">
+                                <p className="text-lg font-bold text-transparent mb-1 select-none hidden sm:block">.</p>
                                 <p className="text-sm font-semibold text-gray-600">⚙️ TỔNG SỐ CÔNG</p>
-                                <p className="text-4xl font-extrabold text-rose-600 mt-2">{gs.cong}</p>
+                                <p className="text-5xl font-extrabold text-rose-600 mt-2 mb-3">{gs.cong}</p>
+                                {/* Detailed Công Breakdowns */}
+                                <div className="flex gap-3 justify-center text-sm mt-auto">
+                                    {gs.totalSalty > 0 && <div className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 font-bold shadow-sm whitespace-nowrap">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
+                                    {gs.totalPorridge > 0 && <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 font-bold shadow-sm whitespace-nowrap">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
+                                    {gs.totalVegetarian > 0 && <div className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 font-bold shadow-sm whitespace-nowrap">Chay: {Math.ceil(gs.totalVegetarian / 20)}</div>}
+                                </div>
                             </div>
                         </div>
 
