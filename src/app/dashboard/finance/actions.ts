@@ -18,7 +18,7 @@ export interface AdvancePayment {
 }
 
 /** Lấy danh sách tạm ứng */
-export async function getAdvancePayments(month?: string) {
+export async function getAdvancePayments(startDate?: string, endDate?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -29,8 +29,11 @@ export async function getAdvancePayments(month?: string) {
         .select('*')
         .order('payment_date', { ascending: false })
 
-    if (month) {
-        query = query.eq('report_month', month)
+    if (startDate) {
+        query = query.gte('payment_date', startDate)
+    }
+    if (endDate) {
+        query = query.lte('payment_date', endDate)
     }
 
     const { data, error } = await query
@@ -106,8 +109,8 @@ export async function deleteAdvancePayment(id: string) {
     return { success: true }
 }
 
-/** Lấy tóm tắt công nợ theo tháng */
-export async function getDebtSummary(month: string) {
+/** Lấy tóm tắt công nợ theo thời gian */
+export async function getDebtSummary(startDate: string, endDate: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -121,28 +124,24 @@ export async function getDebtSummary(month: string) {
         .single()
     const mealPrice = parseInt(settings?.value || '25000') || 25000
 
-    // 2. Tính tổng số suất trong tháng
-    const [m, y] = month.split('/')
-    const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate()
-    const startDate = `${y}-${m}-01`
-    const endDate = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
-
+    // 2. Tính tổng số suất trong khoảng thời gian
     const { data: reports } = await supabase
         .from('daily_reports')
         .select('salty_count, porridge_count, vegetarian_count')
         .gte('report_date', startDate)
         .lte('report_date', endDate)
-        .eq('status', 'approved')
+        .eq('status', 'school_approved')
 
     const totalMeals = (reports || []).reduce((sum, r) => 
         sum + (Number(r.salty_count) || 0) + (Number(r.porridge_count) || 0) + (Number(r.vegetarian_count) || 0), 0)
     const totalMealMoney = totalMeals * mealPrice
 
-    // 3. Tính tổng tiền đã thu tạm ứng trong tháng
+    // 3. Tính tổng tiền đã thu tạm ứng trong khoảng thời gian
     const { data: advances } = await supabase
         .from('advance_payments')
         .select('amount')
-        .eq('report_month', month)
+        .gte('payment_date', startDate)
+        .lte('payment_date', endDate)
 
     const totalAdvance = (advances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0)
 
