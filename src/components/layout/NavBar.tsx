@@ -104,7 +104,7 @@ export function NavBar({ userRole }: NavBarProps) {
                 `}
             >
                 <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50/50">
-                    <span className="text-xl font-black text-gray-800 uppercase tracking-tight">Danh mục</span>
+                    <span className="text-xl font-bold text-gray-800 uppercase tracking-tight">Danh mục</span>
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"

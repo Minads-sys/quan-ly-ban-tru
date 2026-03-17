@@ -49,7 +49,7 @@ export default async function DashboardLayout({
                                     Suất ăn Bán trú
                                 </h1>
                                 {schoolName && (
-                                    <p className="text-sm sm:text-base font-extrabold text-blue-700 whitespace-nowrap">
+                                    <p className="text-sm sm:text-base font-bold text-blue-700 whitespace-nowrap">
                                         {schoolName}
                                     </p>
                                 )}

@@ -200,7 +200,7 @@ export default function KitchenPage() {
                     <div>
                         <h2 className={`${showSummaryOnly ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 flex items-center gap-3`}>
                             {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Quản lý Bếp & Chia suất'}
-                            {schoolInfo.name && <span className="text-blue-600 font-extrabold">| {schoolInfo.name}</span>}
+                            {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                         </h2>
                         {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
                     </div>
@@ -261,7 +261,7 @@ export default function KitchenPage() {
             {isViewingTodayAfter14h ? (
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-12 text-center shadow-lg">
                      <p className="text-6xl mb-6">⏰</p>
-                     <p className="text-3xl font-extrabold text-amber-800">Đã hết thời gian xem số liệu ngày hôm nay.</p>
+                     <p className="text-3xl font-bold text-amber-800">Đã hết thời gian xem số liệu ngày hôm nay.</p>
                      <p className="text-xl text-amber-700 mt-4">Vui lòng chọn ngày khác hoặc xem số liệu ngày mai.</p>
                 </div>
             ) : groupSummaries.length === 0 && !loading ? (
@@ -279,19 +279,19 @@ export default function KitchenPage() {
                             <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-5 gap-3'} mb-8`}>
                                 <div className={`bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất</p>
-                                    <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-black mt-2`}>{totalMeals}</p>
+                                    <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-bold mt-2`}>{totalMeals}</p>
                                 </div>
                                 <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🍖 Tổng suất mặn</p>
-                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalSalty}</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{totalSalty}</p>
                                 </div>
                                 <div className="bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥬 Tổng Suất chay</p>
-                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalVegetarian}</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{totalVegetarian}</p>
                                 </div>
                                 <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥣 Tổng suất Cháo</p>
-                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalPorridge}</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{totalPorridge}</p>
                                 </div>
                                 {!showSummaryOnly && (
                                     <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
@@ -318,11 +318,11 @@ export default function KitchenPage() {
                                                 <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-blue-50/30">
                                                     <h3 className="text-lg font-bold text-gray-800 mb-1">{gs.group.name}</h3>
                                                     <p className="text-sm font-semibold text-gray-600">📊 TỔNG SUẤT</p>
-                                                    <p className="text-4xl font-extrabold text-blue-700 mt-2">{gs.totalMeals}</p>
+                                                    <p className="text-4xl font-bold text-blue-700 mt-2">{gs.totalMeals}</p>
                                                 </div>
                                                 <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-rose-50/30 flex flex-col items-center justify-center">
                                                     <p className="text-sm font-semibold text-gray-600">⚙️ TỔNG SỐ CÔNG</p>
-                                                    <p className="text-5xl font-extrabold text-rose-600 mt-2 mb-3">{gs.cong}</p>
+                                                    <p className="text-5xl font-bold text-rose-600 mt-2 mb-3">{gs.cong}</p>
                                                     <div className="flex gap-3 justify-center text-sm mt-auto">
                                                         {gs.totalSalty > 0 && <div className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 font-bold shadow-sm whitespace-nowrap">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
                                                         {gs.totalPorridge > 0 && <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 font-bold shadow-sm whitespace-nowrap">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
@@ -388,7 +388,7 @@ export default function KitchenPage() {
                                     <div key={gs.group.id} className="print:break-inside-avoid">
                                         {/* Khối 1: Tổng suất */}
                                         <div className="bg-white rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8 mb-4">
-                                            <h3 className="text-3xl sm:text-4xl font-extrabold text-gray-800 text-center mb-1 uppercase tracking-tight">
+                                            <h3 className="text-3xl sm:text-4xl font-bold text-gray-800 text-center mb-1 uppercase tracking-tight">
                                                 {gs.group.name}
                                             </h3>
                                             <p className="text-center text-xl font-bold text-purple-700 mb-5">
@@ -397,26 +397,26 @@ export default function KitchenPage() {
                                             <div className="grid grid-cols-3 gap-3 sm:gap-5">
                                                 <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-blue-800">🍖 Mặn</p>
-                                                    <p className="text-4xl sm:text-5xl font-black text-blue-700 mt-2">{gs.totalSalty}</p>
+                                                    <p className="text-4xl sm:text-5xl font-bold text-blue-700 mt-2">{gs.totalSalty}</p>
                                                 </div>
                                                 <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-emerald-800">🥬 Chay</p>
-                                                    <p className="text-4xl sm:text-5xl font-black text-emerald-700 mt-2">{gs.totalVegetarian}</p>
+                                                    <p className="text-4xl sm:text-5xl font-bold text-emerald-700 mt-2">{gs.totalVegetarian}</p>
                                                 </div>
                                                 <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-amber-800">🥣 Cháo</p>
-                                                    <p className="text-4xl sm:text-5xl font-black text-amber-700 mt-2">{gs.totalPorridge}</p>
+                                                    <p className="text-4xl sm:text-5xl font-bold text-amber-700 mt-2">{gs.totalPorridge}</p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Khối 2: Công Breakdown */}
                                         <div className="bg-gray-50 rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8">
-                                            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-700 text-center mb-1">
+                                            <h3 className="text-2xl sm:text-3xl font-bold text-gray-700 text-center mb-1">
                                                 Công {gs.group.name}
                                             </h3>
                                             <p className="text-center mb-2">
-                                                <span className="text-5xl sm:text-7xl font-black text-gray-900">{totalC}</span>
+                                                <span className="text-5xl sm:text-7xl font-bold text-gray-900">{totalC}</span>
                                                 <span className="text-2xl sm:text-3xl font-bold text-gray-600 ml-2">công</span>
                                             </p>
                                             
@@ -434,17 +434,17 @@ export default function KitchenPage() {
                                             <div className="grid grid-cols-3 gap-3 sm:gap-5">
                                                 <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-blue-900">Mặn</p>
-                                                    <p className="text-3xl sm:text-5xl font-black text-blue-800 mt-1">{cs} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-blue-800 mt-1">{cs} <span className="text-lg sm:text-2xl">công</span></p>
                                                     <p className="text-base sm:text-lg font-semibold text-blue-600 mt-1">{ls} suất lẻ</p>
                                                 </div>
                                                 <div className="bg-emerald-100 border-2 border-emerald-400 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-emerald-900">Chay</p>
-                                                    <p className="text-3xl sm:text-5xl font-black text-emerald-800 mt-1">{cv} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-emerald-800 mt-1">{cv} <span className="text-lg sm:text-2xl">công</span></p>
                                                     <p className="text-base sm:text-lg font-semibold text-emerald-600 mt-1">{lv} suất lẻ</p>
                                                 </div>
                                                 <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-4 sm:p-5 text-center">
                                                     <p className="text-lg sm:text-xl font-bold text-amber-900">Cháo</p>
-                                                    <p className="text-3xl sm:text-5xl font-black text-amber-800 mt-1">{cp} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-amber-800 mt-1">{cp} <span className="text-lg sm:text-2xl">công</span></p>
                                                     <p className="text-base sm:text-lg font-semibold text-amber-600 mt-1">{lp} suất lẻ</p>
                                                 </div>
                                             </div>
