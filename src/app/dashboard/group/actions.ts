@@ -4,18 +4,20 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
+import { getSessionInfo } from '@/lib/session'
 
 /** Lấy danh sách lớp + báo cáo trong phòng (cho room_manager) */
 export async function getGroupReports(selectedDate?: string) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Đọc user ID từ cookie (middleware đã set)
+    const { userId } = await getSessionInfo()
+    if (!userId) return { error: 'Chưa đăng nhập' }
 
     const { data: profile } = await supabase
         .from('profiles')
         .select('role, room_id, group_id')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
     if (!profile) return { error: 'Không tìm thấy profile' }
@@ -98,14 +100,15 @@ export async function getGroupReports(selectedDate?: string) {
 export async function approveReport(reportId: string) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Đọc user ID từ cookie
+    const { userId } = await getSessionInfo()
+    if (!userId) return { error: 'Chưa đăng nhập' }
 
     const { error } = await supabase
         .from('daily_reports')
         .update({
             status: 'school_approved',
-            updated_by: user.id,
+            updated_by: userId,
         })
         .eq('id', reportId)
 
@@ -119,14 +122,15 @@ export async function approveReport(reportId: string) {
 export async function rejectReport(reportId: string) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Đọc user ID từ cookie
+    const { userId } = await getSessionInfo()
+    if (!userId) return { error: 'Chưa đăng nhập' }
 
     const { error } = await supabase
         .from('daily_reports')
         .update({
             status: 'rejected',
-            updated_by: user.id,
+            updated_by: userId,
         })
         .eq('id', reportId)
 
@@ -140,13 +144,14 @@ export async function rejectReport(reportId: string) {
 export async function approveAll(selectedDate?: string) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Đọc user ID từ cookie
+    const { userId } = await getSessionInfo()
+    if (!userId) return { error: 'Chưa đăng nhập' }
 
     const { data: profile } = await supabase
         .from('profiles')
         .select('role, room_id, group_id')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
     if (!profile) return { error: 'Không tìm thấy profile' }
@@ -180,7 +185,7 @@ export async function approveAll(selectedDate?: string) {
         .from('daily_reports')
         .update({
             status: 'school_approved',
-            updated_by: user.id,
+            updated_by: userId,
         })
         .eq('report_date', activeDate)
         .eq('status', 'submitted')

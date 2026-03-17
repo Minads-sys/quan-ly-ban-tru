@@ -78,7 +78,12 @@ export async function updateSession(request: NextRequest) {
         const role = profile?.role || 'room_manager'
         const url = request.nextUrl.clone()
         url.pathname = ROLE_REDIRECT[role] || '/dashboard/room'
-        return NextResponse.redirect(url)
+
+        // Cache role vào cookie
+        const redirectResponse = NextResponse.redirect(url)
+        redirectResponse.cookies.set('user-id', user.id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
+        redirectResponse.cookies.set('user-role', role, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
+        return redirectResponse
     }
 
     // Kiểm tra phân quyền: user có role đúng cho trang này không
@@ -90,6 +95,10 @@ export async function updateSession(request: NextRequest) {
             .single()
 
         const role = profile?.role || 'room_manager'
+
+        // Cache role vào cookie (cập nhật mỗi request dashboard)
+        supabaseResponse.cookies.set('user-id', user.id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
+        supabaseResponse.cookies.set('user-role', role, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
 
         // Tìm route phù hợp nhất
         const matchedRoute = Object.keys(ROUTE_ROLES).find(route =>

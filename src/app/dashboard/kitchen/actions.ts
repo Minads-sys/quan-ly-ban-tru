@@ -2,20 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { calculateCong } from '@/utils/calculations'
+import { getSessionInfo } from '@/lib/session'
 
 /** Lấy tổng hợp báo cáo cho Bếp */
 export async function getKitchenSummary(date?: string, onlyApproved: boolean = false) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Lấy profile để biết role
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+    // ⚡ Đọc từ cookie (middleware đã set), không cần query DB
+    const { userRole } = await getSessionInfo()
 
     const reportDate = date || new Date().toISOString().split('T')[0]
 
@@ -101,6 +95,6 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         totalCong,
         groupSummaries,
         reports,
-        userRole: profile?.role || 'kitchen'
+        userRole: userRole || 'kitchen'
     }
 }

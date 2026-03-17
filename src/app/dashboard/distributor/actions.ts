@@ -7,8 +7,7 @@ import { getFormState, mapTimeSettings } from '@/utils/formState'
 export async function getDistributorSummary(date?: string) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Middleware đã kiểm tra auth, không cần query lại
 
     // Xác định ngày
     let reportDate = date

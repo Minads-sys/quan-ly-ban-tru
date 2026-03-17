@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-
+import { getSessionInfo } from '@/lib/session'
 import { TimeSettings, getFormState } from '@/utils/formState'
 
 async function getTimeSettings(supabase: any): Promise<TimeSettings> {
@@ -131,17 +131,11 @@ export async function submitBulkReports(reports: BulkReportData[]) {
 export async function getBulkRoomData() {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    // ⚡ Đọc từ cookie (middleware đã set)
+    const { userId, userRole } = await getSessionInfo()
+    if (!userId) return { error: 'Chưa đăng nhập' }
 
-    // Check roles
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['admin', 'school_approver'].includes(profile.role)) {
+    if (!userRole || !['admin', 'school_approver'].includes(userRole)) {
        return { error: 'Không có quyền' }
     }
 
