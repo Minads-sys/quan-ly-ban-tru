@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/group', label: 'Duyệt phòng', icon: '👥', roles: ['admin', 'room_manager'] },
     { href: '/dashboard/room', label: 'Báo suất', icon: '🧑‍🏫', roles: ['admin', 'class_teacher'] },
     { href: '/dashboard/kitchen', label: 'Bếp', icon: '🍳', roles: ['admin', 'kitchen'] },
+    { href: '/dashboard/distributor', label: 'Chia suất', icon: '🍽️', roles: ['admin', 'meal_distributor'] },
     { href: '/dashboard/settings', label: 'Cài đặt', icon: '⚙️', roles: ['admin'] },
 ]
 

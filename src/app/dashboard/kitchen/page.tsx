@@ -201,7 +201,7 @@ export default function KitchenPage() {
                     <h2 className={`${showSummaryOnly ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 flex items-center gap-3`}>
                         {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Báo cáo Bếp / Kế toán'}
                     </h2>
-                    {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt cấp trường.</p>}
+                    {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
                 </div>
                 <div className="flex items-center gap-3">
                     <input
@@ -239,7 +239,7 @@ export default function KitchenPage() {
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center shadow-sm">
                     <p className="text-6xl mb-6">📊</p>
                     <p className="text-3xl font-bold text-gray-500">Chưa có số liệu cho ngày {date}</p>
-                    <p className="text-lg text-gray-400 mt-2">(Chỉ hiển thị số liệu đã được duyệt cấp trường)</p>
+                    <p className="text-lg text-gray-400 mt-2">(Chỉ hiển thị số liệu đã được duyệt)</p>
                 </div>
             ) : (
                 <>

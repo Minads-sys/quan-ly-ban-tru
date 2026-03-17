@@ -29,6 +29,7 @@ export default async function DashboardLayout({
         room_manager: 'Phụ trách phòng',
         class_teacher: 'Giáo viên lớp',
         kitchen: 'Bếp / Kế toán',
+        meal_distributor: 'Chia suất',
     }
 
     const userRole = profile?.role || ''

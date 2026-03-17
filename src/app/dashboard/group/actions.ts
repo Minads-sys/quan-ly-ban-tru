@@ -93,7 +93,7 @@ export async function getGroupReports(selectedDate?: string) {
     return { classes: roomsWithReports, today: activeDate, roomName: headerName }
 }
 
-/** Duyệt phòng: chuyển tất cả submitted → room_approved */
+/** Duyệt phòng: chuyển tất cả submitted → school_approved (tạm tắt duyệt cấp trường) */
 export async function approveReport(reportId: string) {
     const supabase = await createClient()
 
@@ -103,7 +103,7 @@ export async function approveReport(reportId: string) {
     const { error } = await supabase
         .from('daily_reports')
         .update({
-            status: 'room_approved',
+            status: 'school_approved',
             updated_by: user.id,
         })
         .eq('id', reportId)
@@ -135,7 +135,7 @@ export async function rejectReport(reportId: string) {
     return { success: true }
 }
 
-/** Duyệt tất cả submitted trong phòng → room_approved */
+/** Duyệt tất cả submitted trong phòng → school_approved (tạm tắt duyệt cấp trường) */
 export async function approveAll(selectedDate?: string) {
     const supabase = await createClient()
 
@@ -178,7 +178,7 @@ export async function approveAll(selectedDate?: string) {
     const { error } = await supabase
         .from('daily_reports')
         .update({
-            status: 'room_approved',
+            status: 'school_approved',
             updated_by: user.id,
         })
         .eq('report_date', activeDate)

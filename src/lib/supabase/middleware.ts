@@ -7,6 +7,7 @@ const ROLE_REDIRECT: Record<string, string> = {
     group_manager: '/dashboard/group',
     room_manager: '/dashboard/room',
     kitchen: '/dashboard/kitchen',
+    meal_distributor: '/dashboard/distributor',
 }
 
 // Map trang → role được phép truy cập
@@ -15,6 +16,7 @@ const ROUTE_ROLES: Record<string, string[]> = {
     '/dashboard/group': ['admin', 'group_manager'],
     '/dashboard/room': ['admin', 'room_manager'],
     '/dashboard/kitchen': ['admin', 'kitchen'],
+    '/dashboard/distributor': ['admin', 'meal_distributor'],
     '/dashboard/settings': ['admin'],
 }
 
