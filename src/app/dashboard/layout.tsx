@@ -44,9 +44,16 @@ export default async function DashboardLayout({
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <span className="text-xl">🍱</span>
-                                <h1 className="text-base sm:text-lg font-bold text-gray-800">
-                                    Suất ăn Bán trú {schoolName && ` - ${schoolName}`}
+                            <div className="flex flex-col leading-tight">
+                                <h1 className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                    Suất ăn Bán trú
                                 </h1>
+                                {schoolName && (
+                                    <p className="text-sm sm:text-base font-extrabold text-blue-700 whitespace-nowrap">
+                                        {schoolName}
+                                    </p>
+                                )}
+                            </div>
                             </div>
                             {/* Navigation */}
                             <NavBar userRole={userRole} />

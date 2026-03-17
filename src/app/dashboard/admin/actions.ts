@@ -3,8 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-/** Tìm kiếm báo cáo theo ngày */
-export async function searchReports(date: string) {
+/** Tìm kiếm báo cáo theo khoảng ngày */
+export async function searchReportsRange(startDate: string, endDate: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -24,8 +24,9 @@ export async function searchReports(date: string) {
     const { data: reports } = await supabase
         .from('daily_reports')
         .select('*, rooms(name, group_id, groups(name))')
-        .eq('report_date', date)
-        .order('created_at')
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+        .order('report_date', { ascending: false })
 
     const { data: settings } = await supabase
         .from('settings')
@@ -35,7 +36,7 @@ export async function searchReports(date: string) {
 
     const mealPrice = parseInt(settings?.value || '25000') || 25000
 
-    return { reports: reports || [], date, mealPrice }
+    return { reports: reports || [], startDate, endDate, mealPrice }
 }
 
 /** Admin ghi đè (override) báo cáo — bỏ qua mọi rào cản thời gian */

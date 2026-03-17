@@ -36,6 +36,7 @@ interface GroupSummary {
 export default function KitchenPage() {
     const [date, setDate] = useState('')
     const [loading, setLoading] = useState(true)
+    const [activeTab, setActiveTab] = useState<'kitchen' | 'distributor'>('kitchen')
     const [totalSalty, setTotalSalty] = useState(0)
     const [totalVegetarian, setTotalVegetarian] = useState(0)
     const [totalPorridge, setTotalPorridge] = useState(0)
@@ -65,6 +66,11 @@ export default function KitchenPage() {
 
         setUserRole(data.userRole as string)
         setShowSummaryOnly(data.userRole === 'kitchen')
+        
+        // Default tab based on role
+        if (data.userRole === 'meal_distributor') {
+            setActiveTab('distributor')
+        }
 
         // Kiểm tra 14h
         const now = new Date()
@@ -188,38 +194,67 @@ export default function KitchenPage() {
                 <p className="text-sm">Ngày: {date}</p>
             </div>
 
-            {/* Header */}
-            <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 print:hidden ${showSummaryOnly ? 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100' : ''}`}>
-                <div>
-                    <h2 className={`${showSummaryOnly ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 flex items-center gap-3`}>
-                        {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Bếp / Kế toán'}
-                        {schoolInfo.name && <span className="text-blue-600">| {schoolInfo.name}</span>}
-                    </h2>
-                    {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
+            {/* Header & Main Controls */}
+            <div className={`flex flex-col gap-6 mb-8 print:hidden ${showSummaryOnly ? 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 className={`${showSummaryOnly ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 flex items-center gap-3`}>
+                            {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Quản lý Bếp & Chia suất'}
+                            {schoolInfo.name && <span className="text-blue-600 font-extrabold">| {schoolInfo.name}</span>}
+                        </h2>
+                        {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={e => handleDateChange(e.target.value)}
+                            className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
+                focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold`}
+                        />
+                        <button
+                            onClick={exportToExcel}
+                            className={`${showSummaryOnly ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-emerald-500 text-white rounded-xl font-bold
+                hover:bg-emerald-600 shadow-md transition-all active:scale-[0.98] flex items-center gap-2`}
+                        >
+                            📥 <span className={showSummaryOnly ? '' : 'hidden sm:inline'}>Xuất Excel</span>
+                        </button>
+                        <button
+                            onClick={() => window.print()}
+                            className={`${showSummaryOnly ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-gray-600 text-white rounded-xl font-bold
+                hover:bg-gray-700 shadow-md transition-all active:scale-[0.98] flex items-center gap-2`}
+                        >
+                            🖨️ <span className={showSummaryOnly ? '' : 'hidden sm:inline'}>In</span>
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <input
-                        type="date"
-                        value={date}
-                        onChange={e => handleDateChange(e.target.value)}
-                        className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold`}
-                    />
-                    <button
-                        onClick={exportToExcel}
-                        className={`${showSummaryOnly ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-emerald-500 text-white rounded-xl font-bold
-              hover:bg-emerald-600 shadow-md transition-all active:scale-[0.98] flex items-center gap-2`}
-                    >
-                        📥 <span className={showSummaryOnly ? '' : 'hidden sm:inline'}>Xuất Excel</span>
-                    </button>
-                    <button
-                        onClick={() => window.print()}
-                        className={`${showSummaryOnly ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-gray-600 text-white rounded-xl font-bold
-              hover:bg-gray-700 shadow-md transition-all active:scale-[0.98] flex items-center gap-2`}
-                    >
-                        🖨️ <span className={showSummaryOnly ? '' : 'hidden sm:inline'}>In</span>
-                    </button>
-                </div>
+
+                {/* Tab Switcher - Only for non-kitchen restricted view */}
+                {!showSummaryOnly && (
+                    <div className="flex p-1 bg-gray-100 rounded-xl max-w-fit border border-gray-200">
+                        <button
+                            onClick={() => setActiveTab('kitchen')}
+                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                activeTab === 'kitchen' 
+                                ? 'bg-white text-blue-700 shadow-sm border border-gray-200' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            🍳 Chế độ Bếp
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('distributor')}
+                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                activeTab === 'distributor' 
+                                ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            🍽️ Chia suất
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Content for Kitchen View After 14h today */}
@@ -237,100 +272,186 @@ export default function KitchenPage() {
                 </div>
             ) : (
                 <>
-                    {/* Summary Cards - Enhanced for Kitchen */}
-                    <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-5 gap-3'} mb-8`}>
-                        <div className={`bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
-                            <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất</p>
-                            <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-black mt-2`}>{totalMeals}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
-                            <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🍖 Tổng suất mặn</p>
-                            <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalSalty}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
-                            <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥬 Tổng Suất chay</p>
-                            <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalVegetarian}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
-                            <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥣 Tổng suất Cháo</p>
-                            <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalPorridge}</p>
-                        </div>
-                        {!showSummaryOnly && (
-                            <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
-                                <p className="text-sm font-semibold opacity-90">⚙️ Số Công</p>
-                                <p className="text-3xl font-bold mt-1">{totalCong}</p>
-                                <p className="text-xs opacity-70 mt-0.5">= Σ công các nhóm</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Group Breakdown - ONLY for non-kitchen roles */}
-                    {!showSummaryOnly && (
-                        <div className="space-y-4">
-                            {groupSummaries.map((gs) => (
-                                <div key={gs.group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between print:hidden">
-                                        <h3 className="font-bold text-gray-700 text-lg">{gs.group.name}</h3>
-                                        <div className="flex gap-4 text-xs text-gray-500">
-                                            <span>Báo: <b className="text-blue-600">{gs.reportedCount}/{gs.totalRooms}</b></span>
-                                        </div>
+                    {/* View based on activeTab */}
+                    {activeTab === 'kitchen' ? (
+                        <>
+                            {/* Summary Cards - Kitchen */}
+                            <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-5 gap-3'} mb-8`}>
+                                <div className={`bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất</p>
+                                    <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-black mt-2`}>{totalMeals}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🍖 Tổng suất mặn</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalSalty}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥬 Tổng Suất chay</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalVegetarian}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥣 Tổng suất Cháo</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-black mt-2`}>{totalPorridge}</p>
+                                </div>
+                                {!showSummaryOnly && (
+                                    <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
+                                        <p className="text-sm font-semibold opacity-90">⚙️ Số Công</p>
+                                        <p className="text-3xl font-bold mt-1">{totalCong}</p>
+                                        <p className="text-xs opacity-70 mt-0.5">= Σ công các nhóm</p>
                                     </div>
+                                )}
+                            </div>
 
-                                    <div className="grid grid-cols-2 gap-4 p-4 border-b border-gray-200">
-                                        <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-blue-50/30">
-                                            <h3 className="text-lg font-bold text-gray-800 mb-1">{gs.group.name}</h3>
-                                            <p className="text-sm font-semibold text-gray-600">📊 TỔNG SUẤT</p>
-                                            <p className="text-4xl font-extrabold text-blue-700 mt-2">{gs.totalMeals}</p>
+                            {/* Group Breakdown - ONLY for non-kitchen roles */}
+                            {!showSummaryOnly && (
+                                <div className="space-y-4">
+                                    {groupSummaries.map((gs) => (
+                                        <div key={gs.group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between print:hidden">
+                                                <h3 className="font-bold text-gray-700 text-lg">{gs.group.name}</h3>
+                                                <div className="flex gap-4 text-xs text-gray-500">
+                                                    <span>Báo: <b className="text-blue-600">{gs.reportedCount}/{gs.totalRooms}</b></span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 p-4 border-b border-gray-200">
+                                                <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-blue-50/30">
+                                                    <h3 className="text-lg font-bold text-gray-800 mb-1">{gs.group.name}</h3>
+                                                    <p className="text-sm font-semibold text-gray-600">📊 TỔNG SUẤT</p>
+                                                    <p className="text-4xl font-extrabold text-blue-700 mt-2">{gs.totalMeals}</p>
+                                                </div>
+                                                <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-rose-50/30 flex flex-col items-center justify-center">
+                                                    <p className="text-sm font-semibold text-gray-600">⚙️ TỔNG SỐ CÔNG</p>
+                                                    <p className="text-5xl font-extrabold text-rose-600 mt-2 mb-3">{gs.cong}</p>
+                                                    <div className="flex gap-3 justify-center text-sm mt-auto">
+                                                        {gs.totalSalty > 0 && <div className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 font-bold shadow-sm whitespace-nowrap">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
+                                                        {gs.totalPorridge > 0 && <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 font-bold shadow-sm whitespace-nowrap">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
+                                                        {gs.totalVegetarian > 0 && <div className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 font-bold shadow-sm whitespace-nowrap">Chay: {Math.ceil(gs.totalVegetarian / 20)}</div>}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="hidden sm:block overflow-x-auto max-h-[60vh] print:overflow-visible print:max-h-none print:block">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
+                                                        <tr>
+                                                            <th className="text-left px-4 py-3 font-semibold">Phòng</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">Sĩ số</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">Nghỉ</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">🍖 Mặn</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">🥣 Cháo</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">🥬 Chay</th>
+                                                            <th className="text-center px-2 py-3 font-semibold">TT</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {gs.rooms.map(room => (
+                                                            <tr key={room.id} className="border-t border-gray-100 hover:bg-gray-50/50">
+                                                                <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
+                                                                {room.report ? (
+                                                                    <>
+                                                                        <td className="text-center px-2 py-2 font-bold text-gray-800">{room.report.capacity}</td>
+                                                                        <td className="text-center px-2 py-2 text-red-500">{room.report.absent_count}</td>
+                                                                        <td className="text-center px-2 py-2 font-bold text-blue-700">{room.report.salty_count}</td>
+                                                                        <td className="text-center px-2 py-2 font-bold text-amber-600">{room.report.porridge_count}</td>
+                                                                        <td className="text-center px-2 py-2 font-bold text-emerald-600">{room.report.vegetarian_count}</td>
+                                                                        <td className="text-center px-2 py-2">
+                                                                            {room.report.status === 'school_approved' ? '✅' : '⏳'}
+                                                                        </td>
+                                                                    </>
+                                                                ) : (
+                                                                    <td colSpan={7} className="text-center px-2 py-2 text-gray-400 italic text-xs">Chưa báo</td>
+                                                                )}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                        <div className="col-span-2 sm:col-span-1 border border-gray-200 outline outline-1 outline-gray-300 rounded-xl p-4 text-center bg-rose-50/30 flex flex-col items-center justify-center">
-                                            <p className="text-sm font-semibold text-gray-600">⚙️ TỔNG SỐ CÔNG</p>
-                                            <p className="text-5xl font-extrabold text-rose-600 mt-2 mb-3">{gs.cong}</p>
-                                            <div className="flex gap-3 justify-center text-sm mt-auto">
-                                                {gs.totalSalty > 0 && <div className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 font-bold shadow-sm whitespace-nowrap">Mặn: {Math.ceil(gs.totalSalty / 20)}</div>}
-                                                {gs.totalPorridge > 0 && <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 font-bold shadow-sm whitespace-nowrap">Cháo: {Math.ceil(gs.totalPorridge / 20)}</div>}
-                                                {gs.totalVegetarian > 0 && <div className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 font-bold shadow-sm whitespace-nowrap">Chay: {Math.ceil(gs.totalVegetarian / 20)}</div>}
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        /* Distributor View (Merged from distributor/page.tsx) */
+                        <div className="space-y-8 print:space-y-6">
+                            {groupSummaries.map((gs) => {
+                                const cs = Math.floor(gs.totalSalty / 20)
+                                const ls = gs.totalSalty % 20
+                                const cv = Math.floor(gs.totalVegetarian / 20)
+                                const lv = gs.totalVegetarian % 20
+                                const cp = Math.floor(gs.totalPorridge / 20)
+                                const lp = gs.totalPorridge % 20
+                                const totalC = cs + cv + cp
+
+                                return (
+                                    <div key={gs.group.id} className="print:break-inside-avoid">
+                                        {/* Khối 1: Tổng suất */}
+                                        <div className="bg-white rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8 mb-4">
+                                            <h3 className="text-3xl sm:text-4xl font-extrabold text-gray-800 text-center mb-1 uppercase tracking-tight">
+                                                {gs.group.name}
+                                            </h3>
+                                            <p className="text-center text-xl font-bold text-purple-700 mb-5">
+                                                Tổng suất: <span className="text-4xl sm:text-5xl">{gs.totalMeals}</span> suất
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                                                <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-blue-800">🍖 Mặn</p>
+                                                    <p className="text-4xl sm:text-5xl font-black text-blue-700 mt-2">{gs.totalSalty}</p>
+                                                </div>
+                                                <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-emerald-800">🥬 Chay</p>
+                                                    <p className="text-4xl sm:text-5xl font-black text-emerald-700 mt-2">{gs.totalVegetarian}</p>
+                                                </div>
+                                                <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-amber-800">🥣 Cháo</p>
+                                                    <p className="text-4xl sm:text-5xl font-black text-amber-700 mt-2">{gs.totalPorridge}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Khối 2: Công Breakdown */}
+                                        <div className="bg-gray-50 rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8">
+                                            <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-700 text-center mb-1">
+                                                Công {gs.group.name}
+                                            </h3>
+                                            <p className="text-center mb-2">
+                                                <span className="text-5xl sm:text-7xl font-black text-gray-900">{totalC}</span>
+                                                <span className="text-2xl sm:text-3xl font-bold text-gray-600 ml-2">công</span>
+                                            </p>
+                                            
+                                            <div className="text-center mb-5 text-lg sm:text-xl text-gray-600 font-semibold leading-relaxed">
+                                                {ls > 0 && <span className="text-blue-700">{ls} suất lẻ mặn</span>}
+                                                {ls > 0 && (lv > 0 || lp > 0) && <span>, </span>}
+                                                {lv > 0 && <span className="text-emerald-700">{lv} suất lẻ chay</span>}
+                                                {lv > 0 && lp > 0 && <span>, </span>}
+                                                {lp > 0 && <span className="text-amber-700">{lp} suất lẻ cháo</span>}
+                                                {ls === 0 && lv === 0 && lp === 0 && (
+                                                    <span className="text-gray-400">Không có suất lẻ</span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                                                <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-blue-900">Mặn</p>
+                                                    <p className="text-3xl sm:text-5xl font-black text-blue-800 mt-1">{cs} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-blue-600 mt-1">{ls} suất lẻ</p>
+                                                </div>
+                                                <div className="bg-emerald-100 border-2 border-emerald-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-emerald-900">Chay</p>
+                                                    <p className="text-3xl sm:text-5xl font-black text-emerald-800 mt-1">{cv} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-emerald-600 mt-1">{lv} suất lẻ</p>
+                                                </div>
+                                                <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-amber-900">Cháo</p>
+                                                    <p className="text-3xl sm:text-5xl font-black text-amber-800 mt-1">{cp} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-amber-600 mt-1">{lp} suất lẻ</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div className="hidden sm:block overflow-x-auto max-h-[60vh] print:overflow-visible print:max-h-none print:block">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
-                                                <tr>
-                                                    <th className="text-left px-4 py-3 font-semibold">Phòng</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">Sĩ số</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">Nghỉ</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">🍖 Mặn</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">🥣 Cháo</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">🥬 Chay</th>
-                                                    <th className="text-center px-2 py-3 font-semibold">TT</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {gs.rooms.map(room => (
-                                                    <tr key={room.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-                                                        <td className="px-4 py-2 font-medium text-gray-700">{room.name}</td>
-                                                        {room.report ? (
-                                                            <>
-                                                                <td className="text-center px-2 py-2 font-bold text-gray-800">{room.report.capacity}</td>
-                                                                <td className="text-center px-2 py-2 text-red-500">{room.report.absent_count}</td>
-                                                                <td className="text-center px-2 py-2 font-bold text-blue-700">{room.report.salty_count}</td>
-                                                                <td className="text-center px-2 py-2 font-bold text-amber-600">{room.report.porridge_count}</td>
-                                                                <td className="text-center px-2 py-2 font-bold text-emerald-600">{room.report.vegetarian_count}</td>
-                                                                <td className="text-center px-2 py-2">
-                                                                    {room.report.status === 'school_approved' ? '✅' : '⏳'}
-                                                                </td>
-                                                            </>
-                                                        ) : (
-                                                            <td colSpan={7} className="text-center px-2 py-2 text-gray-400 italic text-xs">Chưa báo</td>
-                                                        )}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
                 </>
