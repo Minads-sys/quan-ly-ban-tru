@@ -60,27 +60,48 @@ export default function SettingsPage() {
     const [importGroupId, setImportGroupId] = useState('')
     const [importResults, setImportResults] = useState<string[]>([])
 
-    const loadAll = useCallback(async () => {
+    // ⚡ Lazy load: chỉ tải data cho tab đang active
+    const loadTabData = useCallback(async (activeTab: Tab) => {
         setLoading(true)
-        const [settingsData, groupsData, roomsData, classesData, usersData] = await Promise.all([
-            getSettings(), getGroups(), getRooms(), getClasses(), getUsers(),
-        ])
-
-        const allSettings = settingsData.settings as { key: string; value: string }[]
-        const get = (k: string) => allSettings?.find(s => s.key === k)?.value
-        if (get('moc1_open')) setMoc1Open(get('moc1_open')!)
-        if (get('moc1_close')) setMoc1Close(get('moc1_close')!)
-        if (get('moc2_open')) setMoc2Open(get('moc2_open')!)
-        if (get('moc2_close')) setMoc2Close(get('moc2_close')!)
-        setNoTimeLimit(get('deadline_no_limit') === 'true')
-        setGroups(groupsData.groups as Group[])
-        setRooms(roomsData.rooms as Room[])
-        setClasses(classesData.classes as ClassItem[])
-        setUsers(usersData.users as User[])
+        switch (activeTab) {
+            case 'time': {
+                const settingsData = await getSettings()
+                const allSettings = settingsData.settings as { key: string; value: string }[]
+                const get = (k: string) => allSettings?.find(s => s.key === k)?.value
+                if (get('moc1_open')) setMoc1Open(get('moc1_open')!)
+                if (get('moc1_close')) setMoc1Close(get('moc1_close')!)
+                if (get('moc2_open')) setMoc2Open(get('moc2_open')!)
+                if (get('moc2_close')) setMoc2Close(get('moc2_close')!)
+                setNoTimeLimit(get('deadline_no_limit') === 'true')
+                break
+            }
+            case 'rooms': {
+                const [groupsData, roomsData] = await Promise.all([getGroups(), getRooms()])
+                setGroups(groupsData.groups as Group[])
+                setRooms(roomsData.rooms as Room[])
+                break
+            }
+            case 'classes': {
+                const [roomsData, classesData] = await Promise.all([getRooms(), getClasses()])
+                setRooms(roomsData.rooms as Room[])
+                setClasses(classesData.classes as ClassItem[])
+                break
+            }
+            case 'users': {
+                const [groupsData, roomsData, classesData, usersData] = await Promise.all([
+                    getGroups(), getRooms(), getClasses(), getUsers(),
+                ])
+                setGroups(groupsData.groups as Group[])
+                setRooms(roomsData.rooms as Room[])
+                setClasses(classesData.classes as ClassItem[])
+                setUsers(usersData.users as User[])
+                break
+            }
+        }
         setLoading(false)
     }, [])
 
-    useEffect(() => { loadAll() }, [loadAll])
+    useEffect(() => { loadTabData(tab) }, [tab, loadTabData])
 
     function showMsg(type: 'success' | 'error', text: string) {
         setMsg({ type, text })
@@ -106,19 +127,19 @@ export default function SettingsPage() {
         if (!newGroupName.trim()) return
         const result = await createGroup(newGroupName.trim())
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã tạo nhóm!'); setNewGroupName(''); loadAll() }
+        else { showMsg('success', 'Đã tạo nhóm!'); setNewGroupName(''); loadTabData(tab) }
     }
     async function handleUpdateGroup() {
         if (!editGroupId || !editGroupName.trim()) return
         const result = await updateGroup(editGroupId, editGroupName.trim())
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã sửa nhóm!'); setEditGroupId(null); loadAll() }
+        else { showMsg('success', 'Đã sửa nhóm!'); setEditGroupId(null); loadTabData(tab) }
     }
     async function handleDeleteGroup(id: string) {
         if (!confirm('Xóa nhóm này? Tất cả phòng trong nhóm cũng sẽ bị xóa.')) return
         const result = await deleteGroup(id)
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã xóa nhóm!'); loadAll() }
+        else { showMsg('success', 'Đã xóa nhóm!'); loadTabData(tab) }
     }
 
     // ---- ROOMS ----
@@ -126,19 +147,19 @@ export default function SettingsPage() {
         if (!roomForm.name.trim() || !roomForm.groupId) return
         const result = await createRoom(roomForm.name.trim(), roomForm.groupId, roomForm.capacity, roomForm.teacherName.trim())
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã tạo phòng!'); setRoomForm({ name: '', groupId: '', capacity: 30, teacherName: '' }); loadAll() }
+        else { showMsg('success', 'Đã tạo phòng!'); setRoomForm({ name: '', groupId: '', capacity: 30, teacherName: '' }); loadTabData(tab) }
     }
     async function handleUpdateRoom() {
         if (!editRoomId) return
         const result = await updateRoom(editRoomId, editRoomForm.name, editRoomForm.groupId, editRoomForm.capacity, editRoomForm.teacherName.trim())
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã sửa phòng!'); setEditRoomId(null); loadAll() }
+        else { showMsg('success', 'Đã sửa phòng!'); setEditRoomId(null); loadTabData(tab) }
     }
     async function handleDeleteRoom(id: string) {
         if (!confirm('Xóa phòng này?')) return
         const result = await deleteRoom(id)
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã xóa phòng!'); loadAll() }
+        else { showMsg('success', 'Đã xóa phòng!'); loadTabData(tab) }
     }
 
     // ---- CLASSES ----
@@ -146,19 +167,19 @@ export default function SettingsPage() {
         if (!classForm.name.trim() || !classForm.roomId) return
         const result = await createClass(classForm.name.trim(), classForm.roomId, classForm.capacity)
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã tạo lớp!'); setClassForm({ name: '', roomId: '', capacity: 30 }); loadAll() }
+        else { showMsg('success', 'Đã tạo lớp!'); setClassForm({ name: '', roomId: '', capacity: 30 }); loadTabData(tab) }
     }
     async function handleUpdateClass() {
         if (!editClassId) return
         const result = await updateClass(editClassId, editClassForm.name, editClassForm.roomId, editClassForm.capacity)
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã sửa lớp!'); setEditClassId(null); loadAll() }
+        else { showMsg('success', 'Đã sửa lớp!'); setEditClassId(null); loadTabData(tab) }
     }
     async function handleDeleteClass(id: string) {
         if (!confirm('Xóa lớp này?')) return
         const result = await deleteClass(id)
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã xóa lớp!'); loadAll() }
+        else { showMsg('success', 'Đã xóa lớp!'); loadTabData(tab) }
     }
 
     // ---- IMPORT EXCEL ----
@@ -193,7 +214,7 @@ export default function SettingsPage() {
             else {
                 showMsg('success', `Đã import ${rows.length} phòng!`)
                 setImportResults(result.results || [])
-                loadAll()
+                loadTabData(tab)
             }
         } catch {
             showMsg('error', 'Lỗi đọc file Excel. Đảm bảo file đúng định dạng .xlsx')
@@ -213,7 +234,7 @@ export default function SettingsPage() {
         else {
             showMsg('success', 'Đã tạo tài khoản!')
             setUserForm({ email: '', password: '', fullName: '', role: 'class_teacher', roomId: '', groupId: '', classId: '' })
-            loadAll()
+            loadTabData(tab)
         }
     }
     async function handleUpdateUser() {
@@ -223,7 +244,7 @@ export default function SettingsPage() {
             editUserForm.roomId || null, editUserForm.groupId || null
         )
         if (result.error) showMsg('error', result.error)
-        else { showMsg('success', 'Đã cập nhật!'); setEditUserId(null); loadAll() }
+        else { showMsg('success', 'Đã cập nhật!'); setEditUserId(null); loadTabData(tab) }
     }
     async function handleChangePassword() {
         if (!pwChangeId || !pwChangeVal) return

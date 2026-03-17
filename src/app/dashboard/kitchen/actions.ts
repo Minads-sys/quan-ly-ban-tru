@@ -11,7 +11,24 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     // ⚡ Đọc từ cookie (middleware đã set), không cần query DB
     const { userRole } = await getSessionInfo()
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    // ⚡ Tính ngày trong action luôn (bỏ gọi getSettings riêng ở page)
+    let reportDate = date
+    if (!reportDate) {
+        const { data: settingsData } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'moc1_close')
+            .single()
+        const moc1Close = settingsData?.value || '16:00'
+        const [moc1H, moc1M] = moc1Close.split(':').map(Number)
+        const now = new Date()
+        const currentTime = now.getHours() * 60 + now.getMinutes()
+        const moc1TimeInMinutes = moc1H * 60 + moc1M
+        if (currentTime >= moc1TimeInMinutes) {
+            now.setDate(now.getDate() + 1)
+        }
+        reportDate = now.toISOString().split('T')[0]
+    }
 
     // Lấy tất cả báo cáo của ngày
     let query = supabase

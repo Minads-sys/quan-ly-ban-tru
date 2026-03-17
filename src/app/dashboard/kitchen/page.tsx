@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
-import { getSettings } from '../settings/actions'
 import * as XLSX from 'xlsx'
 
 interface GroupSummary {
@@ -47,56 +46,34 @@ export default function KitchenPage() {
     const [isAfter14h, setIsAfter14h] = useState(false)
     const [showSummaryOnly, setShowSummaryOnly] = useState(false)
 
-    // Khởi tạo ngày dựa trên logic giờ giấc
-    useEffect(() => {
-        const initDate = async () => {
-            const { settings } = await getSettings()
-            const moc1Close = settings.find(s => s.key === 'moc1_close')?.value || '16:00'
-            const now = new Date()
-            const currentTime = now.getHours() * 60 + now.getMinutes()
-            
-            // Xử lý logic 14h
-            if (now.getHours() >= 14) {
-                setIsAfter14h(true)
-            }
-
-            // Xử lý logic Mốc 1
-            const [moc1H, moc1M] = moc1Close.split(':').map(Number)
-            const moc1TimeInMinutes = moc1H * 60 + moc1M
-            
-            let targetDate = new Date()
-            if (currentTime >= moc1TimeInMinutes) {
-                targetDate.setDate(targetDate.getDate() + 1)
-            }
-            
-            setDate(targetDate.toISOString().split('T')[0])
-        }
-        initDate()
-    }, [])
-
-    const loadData = useCallback(async (selectedDate: string) => {
-        if (!selectedDate) return
+    // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
+    const loadData = useCallback(async (selectedDate?: string) => {
         setLoading(true)
-        
-        // Nếu là role kitchen và đang xem ngày hôm nay sau 14h
-        const todayStr = new Date().toISOString().split('T')[0]
-        const isToday = selectedDate === todayStr
-        const currentHour = new Date().getHours()
 
-        // Chúng ta vẫn cần thông tin role trước khi quyết định lọc approved
-        // Gọi server action và cho phép nó trả về profile role
-        const data = await getKitchenSummary(selectedDate, true) // Mặc định thử lấy chỉ Approved cho chắc chắn (theo plan)
+        const data = await getKitchenSummary(selectedDate || undefined, true)
         
         if ('error' in data) {
             setLoading(false)
             return
         }
 
+        // Cập nhật date từ server (lần đầu)
+        if (!selectedDate && data.date) {
+            setDate(data.date as string)
+        }
+
         setUserRole(data.userRole as string)
         setShowSummaryOnly(data.userRole === 'kitchen')
 
+        // Kiểm tra 14h
+        const now = new Date()
+        if (now.getHours() >= 14) setIsAfter14h(true)
+
+        const todayStr = now.toISOString().split('T')[0]
+        const isToday = (selectedDate || data.date) === todayStr
+
         // Kiểm tra điều kiện 14h cho Bếp
-        if (data.userRole === 'kitchen' && isToday && currentHour >= 14) {
+        if (data.userRole === 'kitchen' && isToday && now.getHours() >= 14) {
              setTotalSalty(0)
              setTotalVegetarian(0)
              setTotalPorridge(0)
@@ -116,9 +93,14 @@ export default function KitchenPage() {
         setLoading(false)
     }, [])
 
-    useEffect(() => {
-        loadData(date)
-    }, [date, loadData])
+    // Load lần đầu (không truyền date → server tự tính)
+    useEffect(() => { loadData() }, [loadData])
+
+    // Khi user đổi date thủ công
+    const handleDateChange = (newDate: string) => {
+        setDate(newDate)
+        loadData(newDate)
+    }
 
     function exportToExcel() {
         // Sheet 1: Tổng hợp
@@ -207,7 +189,7 @@ export default function KitchenPage() {
                     <input
                         type="date"
                         value={date}
-                        onChange={e => setDate(e.target.value)}
+                        onChange={e => handleDateChange(e.target.value)}
                         className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
               focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold`}
                     />
