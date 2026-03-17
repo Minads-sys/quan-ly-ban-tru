@@ -29,19 +29,16 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         query = query.eq('status', 'school_approved')
     }
 
-    const { data: reports } = await query.order('created_at')
+    // ⚡ Song song: reports + groups + rooms
+    const [reportsResult, groupsResult, roomsResult] = await Promise.all([
+        query.order('created_at'),
+        supabase.from('groups').select('*').order('name'),
+        supabase.from('rooms').select('*, groups(name)').order('name'),
+    ])
 
-    // Lấy tất cả groups
-    const { data: groups } = await supabase
-        .from('groups')
-        .select('*')
-        .order('name')
-
-    // Lấy tất cả rooms
-    const { data: allRooms } = await supabase
-        .from('rooms')
-        .select('*, groups(name)')
-        .order('name')
+    const reports = reportsResult.data
+    const groups = groupsResult.data
+    const allRooms = roomsResult.data
 
     // Tính tổng
     let totalSalty = 0

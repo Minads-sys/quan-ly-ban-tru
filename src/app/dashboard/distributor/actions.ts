@@ -19,19 +19,22 @@ export async function getDistributorSummary(date?: string) {
         reportDate = state.reportDate
     }
 
-    // Lấy tất cả báo cáo đã duyệt
-    const { data: reports } = await supabase
-        .from('daily_reports')
-        .select('*, rooms(name, group_id, groups(name))')
-        .eq('report_date', reportDate)
-        .eq('status', 'school_approved')
-        .order('created_at')
+    // ⚡ Song song: reports + groups
+    const [reportsResult, groupsResult] = await Promise.all([
+        supabase
+            .from('daily_reports')
+            .select('*, rooms(name, group_id, groups(name))')
+            .eq('report_date', reportDate)
+            .eq('status', 'school_approved')
+            .order('created_at'),
+        supabase
+            .from('groups')
+            .select('*')
+            .order('name'),
+    ])
 
-    // Lấy tất cả groups
-    const { data: groups } = await supabase
-        .from('groups')
-        .select('*')
-        .order('name')
+    const reports = reportsResult.data
+    const groups = groupsResult.data
 
     // Tổng hợp theo nhóm
     const groupSummaries = groups?.map((group) => {

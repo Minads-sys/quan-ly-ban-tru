@@ -145,20 +145,24 @@ export async function getBulkRoomData() {
        return { error: 'Không có quyền' }
     }
 
-    const settings = await getTimeSettings(supabase)
+    // ⚡ Song song: settings + rooms
+    const [settingsResult, roomsResult] = await Promise.all([
+        getTimeSettings(supabase),
+        supabase
+            .from('rooms')
+            .select(`
+                id, name, default_capacity, teacher_name,
+                groups(name),
+                profiles!room_id(full_name, role)
+            `)
+            .order('name'),
+    ])
+
+    const settings = settingsResult
     const now = new Date()
     const state = getFormState(now, settings)
 
-    // Lấy tất cả phòng kèm giáo viên và nhóm
-    const { data: roomsData, error: roomsError } = await supabase
-        .from('rooms')
-        .select(`
-            id, name, default_capacity, teacher_name,
-            groups(name),
-            profiles!room_id(full_name, role)
-        `)
-        .order('name')
-        
+    const { data: roomsData, error: roomsError } = roomsResult
     if (roomsError) return { error: roomsError.message }
 
     const rooms = (roomsData || []).map((room: any) => {

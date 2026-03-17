@@ -21,17 +21,8 @@ export async function getGroupReports(selectedDate?: string) {
     if (!profile) return { error: 'Không tìm thấy profile' }
 
     const isAdmin = profile.role === 'admin'
-    
-    // Determine the active target date for reports
-    let activeDate = selectedDate
-    if (!activeDate) {
-        const { settings } = await getSettings()
-        const now = new Date()
-        const state = getFormState(now, mapTimeSettings(settings))
-        activeDate = state.reportDate
-    }
 
-    // Lấy các phòng quản lý
+    // Xây rooms query (cần profile trước)
     let roomsQuery = supabase
         .from('rooms')
         .select(`
@@ -47,26 +38,46 @@ export async function getGroupReports(selectedDate?: string) {
         } else if (profile.room_id) {
             roomsQuery = roomsQuery.eq('id', profile.room_id)
         } else {
-            return { classes: [], today: activeDate, roomName: '' } // fallback structure name until renamed
+            return { classes: [], today: selectedDate || '', roomName: '' }
         }
     }
 
-    const { data: dbRooms } = await roomsQuery
+    // ⚡ Song song: settings + rooms query
+    const [settingsResult, roomsResult] = await Promise.all([
+        selectedDate ? null : getSettings(),
+        roomsQuery,
+    ])
 
-    // Lấy báo cáo hôm nay cho các phòng
-    const roomIds = dbRooms?.map(r => r.id) || []
-    let reports: Record<string, unknown>[] = []
-
-    if (roomIds.length > 0) {
-        const { data } = await supabase
-            .from('daily_reports')
-            .select('*')
-            .eq('report_date', activeDate)
-            .in('room_id', roomIds)
-        reports = data || []
+    let activeDate = selectedDate
+    if (!activeDate && settingsResult) {
+        const now = new Date()
+        const state = getFormState(now, mapTimeSettings(settingsResult.settings))
+        activeDate = state.reportDate
     }
 
-    // Map reports vào rooms (giữ tên biến classes để tương thích UI tạm thời, hoặc đổi luôn)
+    const dbRooms = roomsResult.data
+    const roomIds = dbRooms?.map(r => r.id) || []
+
+    // ⚡ Song song: reports + header name
+    const headerPromise = (async () => {
+        if (profile.role === 'group_manager' && profile.group_id) {
+            const { data: group } = await supabase.from('groups').select('name').eq('id', profile.group_id).single()
+            return group?.name || ''
+        } else if (profile.room_id) {
+            const { data: room } = await supabase.from('rooms').select('name').eq('id', profile.room_id).single()
+            return room?.name || ''
+        }
+        return 'Tất cả'
+    })()
+
+    const reportsPromise = roomIds.length > 0
+        ? supabase.from('daily_reports').select('*').eq('report_date', activeDate!).in('room_id', roomIds)
+        : Promise.resolve({ data: [] as Record<string, unknown>[] })
+
+    const [headerName, reportsResult] = await Promise.all([headerPromise, reportsPromise])
+    const reports = reportsResult.data || []
+
+    // Map reports vào rooms
     const roomsWithReports = dbRooms?.map(r => {
         const managers = (r.profiles || []).filter((p: any) => p.role === 'room_manager')
         const teacherName = managers.length > 0 
@@ -76,19 +87,9 @@ export async function getGroupReports(selectedDate?: string) {
         return {
             ...r,
             teacherName,
-            report: reports.find(rep => rep.room_id === r.id) || null,
+            report: reports.find((rep: any) => rep.room_id === r.id) || null,
         }
     }) || []
-
-    // Lấy thông tin nhóm/phòng cho header
-    let headerName = 'Tất cả'
-    if (profile.role === 'group_manager' && profile.group_id) {
-         const { data: group } = await supabase.from('groups').select('name').eq('id', profile.group_id).single()
-         headerName = group?.name || ''
-    } else if (profile.room_id) {
-        const { data: room } = await supabase.from('rooms').select('name').eq('id', profile.room_id).single()
-        headerName = room?.name || ''
-    }
 
     return { classes: roomsWithReports, today: activeDate, roomName: headerName }
 }
