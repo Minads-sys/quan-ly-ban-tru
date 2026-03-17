@@ -4,20 +4,32 @@ import { createClient } from '@/lib/supabase/server'
 import { calculateCong } from '@/utils/calculations'
 
 /** Lấy tổng hợp báo cáo cho Bếp */
-export async function getKitchenSummary(date?: string) {
+export async function getKitchenSummary(date?: string, onlyApproved: boolean = false) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Chưa đăng nhập' }
 
+    // Lấy profile để biết role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
     const reportDate = date || new Date().toISOString().split('T')[0]
 
     // Lấy tất cả báo cáo của ngày
-    const { data: reports } = await supabase
+    let query = supabase
         .from('daily_reports')
         .select('*, rooms(name, group_id, groups(name))')
         .eq('report_date', reportDate)
-        .order('created_at')
+    
+    if (onlyApproved) {
+        query = query.eq('status', 'school_approved')
+    }
+
+    const { data: reports } = await query.order('created_at')
 
     // Lấy tất cả groups
     const { data: groups } = await supabase
@@ -92,5 +104,6 @@ export async function getKitchenSummary(date?: string) {
         totalCong,
         groupSummaries,
         reports,
+        userRole: profile?.role || 'kitchen'
     }
 }
