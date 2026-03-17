@@ -78,7 +78,7 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-700">Ngày chi</label>
+                    <label className="text-sm font-bold text-gray-700">Ngày thu</label>
                     <input
                         type="date"
                         name="payment_date"

@@ -53,7 +53,7 @@ export default function FinancePage() {
                     onClick={() => setShowForm(true)}
                     className="px-6 py-2.5 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all shadow-md flex items-center gap-2 active:scale-95"
                 >
-                    <span>➕</span> Tạo phiếu tạm ứng
+                    <span>➕</span> Tạo phiếu thu
                 </button>
             </div>
 
@@ -88,7 +88,7 @@ export default function FinancePage() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-500 font-medium">
                             <tr>
-                                <th className="px-6 py-4">Ngày chi</th>
+                                <th className="px-6 py-4">Ngày thu</th>
                                 <th className="px-6 py-4">Họ tên</th>
                                 <th className="px-6 py-4">Lý do</th>
                                 <th className="px-6 py-4">Số tiền</th>
@@ -136,7 +136,7 @@ export default function FinancePage() {
                 <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 bg-teal-50 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-teal-800">Tạo phiếu tạm ứng mới</h2>
+                            <h2 className="text-xl font-bold text-teal-800">Tạo phiếu thu mới</h2>
                             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
                         </div>
                         <div className="p-6">

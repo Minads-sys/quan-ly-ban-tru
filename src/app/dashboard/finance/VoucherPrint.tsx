@@ -30,7 +30,7 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
 
                 {/* Title */}
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold uppercase">Phiếu thu tạm ứng</h1>
+                    <h1 className="text-2xl font-bold uppercase">Phiếu thu</h1>
                     <p className="text-sm italic">Ngày {new Date(payment.payment_date).getDate()} tháng {new Date(payment.payment_date).getMonth() + 1} năm {new Date(payment.payment_date).getFullYear()}</p>
                 </div>
 
