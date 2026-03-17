@@ -14,6 +14,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
     { href: '/dashboard/admin', label: 'Admin', icon: '🔑', roles: ['admin'], color: 'red' },
+    { href: '/dashboard/finance', label: 'Tài chính', icon: '💰', roles: ['admin'], color: 'teal' },
     { href: '/dashboard/school', label: 'Duyệt trường', icon: '🏫', roles: ['admin', 'school_approver'], color: 'purple' },
     { href: '/dashboard/group', label: 'Duyệt phòng', icon: '👥', roles: ['admin', 'room_manager'], color: 'blue' },
     { href: '/dashboard/room', label: 'Báo suất', icon: '🧑‍🏫', roles: ['admin', 'class_teacher'], color: 'amber' },

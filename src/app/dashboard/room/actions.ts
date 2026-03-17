@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
 
 // ==================================================
 // Helper: Lấy settings thời gian & xác định trạng thái form
@@ -29,12 +30,12 @@ function toMinutes(timeStr: string): number {
 }
 
 function formatDate(d: Date): string {
-    return d.toISOString().split('T')[0]
+    return getVietnamDateString(d)
 }
 
 function getTomorrow(now: Date): string {
     const t = new Date(now.getTime() + 86400000)
-    return formatDate(t)
+    return getVietnamDateString(t)
 }
 
 /**
@@ -137,7 +138,7 @@ export async function submitReport(formData: FormData) {
     // Kiểm tra giờ — chỉ cho class_teacher/room_manager
     if (['class_teacher', 'room_manager'].includes(profile.role)) {
         const settings = await getTimeSettings(supabase)
-        const now = new Date()
+        const now = getVietnamNow()
         const state = getFormState(now, settings)
 
         if (!state.isOpen) {
@@ -163,7 +164,8 @@ export async function submitReport(formData: FormData) {
 
     if (existing) {
         const settings = await getTimeSettings(supabase)
-        const state = getFormState(new Date(), settings)
+        const now = getVietnamNow()
+        const state = getFormState(now, settings)
         let moc1Snapshot = existing.moc1_snapshot
 
         if (state.phase === 'moc2' && !moc1Snapshot) {
@@ -174,7 +176,7 @@ export async function submitReport(formData: FormData) {
                 porridge_count: existing.porridge_count,
                 vegetarian_count: existing.vegetarian_count,
                 absent_list: existing.absent_list,
-                snapshot_at: new Date().toISOString(),
+                snapshot_at: getVietnamNow().toISOString(),
             }
         }
 
@@ -257,7 +259,7 @@ export async function getRoomData() {
     if (!classId && !roomId) return { error: 'Không tìm thấy lớp/phòng' }
 
     const settings = await getTimeSettings(supabase)
-    const now = new Date()
+    const now = getVietnamNow()
     const state = getFormState(now, settings)
 
     let roomInfo = null

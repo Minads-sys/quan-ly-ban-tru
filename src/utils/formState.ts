@@ -1,4 +1,4 @@
-// No dependencies
+import { getVietnamNow, getVietnamDateString } from './dateUtils'
 
 export interface TimeSettings {
     moc1Open: string
@@ -36,10 +36,7 @@ function toMinutes(timeStr: string): number {
 }
 
 export function formatDate(d: Date): string {
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return getVietnamDateString(d)
 }
 
 export function getTomorrow(now: Date): Date {

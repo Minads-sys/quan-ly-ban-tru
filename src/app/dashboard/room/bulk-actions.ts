@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getSessionInfo } from '@/lib/session'
 import { TimeSettings, getFormState } from '@/utils/formState'
+import { getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
 
 async function getTimeSettings(supabase: any): Promise<TimeSettings> {
     const { data } = await supabase
@@ -68,7 +69,8 @@ export async function submitBulkReports(reports: BulkReportData[]) {
      if (fetchError) return { error: fetchError.message }
  
      const settings = await getTimeSettings(supabase)
-     const state = getFormState(new Date(), settings)
+     const now = getVietnamNow()
+     const state = getFormState(now, settings)
 
     // Prepare data for upsert
     const upsertDataList = []
@@ -104,7 +106,7 @@ export async function submitBulkReports(reports: BulkReportData[]) {
                      porridge_count: existing.porridge_count,
                      vegetarian_count: existing.vegetarian_count,
                      absent_list: existing.absent_list,
-                     snapshot_at: new Date().toISOString(),
+                     snapshot_at: getVietnamNow().toISOString(),
                  }
              }
              reportToSave.moc1_snapshot = moc1Snapshot
@@ -153,7 +155,7 @@ export async function getBulkRoomData() {
     ])
 
     const settings = settingsResult
-    const now = new Date()
+    const now = getVietnamNow()
     const state = getFormState(now, settings)
 
     const { data: roomsData, error: roomsError } = roomsResult

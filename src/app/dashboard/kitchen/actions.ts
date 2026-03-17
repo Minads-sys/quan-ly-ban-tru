@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { calculateCong } from '@/utils/calculations'
 import { getSessionInfo } from '@/lib/session'
-import { getVietnamDateString, getVietnamMinutesToday } from '@/utils/dateUtils'
+import { getVietnamNow, getVietnamDateString, getVietnamMinutesToday } from '@/utils/dateUtils'
 
 /** Lấy tổng hợp báo cáo cho Bếp */
 export async function getKitchenSummary(date?: string, onlyApproved: boolean = false) {
@@ -29,11 +29,9 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         
         if (currentTime >= moc1TimeInMinutes) {
             // Nếu qua giờ chốt, mặc định sang ngày mai
-            const vnNow = new Date()
+            const vnNow = getVietnamNow()
             vnNow.setDate(vnNow.getDate() + 1)
-            // Chỉnh lại timezone cho ngày mai trước khi lấy string
-            const tomorrowVN = new Date(vnNow.getTime() + (7 * 60 * 60 * 1000) + (vnNow.getTimezoneOffset() * 60 * 1000))
-            reportDate = getVietnamDateString(tomorrowVN)
+            reportDate = getVietnamDateString(vnNow)
         } else {
             reportDate = getVietnamDateString()
         }

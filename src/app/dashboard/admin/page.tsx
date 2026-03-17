@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { searchReportsRange } from './actions'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { searchReportsRange, importHistoricalReports } from './actions'
 import { getVietnamDateString, getVietnamNow, formatToViewDate } from '@/utils/dateUtils'
+import * as XLSX from 'xlsx'
 
 interface Report {
     id: string
@@ -34,6 +35,8 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
     const handleSearch = useCallback(async (s: string, e: string) => {
         setLoading(true)
         setMessage(null)
@@ -46,6 +49,66 @@ export default function AdminPage() {
         }
         setLoading(false)
     }, [])
+
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setLoading(true)
+        setMessage(null)
+
+        try {
+            const reader = new FileReader()
+            reader.onload = async (evt) => {
+                const bstr = evt.target?.result
+                const wb = XLSX.read(bstr, { type: 'binary' })
+                const wsname = wb.SheetNames[0]
+                const ws = wb.Sheets[wsname]
+                const rawData = XLSX.utils.sheet_to_json(ws) as any[]
+
+                // Filter & Map data: Kỳ vọng các cột: "Ngày" (YYYY-MM-DD hoặc DD/MM/YYYY), "Mặn", "Cháo", "Chay", "Ghi chú"
+                const formattedRows = rawData.map(row => {
+                    let dateStr = String(row['Ngày'] || row['date'] || '')
+                    // Xử lý nếu là số (Excel date serial)
+                    if (!isNaN(Number(dateStr)) && Number(dateStr) > 40000) {
+                        const dateObj = XLSX.utils.format_cell({ v: Number(dateStr), t: 'd' })
+                        dateStr = dateObj // Trình bày dạng YYYY-MM-DD
+                    } else if (dateStr.includes('/')) {
+                        // Chuyển DD/MM/YYYY sang YYYY-MM-DD
+                        const [d, m, y] = dateStr.split('/')
+                        dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+                    }
+
+                    return {
+                        report_date: dateStr,
+                        salty_count: Number(row['Mặn'] || row['mặn'] || row['salty'] || 0),
+                        porridge_count: Number(row['Cháo'] || row['cháo'] || row['porridge'] || 0),
+                        vegetarian_count: Number(row['Chay'] || row['chay'] || row['vegetarian'] || 0),
+                        note: row['Ghi chú'] || row['note'] || 'Import từ Excel'
+                    }
+                }).filter(r => r.report_date && r.report_date.length >= 10)
+
+                if (formattedRows.length === 0) {
+                    setMessage({ type: 'error', text: 'Không tìm thấy dữ liệu hợp lệ trong file Excel' })
+                    setLoading(false)
+                    return
+                }
+
+                const res = await importHistoricalReports(formattedRows)
+                if (res.error) {
+                    setMessage({ type: 'error', text: res.error })
+                } else {
+                    setMessage({ type: 'success', text: `Đã nhập thành công ${res.count} ngày dữ liệu!` })
+                    handleSearch(startDate, endDate)
+                }
+                setLoading(false)
+            }
+            reader.readAsBinaryString(file)
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Lỗi parse file: ' + String(err) })
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
         handleSearch(startDate, endDate)
@@ -110,6 +173,18 @@ export default function AdminPage() {
     const totalMeals = totalSalty + totalPorridge + totalVegetarian
     const totalMoney = totalMeals * mealPrice
 
+    // Aggregate by Date for Trend Chart
+    const dateMap = new Map<string, number>()
+    reports.forEach(r => {
+        const d = r.report_date
+        dateMap.set(d, (dateMap.get(d) || 0) + (r.salty_count + r.porridge_count + r.vegetarian_count))
+    })
+    const trendData = Array.from(dateMap.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+    const maxTrendCount = Math.max(...trendData.map(d => d.count), 1)
+
     return (
         <div className="max-w-6xl mx-auto pb-20">
             {/* Header */}
@@ -139,6 +214,22 @@ export default function AdminPage() {
                                 {f.label}
                             </button>
                         ))}
+                        
+                        <div className="mx-2 w-px h-6 bg-gray-200 hidden lg:block" />
+                        
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImportExcel}
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all border border-emerald-100 flex items-center gap-2"
+                        >
+                            📥 Nhập Excel lịch sử
+                        </button>
                     </div>
 
                     {/* Custom Range */}
@@ -171,6 +262,16 @@ export default function AdminPage() {
                         </button>
                     </div>
                 </div>
+
+                {message && (
+                    <div className={`mt-6 p-4 rounded-2xl border text-sm font-semibold animate-in fade-in slide-in-from-top-2 duration-300 ${
+                        message.type === 'success' 
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                            : 'bg-red-50 text-red-700 border-red-100'
+                    }`}>
+                        {message.type === 'success' ? '✅' : '❌'} {message.text}
+                    </div>
+                )}
             </div>
 
             {/* General Summary */}
@@ -234,16 +335,62 @@ export default function AdminPage() {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Info Card */}
-                <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
-                    <h3 className="text-xl font-bold text-amber-800 mb-4">💡 Ghi chú</h3>
-                    <ul className="space-y-3 text-amber-900/80 text-sm leading-relaxed">
-                        <li>• Dữ liệu tổng hợp từ {formatToViewDate(startDate)} đến {formatToViewDate(endDate)}.</li>
-                        <li>• Chỉ tính các báo cáo đã có trạng thái Phê duyệt.</li>
-                        <li>• Thay đổi đơn giá trong phần Cài đặt hệ thống.</li>
-                    </ul>
+            {/* trend Chart */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-8">
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        📅 Xu hướng tổng số suất theo ngày
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs font-semibold text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded-full bg-blue-500" /> Tổng số suất
+                        </div>
+                    </div>
                 </div>
+
+                {trendData.length > 0 ? (
+                    <div className="relative pt-10 pb-5">
+                        {/* Y-Axis lines */}
+                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-50 px-2 py-5">
+                            {[0, 1, 2, 3].map(i => (
+                                <div key={i} className="border-t border-dashed border-gray-200 w-full" />
+                            ))}
+                        </div>
+
+                        <div className="overflow-x-auto relative scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+                            <div className="flex items-end gap-3 sm:gap-6 min-h-[250px] px-2" style={{ width: trendData.length > 10 ? 'max-content' : '100%', justifyContent: trendData.length > 10 ? 'flex-start' : 'space-between' }}>
+                                {trendData.map(item => {
+                                    const height = (item.count / maxTrendCount) * 100
+                                    return (
+                                        <div key={item.date} className="group relative flex flex-col items-center flex-1 min-w-[50px] sm:min-w-[70px]">
+                                            {/* Tooltip */}
+                                            <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform bg-gray-800 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-xl z-10 whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-gray-800">
+                                                {item.count} suất
+                                            </div>
+
+                                            {/* Bar */}
+                                            <div 
+                                                className="w-full bg-gradient-to-t from-blue-600 to-indigo-400 rounded-t-xl transition-all duration-500 hover:from-blue-500 hover:to-indigo-300 cursor-pointer shadow-sm group-hover:shadow-md"
+                                                style={{ height: `${Math.max(height, 5)}%` }}
+                                            />
+
+                                            {/* Date Label */}
+                                            <div className="mt-3 text-[10px] sm:text-xs font-bold text-gray-500 group-hover:text-blue-600 transition-colors">
+                                                {formatToViewDate(item.date).split('/')[0]}/{formatToViewDate(item.date).split('/')[1]}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="h-40 flex items-center justify-center text-gray-400 italic">
+                        Không có dữ liệu xu hướng cho khoảng thời gian này
+                    </div>
+                )}
             </div>
 
             {/* Aggregated Table */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { submitBulkReports } from './bulk-actions'
 
 interface RoomData {
@@ -58,6 +58,7 @@ export function BulkReportForm({
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
     const [filterGroup, setFilterGroup] = useState<string>('all')
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
     // groups list for filter
     const uniqueGroups = useMemo(() => {
@@ -105,6 +106,11 @@ export function BulkReportForm({
 
     const [rows, setRows] = useState<RowData[]>(initialRows)
 
+    const filteredRows = useMemo(() => {
+        if (filterGroup === 'all') return rows
+        return rows.filter(r => r.groupName === filterGroup)
+    }, [rows, filterGroup])
+
     const handleInputChange = (roomId: string, field: keyof RowData, value: string | number) => {
         setRows((prevRows) =>
             prevRows.map((row) => {
@@ -126,25 +132,49 @@ export function BulkReportForm({
         )
     }
 
+    const toggleSelect = useCallback((roomId: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(roomId)) next.delete(roomId)
+            else next.add(roomId)
+            return next
+        })
+    }, [])
+
+    const toggleSelectAll = useCallback(() => {
+        if (selectedIds.size === filteredRows.length) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(filteredRows.map(r => r.roomId)))
+        }
+    }, [selectedIds.size, filteredRows])
+
+    const autoSelectUnsubmitted = useCallback(() => {
+        const unsubmitted = rows.filter(r => r.status === 'unsubmitted' || r.status === 'draft').map(r => r.roomId)
+        setSelectedIds(new Set(unsubmitted))
+        setMessage({ type: 'success', text: `Đã chọn ${unsubmitted.length} phòng chưa có báo cáo hoặc đang nháp.` })
+    }, [rows])
+
     const handleSubmit = async () => {
         setMessage(null)
         
         // Validate
-        const hasNegativeSalty = rows.some((r) => r.saltyCount < 0)
+        const selectedRows = rows.filter(r => selectedIds.has(r.roomId))
+        const hasNegativeSalty = selectedRows.some((r) => r.saltyCount < 0)
         if (hasNegativeSalty) {
-            setMessage({ type: 'error', text: 'Có phòng báo suất mặn bị âm. Vui lòng kiểm tra lại!' })
+            setMessage({ type: 'error', text: 'Có phòng trong các mục đã chọn báo suất mặn bị âm. Vui lòng kiểm tra lại!' })
             return
         }
 
-        const changedRows = rows.filter((r) => r.isChanged)
-        if (changedRows.length === 0) {
-            setMessage({ type: 'success', text: 'Không có dữ liệu mới để cập nhật.' })
+        const changedSelectedRows = selectedRows.filter((r) => r.isChanged || r.status === 'unsubmitted')
+        if (changedSelectedRows.length === 0) {
+            setMessage({ type: 'success', text: 'Vui lòng chỉnh sửa dữ liệu các phòng đã chọn trước khi lưu.' })
             return
         }
 
         setSubmitting(true)
         try {
-            const submitData = changedRows.map(row => ({
+            const submitData = changedSelectedRows.map(row => ({
                 room_id: row.roomId,
                 capacity: Number(row.capacity),
                 absent_count: Number(row.absentCount),
@@ -160,9 +190,15 @@ export function BulkReportForm({
             if (result.error) {
                 setMessage({ type: 'error', text: result.error })
             } else {
-                setMessage({ type: 'success', text: `Đã lưu báo cáo cho ${changedRows.length} phòng thành công!` })
+                setMessage({ type: 'success', text: `Đã lưu báo cáo cho ${changedSelectedRows.length} phòng thành công!` })
                 // Reset isChanged flag for submitted rows
-                setRows(prev => prev.map(r => ({...r, isChanged: false, status: r.status === 'unsubmitted' ? 'submitted' : r.status})))
+                setRows(prev => prev.map(r => {
+                    if (selectedIds.has(r.roomId)) {
+                        return {...r, isChanged: false, status: r.status === 'unsubmitted' ? 'submitted' : r.status}
+                    }
+                    return r
+                }))
+                setSelectedIds(new Set())
                 onSuccess()
             }
         } catch (error: any) {
@@ -172,15 +208,9 @@ export function BulkReportForm({
         }
     }
 
-    const isSubmitting = submitting
     const isDisabled = !isWithinTime || submitting
     const totalChanged = rows.filter(r => r.isChanged).length
     const hasInvalidSalty = rows.some((r) => r.saltyCount < 0)
-
-    const filteredRows = useMemo(() => {
-        if (filterGroup === 'all') return rows
-        return rows.filter(r => r.groupName === filterGroup)
-    }, [rows, filterGroup])
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col max-h-[85vh]">
@@ -232,8 +262,18 @@ export function BulkReportForm({
                     </select>
                 </div>
                 
-                <div className="text-sm font-medium text-gray-600">
-                    Phòng thay đổi: <span className="text-blue-600 font-bold">{totalChanged}</span>
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={autoSelectUnsubmitted}
+                        disabled={isDisabled}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                        🔄 Cập nhật (Chọn phòng chưa báo)
+                    </button>
+                    <div className="text-sm font-medium text-gray-600 ml-2">
+                        Đã chọn: <span className="text-blue-600 font-bold">{selectedIds.size}</span>
+                        {totalChanged > 0 && <span> · Thay đổi: <span className="text-amber-600 font-bold">{totalChanged}</span></span>}
+                    </div>
                 </div>
             </div>
 
@@ -241,7 +281,15 @@ export function BulkReportForm({
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm">
                         <tr>
-                            <th className="px-4 py-3 border-b border-gray-200">Trạng thái</th>
+                            <th className="px-4 py-3 border-b border-gray-200 text-center w-12">
+                                <input
+                                    type="checkbox"
+                                    checked={filteredRows.length > 0 && selectedIds.size === filteredRows.length}
+                                    onChange={toggleSelectAll}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                            </th>
+                            <th className="px-4 py-3 border-b border-gray-200 text-center">Trạng thái</th>
                             <th className="px-4 py-3 border-b border-gray-200">Phòng</th>
                             <th className="px-4 py-3 min-w-[140px] border-b border-gray-200">Giáo viên</th>
                             <th className="px-3 py-3 w-28 text-center border-b border-gray-200">Sĩ số</th>
@@ -274,11 +322,22 @@ export function BulkReportForm({
                                 rejected: 'Từ chối'
                             }[row.status] || ''
 
-                            // Disabled if out of time, or if already approved (maybe allow re-submit if not strictly locked by role, but usually locked once approved)
-                            const isRowDisabled = isDisabled || row.status === 'school_approved' || row.status === 'room_approved'
+                            // Admins are not disabled unless time is strictly up, but even then, admin can override if we relax it.
+                            // For bulk view, we allow editing if the room is SELECTED.
+                            const isSelected = selectedIds.has(row.roomId)
+                            const isRowDisabled = isDisabled || !isSelected
 
                             return (
-                            <tr key={row.roomId} className={`hover:bg-blue-50/50 transition-colors ${row.isChanged ? 'bg-amber-50' : 'odd:bg-white even:bg-gray-50'}`}>
+                            <tr key={row.roomId} className={`hover:bg-blue-50/50 transition-colors ${row.isChanged ? 'bg-amber-50' : isSelected ? 'bg-blue-50/30' : 'odd:bg-white even:bg-gray-50'}`}>
+                                <td className="px-4 py-3 text-center border-r border-gray-100">
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => toggleSelect(row.roomId)}
+                                        disabled={isDisabled}
+                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                </td>
                                 <td className="px-4 py-3 text-center border-r border-gray-100 min-w-[100px]">
                                     {row.isChanged ? (
                                         <div className="flex flex-col items-center justify-center">
@@ -379,14 +438,14 @@ export function BulkReportForm({
             <div className="p-4 border-t border-gray-200 bg-gray-50 text-right shrink-0">
                 <button
                     onClick={handleSubmit}
-                    disabled={isDisabled || hasInvalidSalty || totalChanged === 0}
-                    className={`py-2.5 px-6 font-semibold rounded-lg shadow-sm transition-all duration-200 ${
-                        isDisabled || hasInvalidSalty || totalChanged === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    disabled={isDisabled || hasInvalidSalty || selectedIds.size === 0}
+                    className={`py-2.5 px-8 font-bold rounded-xl shadow-lg transition-all duration-300 ${
+                        isDisabled || hasInvalidSalty || selectedIds.size === 0
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-emerald-200 active:scale-95'
                     }`}
                 >
-                    {submitting ? 'Đang lưu...' : `💾 Lưu các thay đổi (${totalChanged})`}
+                    {submitting ? '⏳ Đang lưu...' : `💾 Lưu ${selectedIds.size} phòng đã chọn`}
                 </button>
             </div>
         </div>
