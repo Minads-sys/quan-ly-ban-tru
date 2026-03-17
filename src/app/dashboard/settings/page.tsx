@@ -32,6 +32,8 @@ export default function SettingsPage() {
     const [moc2Open, setMoc2Open] = useState('23:59')
     const [moc2Close, setMoc2Close] = useState('07:00')
     const [noTimeLimit, setNoTimeLimit] = useState(false)
+    const [schoolName, setSchoolName] = useState('')
+    const [schoolAddress, setSchoolAddress] = useState('')
     const [groups, setGroups] = useState<Group[]>([])
     const [rooms, setRooms] = useState<Room[]>([])
     const [classes, setClasses] = useState<ClassItem[]>([])
@@ -73,6 +75,8 @@ export default function SettingsPage() {
                 if (get('moc2_open')) setMoc2Open(get('moc2_open')!)
                 if (get('moc2_close')) setMoc2Close(get('moc2_close')!)
                 setNoTimeLimit(get('deadline_no_limit') === 'true')
+                setSchoolName(get('school_name') || '')
+                setSchoolAddress(get('school_address') || '')
                 break
             }
             case 'rooms': {
@@ -120,6 +124,16 @@ export default function SettingsPage() {
         const err = results.find(r => r.error)
         if (err?.error) showMsg('error', err.error)
         else showMsg('success', 'Đã lưu cài đặt thời gian!')
+    }
+
+    async function handleSaveSchoolInfo() {
+        const results = await Promise.all([
+            updateSetting('school_name', schoolName),
+            updateSetting('school_address', schoolAddress),
+        ])
+        const err = results.find(r => r.error)
+        if (err?.error) showMsg('error', err.error)
+        else showMsg('success', 'Đã lưu thông tin trường!')
     }
 
     // ---- GROUPS ----
@@ -260,11 +274,11 @@ export default function SettingsPage() {
         meal_distributor: 'Chia suất',
     }
 
-    const tabs: { key: Tab; icon: string; label: string }[] = [
-        { key: 'time', icon: '⏰', label: 'Thời gian' },
-        { key: 'rooms', icon: '🏫', label: 'Phòng & Nhóm' },
-        { key: 'classes', icon: '📚', label: 'Lớp học' },
-        { key: 'users', icon: '👤', label: 'Giáo viên' },
+    const tabs: { key: Tab; icon: string; label: string; color: string }[] = [
+        { key: 'time', icon: '⏰', label: 'Thời gian', color: 'blue' },
+        { key: 'rooms', icon: '🏫', label: 'Phòng & Nhóm', color: 'emerald' },
+        { key: 'classes', icon: '📚', label: 'Lớp học', color: 'purple' },
+        { key: 'users', icon: '👤', label: 'Giáo viên', color: 'amber' },
     ]
 
     if (loading) {
@@ -285,13 +299,24 @@ export default function SettingsPage() {
 
             {/* Tabs */}
             <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1">
-                {tabs.map(t => (
-                    <button key={t.key} onClick={() => setTab(t.key)}
-                        className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${tab === t.key ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <span className="mr-1">{t.icon}</span> {t.label}
-                    </button>
-                ))}
+                {tabs.map(t => {
+                    const colorStyles: Record<string, string> = {
+                        blue: 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200',
+                        emerald: 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200',
+                        purple: 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200',
+                        amber: 'bg-amber-50 text-amber-700 shadow-sm border border-amber-200',
+                    }
+                    return (
+                        <button key={t.key} onClick={() => setTab(t.key)}
+                            className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all ${
+                                tab === t.key ? colorStyles[t.color] || 'bg-white shadow-sm text-blue-700' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            <span className="mr-1">{t.icon}</span> {t.label}
+                        </button>
+                    )
+                })}
             </div>
 
             {/* =================== TAB: TIME =================== */}
@@ -355,6 +380,32 @@ export default function SettingsPage() {
                         className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
                         💾 Lưu cài đặt thời gian
                     </button>
+
+                    {/* Thông tin trường */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+                        <h3 className="font-semibold text-gray-700 mb-2">🏫 Thông tin trường</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Thông tin này sẽ hiển thị trên giao diện và phần in báo cáo.
+                        </p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Tên trường</label>
+                                <input type="text" value={schoolName} onChange={e => setSchoolName(e.target.value)}
+                                    placeholder="VD: Trường Tiểu học ABC"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Địa chỉ</label>
+                                <input type="text" value={schoolAddress} onChange={e => setSchoolAddress(e.target.value)}
+                                    placeholder="VD: 123 Đường ABC, Quận XYZ, TP.HCM"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none" />
+                            </div>
+                        </div>
+                        <button onClick={handleSaveSchoolInfo}
+                            className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
+                            💾 Lưu thông tin trường
+                        </button>
+                    </div>
                 </div>
             )}
 

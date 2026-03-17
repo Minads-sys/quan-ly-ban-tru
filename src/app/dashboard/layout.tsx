@@ -53,7 +53,7 @@ export default async function DashboardLayout({
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-medium text-gray-700">
-                                    {profile?.full_name || user.email}
+                                    {profile?.full_name || 'Người dùng'}
                                 </p>
                                 <p className="text-xs text-gray-400">
                                     {roleName[userRole] || userRole}
