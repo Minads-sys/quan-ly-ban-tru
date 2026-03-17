@@ -236,6 +236,7 @@ export default function SettingsPage() {
         admin: 'Quản trị viên', school_approver: 'GV cấp trường',
         group_manager: 'Quản lý nhóm', room_manager: 'Phụ trách phòng',
         class_teacher: 'Giáo viên lớp', kitchen: 'Bếp / Kế toán',
+        meal_distributor: 'Chia suất',
     }
 
     const tabs: { key: Tab; icon: string; label: string }[] = [
