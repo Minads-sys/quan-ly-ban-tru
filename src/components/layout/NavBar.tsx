@@ -78,13 +78,13 @@ export function NavBar({ userRole }: NavBarProps) {
             {/* === Mobile: nút hamburger + sidebar === */}
             <button
                 onClick={() => setSidebarOpen(true)}
-                className={`sm:hidden flex items-center gap-2 px-3 py-1.5 rounded-lg border font-medium text-sm
+                className={`sm:hidden flex items-center gap-2 px-3 py-1.5 rounded-lg border font-bold text-sm
                     ${currentItem ? `${colorMap[currentItem.color]?.active} border` : 'bg-blue-50 text-blue-700 border-blue-200'}`}
                 aria-label="Mở menu"
             >
-                <span className="text-lg">{currentItem?.icon || '☰'}</span>
-                <span className="text-xs font-bold">{currentItem?.label || 'Menu'}</span>
-                <span className="text-xs">▼</span>
+                <span className="text-base">☰</span>
+                <span className="text-xs">{currentItem?.label || 'Menu'}</span>
+                <span className="text-[10px] opacity-50">▼</span>
             </button>
 
             {/* Overlay */}
@@ -103,16 +103,14 @@ export function NavBar({ userRole }: NavBarProps) {
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 `}
             >
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50">
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl">🍱</span>
-                        <span className="text-lg font-bold text-gray-800">Menu</span>
-                    </div>
+                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+                    <span className="text-xl font-black text-gray-800 uppercase tracking-tight">Danh mục</span>
                     <button
                         onClick={() => setSidebarOpen(false)}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xl hover:bg-gray-300"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                        aria-label="Đóng menu"
                     >
-                        ✕
+                        <span className="text-xl">✕</span>
                     </button>
                 </div>
 
@@ -126,7 +124,7 @@ export function NavBar({ userRole }: NavBarProps) {
                                 href={item.href}
                                 onClick={() => setSidebarOpen(false)}
                                 className={`
-                                    flex items-center gap-4 px-5 py-4 text-lg font-semibold
+                                    flex items-center px-6 py-4 text-lg font-bold
                                     transition-all duration-150
                                     ${isActive
                                         ? `${colors.sidebar} border-r-4`
@@ -134,7 +132,6 @@ export function NavBar({ userRole }: NavBarProps) {
                                     }
                                 `}
                             >
-                                <span className="text-3xl w-10 text-center">{item.icon}</span>
                                 <span>{item.label}</span>
                             </Link>
                         )
