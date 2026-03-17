@@ -8,7 +8,7 @@ export interface AdvancePayment {
     id: string
     amount: number
     reason: string
-    recipient_name: string
+    payer_name: string
     account_number: string
     bank: string
     report_month: string
@@ -43,7 +43,7 @@ export async function getAdvancePayments(month?: string) {
 export async function createAdvancePayment(data: {
     amount: number
     reason: string
-    recipient_name: string
+    payer_name: string
     account_number: string
     bank: string
     report_month: string

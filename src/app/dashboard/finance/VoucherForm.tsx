@@ -19,7 +19,7 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
     const [formData, setFormData] = useState({
         amount: 0,
         reason: `Tạm ứng tiền bán trú tháng ${currentMonth}`,
-        recipient_name: '',
+        payer_name: '',
         account_number: '',
         bank: '',
         report_month: currentMonth,
@@ -40,8 +40,8 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
             setError('Số tiền phải lớn hơn 0')
             return
         }
-        if (!formData.recipient_name) {
-            setError('Vui lòng nhập họ tên người nhận')
+        if (!formData.payer_name) {
+            setError('Vui lòng nhập họ tên người nộp tiền')
             return
         }
 
@@ -111,23 +111,25 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-700">Người nhận tiền</label>
+                    <label className="text-sm font-bold text-gray-700">Người nộp tiền (Nhà trường)</label>
                     <input
                         type="text"
-                        name="recipient_name"
-                        value={formData.recipient_name}
+                        name="payer_name"
+                        value={formData.payer_name}
                         onChange={handleChange}
+                        placeholder="Tên người đại diện nộp tiền"
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-teal-500"
                         required
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-700">Số tài khoản</label>
+                    <label className="text-sm font-bold text-gray-700">Số tài khoản nhận</label>
                     <input
                         type="text"
                         name="account_number"
                         value={formData.account_number}
                         onChange={handleChange}
+                        placeholder="STK của bếp để nhận tiền"
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-teal-500"
                     />
                 </div>

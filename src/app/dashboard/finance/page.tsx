@@ -99,7 +99,7 @@ export default function FinancePage() {
                             {payments.map(p => (
                                 <tr key={p.id} className="hover:bg-gray-50 transition-all">
                                     <td className="px-6 py-4 font-medium text-gray-700">{formatToViewDate(p.payment_date)}</td>
-                                    <td className="px-6 py-4">{p.recipient_name}</td>
+                                    <td className="px-6 py-4 font-bold">{p.payer_name}</td>
                                     <td className="px-6 py-4 text-gray-500 max-w-[200px] truncate">{p.reason}</td>
                                     <td className="px-6 py-4 font-bold text-teal-600">{p.amount.toLocaleString('vi-VN')} đ</td>
                                     <td className="px-6 py-4 text-right space-x-2">

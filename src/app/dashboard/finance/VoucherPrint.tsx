@@ -37,28 +37,39 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
                 {/* Content */}
                 <div className="space-y-4 text-sm mb-12">
                     <div className="flex">
-                        <span className="min-w-[150px]">Họ tên người nhận:</span>
-                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">{payment.recipient_name}</span>
+                        <span className="min-w-[150px]">Người nộp tiền:</span>
+                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">Nhà trường / [Tên người đại diện]</span>
                     </div>
                     <div className="flex">
                         <span className="min-w-[150px]">Lý do thu:</span>
                         <span className="border-b border-dotted border-gray-400 flex-1">{payment.reason}</span>
                     </div>
                     <div className="flex">
-                        <span className="min-w-[150px]">Số tiền:</span>
+                        <span className="min-w-[150px]">Số tiền thu:</span>
                         <span className="font-bold border-b border-dotted border-gray-400 flex-1">{payment.amount.toLocaleString('vi-VN')} VNĐ</span>
                     </div>
                     <div className="flex">
-                        <span className="min-w-[150px]">Số tài khoản:</span>
-                        <span className="border-b border-dotted border-gray-400 flex-1">{payment.account_number}</span>
+                        <span className="min-w-[150px]">Nhận qua TK:</span>
+                        <span className="border-b border-dotted border-gray-400 flex-1">{payment.account_number} - {payment.bank}</span>
                     </div>
                     <div className="flex">
-                        <span className="min-w-[150px]">Ngân hàng:</span>
-                        <span className="border-b border-dotted border-gray-400 flex-1">{payment.bank}</span>
+                        <span className="min-w-[150px]">Đơn vị nhận:</span>
+                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">Cty TNHH Căn tin Châu Phương Thảo</span>
                     </div>
                 </div>
 
                 {/* Signatures */}
+                <div className="grid grid-cols-2 gap-4 text-center mt-16">
+                    <div className="flex flex-col items-center">
+                        <div className="font-bold text-base mb-20 uppercase">Người nộp tiền</div>
+                        <div className="text-sm font-semibold text-gray-800">(Ký, ghi rõ họ tên)</div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <div className="font-bold text-base mb-20 uppercase leading-tight">Người lập phiếu</div>
+                        <div className="text-sm font-semibold text-gray-800">(Ký, ghi rõ họ tên)</div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4 text-center mt-16">
                     <div className="flex flex-col items-center">
                         <div className="font-bold text-base mb-20 uppercase">Duyệt Hiệu trưởng</div>
@@ -66,18 +77,10 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
                         <div className="text-[10px] italic text-gray-500">(Ký, ghi rõ họ tên)</div>
                     </div>
                     <div className="flex flex-col items-center">
-                        <div className="font-bold text-base mb-20 uppercase leading-tight">Chủ tịch Hội đồng thành viên<br/>Cty TNHH Căn tin Châu Phương Thảo</div>
+                        <div className="font-bold text-base mb-20 uppercase leading-tight">Chủ tịch HĐTV Cty Châu Phương Thảo</div>
                         <div className="text-sm font-semibold text-gray-800">[Tên Chủ tịch]</div>
                         <div className="text-[10px] italic text-gray-500">(Ký, ghi rõ họ tên)</div>
                     </div>
-                </div>
-
-                <div className="mt-16 flex flex-col items-end px-12">
-                     <div className="text-center">
-                        <div className="font-bold text-sm mb-20 uppercase">Người nhận tiền</div>
-                        <div className="text-sm font-semibold text-gray-800">{payment.recipient_name}</div>
-                        <div className="text-[10px] italic text-gray-500">(Ký, ghi rõ họ tên)</div>
-                     </div>
                 </div>
 
                 {/* Action Buttons (Hidden on print) */}

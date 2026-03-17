@@ -110,6 +110,17 @@ export default function AdminPage() {
         }
     }
 
+    const handleDownloadTemplate = () => {
+        const data = [
+            { 'Ngày': '2026-03-01', 'Mặn': 100, 'Cháo': 10, 'Chay': 5, 'Ghi chú': 'Dữ liệu mẫu' },
+            { 'Ngày': '2026-03-02', 'Mặn': 105, 'Cháo': 8, 'Chay': 7, 'Ghi chú': '' }
+        ]
+        const ws = XLSX.utils.json_to_sheet(data)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu mẫu")
+        XLSX.writeFile(wb, "mau_nhap_lieu_lich_su.xlsx")
+    }
+
     useEffect(() => {
         handleSearch(startDate, endDate)
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,6 +235,12 @@ export default function AdminPage() {
                             accept=".xlsx, .xls"
                             className="hidden"
                         />
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all border border-blue-100 flex items-center gap-2"
+                        >
+                            📋 Tải file mẫu
+                        </button>
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             className="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all border border-emerald-100 flex items-center gap-2"
