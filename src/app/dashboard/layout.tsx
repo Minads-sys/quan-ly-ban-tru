@@ -16,11 +16,12 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', user.id)
-        .single()
+    const [{ data: profile }, { data: settings }] = await Promise.all([
+        supabase.from('profiles').select('full_name, role').eq('id', user.id).single(),
+        supabase.from('settings').select('*')
+    ])
+
+    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
 
     const roleName: Record<string, string> = {
         admin: 'Quản trị viên',
@@ -44,7 +45,7 @@ export default async function DashboardLayout({
                             <div className="flex items-center gap-2">
                                 <span className="text-xl">🍱</span>
                                 <h1 className="text-base sm:text-lg font-bold text-gray-800">
-                                    Suất ăn Bán trú
+                                    Suất ăn Bán trú {schoolName && ` - ${schoolName}`}
                                 </h1>
                             </div>
                             {/* Navigation */}

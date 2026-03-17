@@ -46,14 +46,18 @@ export async function getGroupReports(selectedDate?: string) {
 
     // ⚡ Song song: settings + rooms query
     const [settingsResult, roomsResult] = await Promise.all([
-        selectedDate ? null : getSettings(),
+        getSettings(),
         roomsQuery,
     ])
 
+    const { settings } = settingsResult
+    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
+    const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
+
     let activeDate = selectedDate
-    if (!activeDate && settingsResult) {
+    if (!activeDate) {
         const now = new Date()
-        const state = getFormState(now, mapTimeSettings(settingsResult.settings))
+        const state = getFormState(now, mapTimeSettings(settings))
         activeDate = state.reportDate
     }
 
@@ -93,7 +97,12 @@ export async function getGroupReports(selectedDate?: string) {
         }
     }) || []
 
-    return { classes: roomsWithReports, today: activeDate, roomName: headerName }
+    return { 
+        classes: roomsWithReports, 
+        today: activeDate, 
+        roomName: headerName,
+        schoolInfo: { name: schoolName, address: schoolAddress }
+    }
 }
 
 /** Duyệt phòng: chuyển tất cả submitted → school_approved (tạm tắt duyệt cấp trường) */

@@ -27,7 +27,15 @@ export async function searchReports(date: string) {
         .eq('report_date', date)
         .order('created_at')
 
-    return { reports: reports || [], date }
+    const { data: settings } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'meal_price')
+        .single()
+
+    const mealPrice = parseInt(settings?.value || '25000') || 25000
+
+    return { reports: reports || [], date, mealPrice }
 }
 
 /** Admin ghi đè (override) báo cáo — bỏ qua mọi rào cản thời gian */

@@ -34,6 +34,7 @@ export default function SettingsPage() {
     const [noTimeLimit, setNoTimeLimit] = useState(false)
     const [schoolName, setSchoolName] = useState('')
     const [schoolAddress, setSchoolAddress] = useState('')
+    const [mealPrice, setMealPrice] = useState(25000)
     const [groups, setGroups] = useState<Group[]>([])
     const [rooms, setRooms] = useState<Room[]>([])
     const [classes, setClasses] = useState<ClassItem[]>([])
@@ -77,6 +78,7 @@ export default function SettingsPage() {
                 setNoTimeLimit(get('deadline_no_limit') === 'true')
                 setSchoolName(get('school_name') || '')
                 setSchoolAddress(get('school_address') || '')
+                setMealPrice(parseInt(get('meal_price') || '25000') || 25000)
                 break
             }
             case 'rooms': {
@@ -130,10 +132,11 @@ export default function SettingsPage() {
         const results = await Promise.all([
             updateSetting('school_name', schoolName),
             updateSetting('school_address', schoolAddress),
+            updateSetting('meal_price', mealPrice.toString()),
         ])
         const err = results.find(r => r.error)
         if (err?.error) showMsg('error', err.error)
-        else showMsg('success', 'Đã lưu thông tin trường!')
+        else showMsg('success', 'Đã lưu thông tin cấu hình!')
     }
 
     // ---- GROUPS ----
@@ -277,7 +280,6 @@ export default function SettingsPage() {
     const tabs: { key: Tab; icon: string; label: string; color: string }[] = [
         { key: 'time', icon: '⏰', label: 'Thời gian', color: 'blue' },
         { key: 'rooms', icon: '🏫', label: 'Phòng & Nhóm', color: 'emerald' },
-        { key: 'classes', icon: '📚', label: 'Lớp học', color: 'purple' },
         { key: 'users', icon: '👤', label: 'Giáo viên', color: 'amber' },
     ]
 
@@ -400,10 +402,16 @@ export default function SettingsPage() {
                                     placeholder="VD: 123 Đường ABC, Quận XYZ, TP.HCM"
                                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none" />
                             </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Đơn giá suất ăn (VNĐ)</label>
+                                <input type="number" value={mealPrice} onChange={e => setMealPrice(parseInt(e.target.value) || 0)}
+                                    placeholder="25000"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-blue-700 focus:border-blue-500 outline-none" />
+                            </div>
                         </div>
                         <button onClick={handleSaveSchoolInfo}
                             className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
-                            💾 Lưu thông tin trường
+                            💾 Lưu cấu hình
                         </button>
                     </div>
                 </div>
@@ -539,75 +547,7 @@ export default function SettingsPage() {
                 </div>
             )}
 
-            {/* =================== TAB: CLASSES =================== */}
-            {tab === 'classes' && (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-xl border border-gray-200 p-5">
-                        <h3 className="font-semibold text-gray-700 mb-4">📚 Quản lý Lớp học</h3>
-                        <p className="text-xs text-gray-500 mb-4">Mỗi phòng có thể chứa nhiều lớp. Giáo viên lớp sẽ được gán vào lớp cụ thể.</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
-                            <input type="text" placeholder="Tên lớp (VD: Lớp 1A)"
-                                value={classForm.name} onChange={e => setClassForm({ ...classForm, name: e.target.value })}
-                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none" />
-                            <select value={classForm.roomId} onChange={e => setClassForm({ ...classForm, roomId: e.target.value })}
-                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none">
-                                <option value="">Chọn phòng</option>
-                                {rooms.map(r => <option key={r.id} value={r.id}>{r.name} ({r.groups?.name})</option>)}
-                            </select>
-                            <input type="number" min={0} placeholder="Sĩ số"
-                                value={classForm.capacity} onChange={e => setClassForm({ ...classForm, capacity: parseInt(e.target.value) || 0 })}
-                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none" />
-                            <button onClick={handleCreateClass} className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">+ Thêm lớp</button>
-                        </div>
-                        <div className="space-y-2">
-                            {rooms.map(room => {
-                                const roomClasses = classes.filter(c => c.room_id === room.id)
-                                if (roomClasses.length === 0) return null
-                                return (
-                                    <div key={room.id} className="mb-3">
-                                        <p className="text-xs font-semibold text-gray-500 mb-1">🏫 {room.name} ({room.groups?.name})</p>
-                                        <div className="space-y-1 ml-4">
-                                            {roomClasses.map(c => (
-                                                <div key={c.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
-                                                    {editClassId === c.id ? (
-                                                        <div className="flex gap-2 flex-1 flex-wrap">
-                                                            <input type="text" value={editClassForm.name} onChange={e => setEditClassForm({ ...editClassForm, name: e.target.value })}
-                                                                className="flex-1 min-w-[120px] px-2 py-1 rounded border border-gray-200 text-sm outline-none" />
-                                                            <select value={editClassForm.roomId} onChange={e => setEditClassForm({ ...editClassForm, roomId: e.target.value })}
-                                                                className="px-2 py-1 rounded border border-gray-200 text-sm outline-none">
-                                                                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                                            </select>
-                                                            <input type="number" min={0} value={editClassForm.capacity}
-                                                                onChange={e => setEditClassForm({ ...editClassForm, capacity: parseInt(e.target.value) || 0 })}
-                                                                className="w-16 px-2 py-1 rounded border border-gray-200 text-sm outline-none" />
-                                                            <button onClick={handleUpdateClass} className="text-xs text-blue-600 font-medium">Lưu</button>
-                                                            <button onClick={() => setEditClassId(null)} className="text-xs text-gray-400">Hủy</button>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div>
-                                                                <span className="font-medium text-gray-700 text-sm">{c.name}</span>
-                                                                <span className="text-xs text-gray-400 ml-2">Sĩ số: {c.default_capacity}</span>
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <button onClick={() => { setEditClassId(c.id); setEditClassForm({ name: c.name, roomId: c.room_id, capacity: c.default_capacity }) }}
-                                                                    className="text-xs text-blue-600 font-medium hover:text-blue-700">Sửa</button>
-                                                                <button onClick={() => handleDeleteClass(c.id)}
-                                                                    className="text-xs text-red-500 font-medium hover:text-red-600">Xóa</button>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                            {classes.length === 0 && <p className="text-sm text-gray-400 italic">Chưa có lớp nào. Hãy tạo phòng trước.</p>}
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* =================== TAB: USERS =================== */}
             {tab === 'users' && (

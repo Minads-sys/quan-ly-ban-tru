@@ -10,9 +10,12 @@ export async function getDistributorSummary(date?: string) {
     // ⚡ Middleware đã kiểm tra auth, không cần query lại
 
     // Xác định ngày
+    const { settings } = await getSettings()
+    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
+    const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
+
     let reportDate = date
     if (!reportDate) {
-        const { settings } = await getSettings()
         const now = new Date()
         const state = getFormState(now, mapTimeSettings(settings))
         reportDate = state.reportDate
@@ -79,5 +82,6 @@ export async function getDistributorSummary(date?: string) {
     return {
         date: reportDate,
         groupSummaries,
+        schoolInfo: { name: schoolName, address: schoolAddress }
     }
 }

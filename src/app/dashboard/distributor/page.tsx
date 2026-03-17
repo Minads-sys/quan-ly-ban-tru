@@ -20,6 +20,7 @@ export default function DistributorPage() {
     const [date, setDate] = useState('')
     const [loading, setLoading] = useState(true)
     const [groupSummaries, setGroupSummaries] = useState<GroupSummary[]>([])
+    const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
 
     const loadData = useCallback(async () => {
         setLoading(true)
@@ -30,6 +31,7 @@ export default function DistributorPage() {
         }
         setGroupSummaries(data.groupSummaries as GroupSummary[])
         if (!date && data.date) setDate(data.date as string)
+        if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         setLoading(false)
     }, [date])
 
@@ -49,7 +51,7 @@ export default function DistributorPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 print:hidden">
                 <div>
                     <h2 className="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
-                        🍽️ CHIA SUẤT
+                        🍽️ CHIA SUẤT {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                     </h2>
                     <p className="text-gray-500 mt-1 text-lg">Số liệu đã duyệt — sẵn sàng chia</p>
                 </div>
@@ -71,7 +73,10 @@ export default function DistributorPage() {
 
             {/* Print header (only visible when printing) */}
             <div className="hidden print:block mb-6 text-center">
-                <h1 className="text-3xl font-extrabold">🍽️ BẢNG CHIA SUẤT</h1>
+                <h1 className="text-2xl font-bold uppercase">{schoolInfo.name || 'Suất ăn Bán trú'}</h1>
+                <p className="text-sm">{schoolInfo.address}</p>
+                <div className="h-px bg-gray-300 w-full my-4" />
+                <h2 className="text-xl font-bold">BẢNG CHIA SUẤT</h2>
                 <p className="text-lg mt-1">Ngày: {date}</p>
             </div>
 

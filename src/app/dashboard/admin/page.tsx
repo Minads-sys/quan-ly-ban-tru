@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { searchReports, overrideReport, getAllRooms, createReportForRoom } from './actions'
-import { calculateSaltyMeals } from '@/utils/calculations'
+import { searchReports } from './actions'
 
 interface Report {
     id: string
@@ -28,12 +27,8 @@ interface Room {
 export default function AdminPage() {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [reports, setReports] = useState<Report[]>([])
-    const [rooms, setRooms] = useState<Room[]>([])
+    const [mealPrice, setMealPrice] = useState(25000)
     const [loading, setLoading] = useState(false)
-    const [editingId, setEditingId] = useState<string | null>(null)
-    const [editData, setEditData] = useState({
-        capacity: 0, absent_count: 0, porridge_count: 0, vegetarian_count: 0, note: '',
-    })
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
     async function handleSearch() {
@@ -44,10 +39,8 @@ export default function AdminPage() {
             setMessage({ type: 'error', text: data.error as string })
         } else {
             setReports((data.reports || []) as Report[])
+            if (data.mealPrice) setMealPrice(data.mealPrice)
         }
-
-        const roomData = await getAllRooms()
-        setRooms((roomData.rooms || []) as Room[])
         setLoading(false)
     }
 
@@ -56,285 +49,205 @@ export default function AdminPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    function startEdit(report: Report) {
-        setEditingId(report.id)
-        setEditData({
-            capacity: report.capacity,
-            absent_count: report.absent_count,
-            porridge_count: report.porridge_count,
-            vegetarian_count: report.vegetarian_count,
-            note: report.note || '',
-        })
-    }
+    // Aggregate by Group
+    const groupMap = new Map<string, {
+        name: string,
+        rooms: number,
+        totalMeals: number,
+        salty: number,
+        porridge: number,
+        vegetarian: number,
+    }>()
 
-    async function handleOverride() {
-        if (!editingId) return
-        setMessage(null)
+    reports.forEach(r => {
+        const groupName = r.rooms?.groups?.name || 'Khác'
+        const existing = groupMap.get(groupName) || { name: groupName, rooms: 0, totalMeals: 0, salty: 0, porridge: 0, vegetarian: 0 }
+        
+        existing.rooms += 1
+        existing.totalMeals += (r.salty_count + r.porridge_count + r.vegetarian_count)
+        existing.salty += r.salty_count
+        existing.porridge += r.porridge_count
+        existing.vegetarian += r.vegetarian_count
+        
+        groupMap.set(groupName, existing)
+    })
 
-        const saltyCount = calculateSaltyMeals(
-            editData.capacity, editData.absent_count, editData.porridge_count, editData.vegetarian_count
-        )
+    const groupSummaries = Array.from(groupMap.values()).sort((a, b) => a.name.localeCompare(b.name))
 
-        if (saltyCount < 0) {
-            setMessage({ type: 'error', text: 'Số suất mặn không thể âm!' })
-            return
-        }
-
-        const result = await overrideReport(editingId, {
-            ...editData,
-            salty_count: saltyCount,
-            note: editData.note || null,
-            absent_list: [],
-        })
-
-        if (result.error) {
-            setMessage({ type: 'error', text: result.error })
-        } else {
-            setMessage({ type: 'success', text: 'Đã ghi đè thành công!' })
-            setEditingId(null)
-            handleSearch()
-        }
-    }
-
-    async function handleCreateReport(room: Room) {
-        setMessage(null)
-        const result = await createReportForRoom(room.id, date, {
-            capacity: room.default_capacity,
-            absent_count: 0,
-            porridge_count: 0,
-            vegetarian_count: 0,
-            salty_count: room.default_capacity,
-            note: 'Tạo bởi Admin',
-            absent_list: [],
-        })
-
-        if (result.error) {
-            setMessage({ type: 'error', text: result.error })
-        } else {
-            setMessage({ type: 'success', text: `Đã tạo báo cáo cho ${room.name}` })
-            handleSearch()
-        }
-    }
-
-    const reportedRoomIds = reports.map(r => r.room_id)
-    const unreportedRooms = rooms.filter(r => !reportedRoomIds.includes(r.id))
+    const totalSalty = reports.reduce((s, r) => s + r.salty_count, 0)
+    const totalPorridge = reports.reduce((s, r) => s + r.porridge_count, 0)
+    const totalVegetarian = reports.reduce((s, r) => s + r.vegetarian_count, 0)
+    const totalMeals = totalSalty + totalPorridge + totalVegetarian
+    const totalMoney = totalMeals * mealPrice
 
     return (
-        <div>
+        <div className="max-w-6xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        🔑 Admin — Quản lý dữ liệu
+                    <h2 className="text-3xl font-black text-gray-800 flex items-center gap-3">
+                        📊 QUẢN TRỊ DỮ LIỆU
                     </h2>
-                    <p className="text-gray-500 text-sm mt-1">Tìm kiếm và ghi đè báo cáo, bỏ qua rào cản thời gian</p>
+                    <p className="text-gray-500 mt-1 text-lg">Tổng hợp số liệu & Thống kê doanh thu</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <input
                         type="date"
                         value={date}
                         onChange={e => setDate(e.target.value)}
-                        className="px-4 py-2 rounded-xl border border-gray-200 text-sm
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        className="px-5 py-3 text-xl rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold shadow-sm"
                     />
                     <button
                         onClick={handleSearch}
                         disabled={loading}
-                        className="px-5 py-2 bg-blue-500 text-white rounded-xl text-sm font-semibold
-              hover:bg-blue-600 shadow-md transition-all disabled:opacity-50"
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
                     >
-                        {loading ? '...' : '🔍 Tìm'}
+                        {loading ? '...' : '🔍 Tìm kiếm'}
                     </button>
                 </div>
             </div>
 
-            {/* Message */}
-            {message && (
-                <div className={`rounded-xl p-4 mb-4 text-sm font-medium border ${message.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-red-50 text-red-700 border-red-200'
-                    }`}>
-                    {message.text}
+            {/* General Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
+                    <p className="text-sm font-bold opacity-80 uppercase tracking-wider">💰 Tổng tiền bán trú</p>
+                    <p className="text-3xl font-black mt-2">{totalMoney.toLocaleString()} <span className="text-lg">đ</span></p>
+                    <p className="text-xs mt-2 opacity-70 italic">(Đơn giá: {mealPrice.toLocaleString()} đ/suất)</p>
                 </div>
-            )}
-
-            {/* Edit Modal */}
-            {editingId && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4">✏️ Ghi đè dữ liệu</h3>
-
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-xs font-medium text-gray-500">Sĩ số</label>
-                                <input type="number" min={0} value={editData.capacity}
-                                    onChange={e => setEditData({ ...editData, capacity: parseInt(e.target.value) || 0 })}
-                                    className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none"
-                                />
-                            </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500">Nghỉ</label>
-                                    <input type="number" min={0} value={editData.absent_count}
-                                        onChange={e => setEditData({ ...editData, absent_count: parseInt(e.target.value) || 0 })}
-                                        className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500">Cháo</label>
-                                    <input type="number" min={0} value={editData.porridge_count}
-                                        onChange={e => setEditData({ ...editData, porridge_count: parseInt(e.target.value) || 0 })}
-                                        className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-medium text-gray-500">Chay</label>
-                                    <input type="number" min={0} value={editData.vegetarian_count}
-                                        onChange={e => setEditData({ ...editData, vegetarian_count: parseInt(e.target.value) || 0 })}
-                                        className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-                            <div className={`rounded-lg p-3 text-center font-bold text-lg ${calculateSaltyMeals(editData.capacity, editData.absent_count, editData.porridge_count, editData.vegetarian_count) < 0
-                                    ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-700'
-                                }`}>
-                                Mặn: {calculateSaltyMeals(editData.capacity, editData.absent_count, editData.porridge_count, editData.vegetarian_count)}
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium text-gray-500">Ghi chú</label>
-                                <input type="text" value={editData.note}
-                                    onChange={e => setEditData({ ...editData, note: e.target.value })}
-                                    placeholder="Lý do ghi đè..."
-                                    className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => setEditingId(null)}
-                                className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
-                            >
-                                Hủy
-                            </button>
-                            <button onClick={handleOverride}
-                                className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-emerald-500 text-white rounded-xl text-sm font-semibold
-                  hover:from-blue-600 hover:to-emerald-600 shadow-md"
-                            >
-                                💾 Lưu ghi đè
-                            </button>
-                        </div>
-                    </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">📦 Tổng số suất</p>
+                    <p className="text-4xl font-black text-gray-800 mt-1">{totalMeals}</p>
                 </div>
-            )}
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <p className="text-sm font-bold text-blue-600 uppercase tracking-wider">🍖 Suất Mặn</p>
+                    <p className="text-4xl font-black text-blue-700 mt-1">{totalSalty}</p>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <p className="text-sm font-bold text-amber-600 uppercase tracking-wider">🥣 Suất Cháo / Chay</p>
+                    <p className="text-4xl font-black text-amber-700 mt-1">{totalPorridge + totalVegetarian}</p>
+                </div>
+            </div>
 
-            {/* Reports Table */}
-            {reports.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mb-6">
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <h3 className="font-semibold text-gray-700">📋 Báo cáo ngày {date} ({reports.length} phòng)</h3>
-                    </div>
-
-                    {/* Desktop Table */}
-                    <div className="hidden sm:block overflow-x-auto max-h-[70vh]">
-                        <table className="w-full text-sm relative">
-                            <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
-                                <tr>
-                                    <th className="text-left px-4 py-3 font-semibold">Nhóm</th>
-                                    <th className="text-left px-3 py-3 font-semibold">Phòng</th>
-                                    <th className="text-center px-2 py-3 font-semibold text-gray-800">SN</th>
-                                    <th className="text-center px-2 py-3 font-semibold text-red-600">Nghỉ</th>
-                                    <th className="text-center px-2 py-3 font-semibold text-blue-700">Mặn</th>
-                                    <th className="text-center px-2 py-3 font-semibold text-amber-600">Cháo</th>
-                                    <th className="text-center px-2 py-3 font-semibold text-emerald-600">Chay</th>
-                                    <th className="text-center px-2 py-3 font-semibold">TT</th>
-                                    <th className="text-center px-2 py-3 font-semibold">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reports.map(r => (
-                                    <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-                                        <td className="px-4 py-2 text-gray-500 text-xs">{r.rooms?.groups?.name || '—'}</td>
-                                        <td className="px-3 py-2 font-medium text-gray-700">{r.rooms?.name || '—'}</td>
-                                        <td className="text-center px-2 py-2 font-bold text-gray-800">{r.capacity}</td>
-                                        <td className="text-center px-2 py-2 text-red-500">{r.absent_count}</td>
-                                        <td className="text-center px-2 py-2 font-bold text-blue-700">{r.salty_count}</td>
-                                        <td className="text-center px-2 py-2 font-bold text-amber-600">{r.porridge_count}</td>
-                                        <td className="text-center px-2 py-2 font-bold text-emerald-600">{r.vegetarian_count}</td>
-                                        <td className="text-center px-2 py-2">
-                                            {r.status === 'approved' ? '✅' : r.status === 'submitted' ? '⏳' : '⚪'}
-                                        </td>
-                                        <td className="text-center px-2 py-2">
-                                            <button onClick={() => startEdit(r)}
-                                                className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium
-                          hover:bg-amber-100 transition-colors"
-                                            >
-                                                ✏️ Sửa
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Mobile cards */}
-                    <div className="sm:hidden divide-y divide-gray-100">
-                        {reports.map(r => (
-                            <div key={r.id} className="p-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-medium text-gray-700">{r.rooms?.name}</p>
-                                        <p className="text-xs text-gray-400">{r.rooms?.groups?.name}</p>
+            {/* visual Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* Meal Distribution Chart */}
+                <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+                    <h3 className="text-xl font-extrabold text-gray-800 mb-8 flex items-center gap-2">
+                        📈 Tỷ lệ phân bổ suất ăn
+                    </h3>
+                    
+                    {totalMeals > 0 ? (
+                        <div className="space-y-8">
+                            {[
+                                { label: 'Mặn', count: totalSalty, color: 'bg-blue-500', icon: '🍖' },
+                                { label: 'Cháo', count: totalPorridge, color: 'bg-amber-500', icon: '🥣' },
+                                { label: 'Chay', count: totalVegetarian, color: 'bg-emerald-500', icon: '🥬' },
+                            ].map(item => {
+                                const percent = totalMeals > 0 ? (item.count / totalMeals) * 100 : 0
+                                return (
+                                    <div key={item.label}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-bold text-gray-700 flex items-center gap-2">
+                                                {item.icon} {item.label}
+                                            </span>
+                                            <span className="font-black text-gray-900">{item.count} <span className="text-gray-400 font-normal text-sm ml-1">({percent.toFixed(1)}%)</span></span>
+                                        </div>
+                                        <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full ${item.color} transition-all duration-1000`} 
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                        </div>
                                     </div>
-                                    <button onClick={() => startEdit(r)}
-                                        className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium"
-                                    >
-                                        ✏️ Sửa
-                                    </button>
-                                </div>
-                                <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                                    <span>SN: <b className="text-gray-800">{r.capacity}</b></span>
-                                    <span className="text-blue-700 font-bold">Mặn: {r.salty_count}</span>
-                                    <span className="text-amber-600 font-bold">Cháo: {r.porridge_count}</span>
-                                    <span className="text-emerald-600 font-bold">Chay: {r.vegetarian_count}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="h-40 flex items-center justify-center text-gray-400 italic">
+                            Không có dữ liệu biểu đồ
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* Unreported Rooms */}
-            {unreportedRooms.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="px-4 py-3 bg-amber-50 border-b border-gray-200">
-                        <h3 className="font-semibold text-amber-700">⚠️ Phòng chưa báo ({unreportedRooms.length})</h3>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                        {unreportedRooms.map(room => (
-                            <div key={room.id} className="px-4 py-3 flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-gray-700 text-sm">{room.name}</p>
-                                    <p className="text-xs text-gray-400">{room.groups?.name} · Sĩ số: {room.default_capacity}</p>
-                                </div>
-                                <button onClick={() => handleCreateReport(room)}
-                                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium
-                    hover:bg-blue-100 transition-colors"
-                                >
-                                    ➕ Tạo báo cáo
-                                </button>
-                            </div>
-                        ))}
+                {/* Info Card */}
+                <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
+                    <h3 className="text-xl font-bold text-amber-800 mb-4">💡 Ghi chú</h3>
+                    <ul className="space-y-3 text-amber-900/80 text-sm leading-relaxed">
+                        <li>• Số liệu dựa trên các báo cáo đã được trường phê duyệt.</li>
+                        <li>• Đơn giá suất ăn có thể thay đổi trong phần <b>Cài đặt</b>.</li>
+                        <li>• Tổng tiền được tính bằng công thức: <br/> <code className="bg-amber-100 px-1 rounded font-bold">Tổng suất x Đơn giá</code></li>
+                    </ul>
+                    <div className="mt-8 pt-8 border-t border-amber-200">
+                        <p className="text-xs text-amber-700 font-medium uppercase tracking-widest mb-2">Trạng thái hệ thống</p>
+                        <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            Dữ liệu trực tuyến
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {reports.length === 0 && unreportedRooms.length === 0 && !loading && (
-                <div className="text-center py-16 text-gray-400">
-                    <p className="text-4xl mb-3">🔍</p>
-                    <p>Chọn ngày và nhấn Tìm để xem báo cáo</p>
+            {/* Aggregated Table */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+                <div className="px-8 py-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="font-black text-gray-800 text-xl flex items-center gap-2">
+                        📋 Tổng hợp theo Nhóm / Khối
+                    </h3>
                 </div>
-            )}
+                
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-widest font-black">
+                                <th className="px-8 py-4">Nhóm / Khối</th>
+                                <th className="px-4 py-4 text-center">Số phòng</th>
+                                <th className="px-4 py-4 text-center text-gray-800">Tổng suất</th>
+                                <th className="px-4 py-4 text-center text-blue-600">Mặn</th>
+                                <th className="px-4 py-4 text-center text-amber-600">Cháo</th>
+                                <th className="px-4 py-4 text-center text-emerald-600">Chay</th>
+                                <th className="px-8 py-4 text-right">Tổng tiền (VNĐ)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {groupSummaries.map(gs => (
+                                <tr key={gs.name} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-8 py-5 font-extrabold text-gray-800">{gs.name}</td>
+                                    <td className="px-4 py-5 text-center text-gray-500">{gs.rooms}</td>
+                                    <td className="px-4 py-5 text-center font-black text-lg text-gray-900">{gs.totalMeals}</td>
+                                    <td className="px-4 py-5 text-center font-bold text-blue-600">{gs.salty}</td>
+                                    <td className="px-4 py-5 text-center font-bold text-amber-600">{gs.porridge}</td>
+                                    <td className="px-4 py-5 text-center font-bold text-emerald-600">{gs.vegetarian}</td>
+                                    <td className="px-8 py-5 text-right font-black text-indigo-600">
+                                        {(gs.totalMeals * mealPrice).toLocaleString()}
+                                    </td>
+                                </tr>
+                            ))}
+                            {groupSummaries.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-8 py-20 text-center text-gray-400 italic">
+                                        Không có dữ liệu cho ngày đã chọn
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                        {groupSummaries.length > 0 && (
+                            <tfoot className="bg-gray-50/50 border-t border-gray-100">
+                                <tr className="font-black text-gray-900">
+                                    <td className="px-8 py-5">TỔNG CỘNG</td>
+                                    <td className="px-4 py-5 text-center text-gray-400">—</td>
+                                    <td className="px-4 py-5 text-center text-xl underline decoration-indigo-500 decoration-4">{totalMeals}</td>
+                                    <td className="px-4 py-5 text-center text-blue-600">{totalSalty}</td>
+                                    <td className="px-4 py-5 text-center text-amber-600">{totalPorridge}</td>
+                                    <td className="px-4 py-5 text-center text-emerald-600">{totalVegetarian}</td>
+                                    <td className="px-8 py-5 text-right text-2xl text-indigo-700">
+                                        {totalMoney.toLocaleString()} <span className="text-sm">đ</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                </div>
+            </div>
         </div>
     )
 }

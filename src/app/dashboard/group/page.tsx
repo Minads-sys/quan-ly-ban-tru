@@ -38,6 +38,7 @@ export default function GroupPage() {
     const [roomName, setRoomName] = useState('')
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
+    const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports(selectedDate || undefined)
@@ -45,6 +46,7 @@ export default function GroupPage() {
         setClasses((data.classes || []) as ClassWithReport[])
         setToday(data.today as string)
         setRoomName((data.roomName as string) || '')
+        if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         setLoading(false)
     }, [selectedDate])
 
@@ -97,11 +99,20 @@ export default function GroupPage() {
 
     return (
         <div>
+            {/* Print Header */}
+            <div className="hidden print:block text-center mb-6">
+                <h1 className="text-2xl font-bold uppercase">{schoolInfo.name || 'Suất ăn Bán trú'}</h1>
+                <p className="text-sm">{schoolInfo.address}</p>
+                <div className="h-px bg-gray-300 w-full my-4" />
+                <h2 className="text-xl font-bold">BÁO CÁO DUYỆT SUẤT ĂN</h2>
+                <p className="text-sm">Phòng: {roomName} | Ngày: {selectedDate || today}</p>
+            </div>
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        👥 Duyệt suất ăn — Phòng {roomName}
+                        👥 Duyệt suất ăn — Phòng {roomName} {schoolInfo.name && <span className="text-blue-600">| {schoolInfo.name}</span>}
                     </h2>
                     <div className="flex items-center gap-2 text-sm mt-2 mb-1">
                         <span className="text-gray-500">Ngày:</span>

@@ -45,6 +45,7 @@ export default function KitchenPage() {
     const [userRole, setUserRole] = useState('')
     const [isAfter14h, setIsAfter14h] = useState(false)
     const [showSummaryOnly, setShowSummaryOnly] = useState(false)
+    const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
 
     // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
     const loadData = useCallback(async (selectedDate?: string) => {
@@ -90,6 +91,7 @@ export default function KitchenPage() {
         setTotalMeals(data.totalMeals as number)
         setTotalCong(data.totalCong as number)
         setGroupSummaries(data.groupSummaries as GroupSummary[])
+        if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         setLoading(false)
     }, [])
 
@@ -177,11 +179,21 @@ export default function KitchenPage() {
 
     return (
         <div className={showSummaryOnly ? 'max-w-4xl mx-auto' : ''}>
+            {/* Print Header */}
+            <div className="hidden print:block text-center mb-6">
+                <h1 className="text-2xl font-bold uppercase">{schoolInfo.name || 'Suất ăn Bán trú'}</h1>
+                <p className="text-sm">{schoolInfo.address}</p>
+                <div className="h-px bg-gray-300 w-full my-4" />
+                <h2 className="text-xl font-bold">BÁO CÁO SUẤT ĂN</h2>
+                <p className="text-sm">Ngày: {date}</p>
+            </div>
+
             {/* Header */}
             <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 print:hidden ${showSummaryOnly ? 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100' : ''}`}>
                 <div>
                     <h2 className={`${showSummaryOnly ? 'text-3xl' : 'text-xl'} font-bold text-gray-800 flex items-center gap-3`}>
-                        {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Báo cáo Bếp / Kế toán'}
+                        {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Bếp / Kế toán'}
+                        {schoolInfo.name && <span className="text-blue-600">| {schoolInfo.name}</span>}
                     </h2>
                     {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
                 </div>

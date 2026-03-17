@@ -40,16 +40,21 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         query = query.eq('status', 'school_approved')
     }
 
-    // ⚡ Song song: reports + groups + rooms
-    const [reportsResult, groupsResult, roomsResult] = await Promise.all([
+    // ⚡ Song song: reports + groups + rooms + settings
+    const [reportsResult, groupsResult, roomsResult, settingsResult] = await Promise.all([
         query.order('created_at'),
         supabase.from('groups').select('*').order('name'),
         supabase.from('rooms').select('*, groups(name)').order('name'),
+        supabase.from('settings').select('*')
     ])
 
     const reports = reportsResult.data
     const groups = groupsResult.data
     const allRooms = roomsResult.data
+    const settings = settingsResult.data
+
+    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
+    const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
 
     // Tính tổng
     let totalSalty = 0
@@ -112,6 +117,7 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         totalCong,
         groupSummaries,
         reports,
-        userRole: userRole || 'kitchen'
+        userRole: userRole || 'kitchen',
+        schoolInfo: { name: schoolName, address: schoolAddress }
     }
 }
