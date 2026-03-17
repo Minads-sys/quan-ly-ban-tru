@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
+import { formatToViewDate, getVietnamHours, getVietnamDateString } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 
 interface GroupSummary {
+// ... (trimmed for context but keeping imports safe)
     group: { id: string; name: string }
     rooms: {
         id: string
@@ -73,14 +75,14 @@ export default function KitchenPage() {
         }
 
         // Kiểm tra 14h
-        const now = new Date()
-        if (now.getHours() >= 14) setIsAfter14h(true)
+        const nowHours = getVietnamHours()
+        if (nowHours >= 14) setIsAfter14h(true)
 
-        const todayStr = now.toISOString().split('T')[0]
+        const todayStr = getVietnamDateString()
         const isToday = (selectedDate || data.date) === todayStr
 
         // Kiểm tra điều kiện 14h cho Bếp
-        if (data.userRole === 'kitchen' && isToday && now.getHours() >= 14) {
+        if (data.userRole === 'kitchen' && isToday && nowHours >= 14) {
              setTotalSalty(0)
              setTotalVegetarian(0)
              setTotalPorridge(0)
@@ -191,7 +193,7 @@ export default function KitchenPage() {
                 <p className="text-sm">{schoolInfo.address}</p>
                 <div className="h-px bg-gray-300 w-full my-4" />
                 <h2 className="text-xl font-bold">BÁO CÁO SUẤT ĂN</h2>
-                <p className="text-sm">Ngày: {date}</p>
+                <p className="text-sm">Ngày: {formatToViewDate(date)}</p>
             </div>
 
             {/* Header & Main Controls */}

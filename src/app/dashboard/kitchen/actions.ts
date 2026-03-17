@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { calculateCong } from '@/utils/calculations'
 import { getSessionInfo } from '@/lib/session'
+import { getVietnamDateString, getVietnamMinutesToday } from '@/utils/dateUtils'
 
 /** Lấy tổng hợp báo cáo cho Bếp */
 export async function getKitchenSummary(date?: string, onlyApproved: boolean = false) {
@@ -19,15 +20,23 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
             .select('value')
             .eq('key', 'moc1_close')
             .single()
+        
         const moc1Close = settingsData?.value || '16:00'
         const [moc1H, moc1M] = moc1Close.split(':').map(Number)
-        const now = new Date()
-        const currentTime = now.getHours() * 60 + now.getMinutes()
+        
+        const currentTime = getVietnamMinutesToday()
         const moc1TimeInMinutes = moc1H * 60 + moc1M
+        
         if (currentTime >= moc1TimeInMinutes) {
-            now.setDate(now.getDate() + 1)
+            // Nếu qua giờ chốt, mặc định sang ngày mai
+            const vnNow = new Date()
+            vnNow.setDate(vnNow.getDate() + 1)
+            // Chỉnh lại timezone cho ngày mai trước khi lấy string
+            const tomorrowVN = new Date(vnNow.getTime() + (7 * 60 * 60 * 1000) + (vnNow.getTimezoneOffset() * 60 * 1000))
+            reportDate = getVietnamDateString(tomorrowVN)
+        } else {
+            reportDate = getVietnamDateString()
         }
-        reportDate = now.toISOString().split('T')[0]
     }
 
     // Lấy tất cả báo cáo của ngày
@@ -48,10 +57,10 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         supabase.from('settings').select('*')
     ])
 
-    const reports = reportsResult.data
-    const groups = groupsResult.data
-    const allRooms = roomsResult.data
-    const settings = settingsResult.data
+    const reports = reportsResult.data as any[]
+    const groups = groupsResult.data as any[]
+    const allRooms = roomsResult.data as any[]
+    const settings = settingsResult.data as any[]
 
     const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
     const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''

@@ -1,20 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react' // Added useCallback
-import { searchReportsRange } from './actions' // Changed import from searchReports
+import { useState, useEffect, useCallback } from 'react'
+import { searchReportsRange } from './actions'
+import { getVietnamDateString, getVietnamNow, formatToViewDate } from '@/utils/dateUtils'
 
 interface Report {
     id: string
     room_id: string
-    report_date: string // Added report_date
+    report_date: string
     capacity: number
     absent_count: number
     porridge_count: number
     vegetarian_count: number
     salty_count: number
     status: string
-    // Removed note: string | null
-    // Removed absent_list: { name: string; reason?: string }[]
     rooms: { name: string; groups: { name: string } | null } | null
 }
 
@@ -26,7 +25,7 @@ interface Room {
 }
 
 export default function AdminPage() {
-    const todayStr = new Date().toISOString().split('T')[0]
+    const todayStr = getVietnamDateString()
     const [startDate, setStartDate] = useState(todayStr)
     const [endDate, setEndDate] = useState(todayStr)
     
@@ -54,25 +53,25 @@ export default function AdminPage() {
     }, [])
 
     const setFilter = (type: 'today' | 'yesterday' | 'thisMonth' | 'lastMonth') => {
-        const now = new Date()
+        const now = getVietnamNow()
         let s = '', e = ''
 
         if (type === 'today') {
-            s = e = now.toISOString().split('T')[0]
+            s = e = getVietnamDateString(now)
         } else if (type === 'yesterday') {
             const yesterday = new Date(now)
             yesterday.setDate(now.getDate() - 1)
-            s = e = yesterday.toISOString().split('T')[0]
+            s = e = getVietnamDateString(yesterday)
         } else if (type === 'thisMonth') {
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-            s = firstDay.toISOString().split('T')[0]
-            e = lastDay.toISOString().split('T')[0]
+            s = getVietnamDateString(firstDay)
+            e = getVietnamDateString(lastDay)
         } else if (type === 'lastMonth') {
             const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1)
             const lastDay = new Date(now.getFullYear(), now.getMonth(), 0)
-            s = firstDay.toISOString().split('T')[0]
-            e = lastDay.toISOString().split('T')[0]
+            s = getVietnamDateString(firstDay)
+            e = getVietnamDateString(lastDay)
         }
 
         setStartDate(s)
@@ -240,7 +239,7 @@ export default function AdminPage() {
                 <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100">
                     <h3 className="text-xl font-bold text-amber-800 mb-4">💡 Ghi chú</h3>
                     <ul className="space-y-3 text-amber-900/80 text-sm leading-relaxed">
-                        <li>• Dữ liệu tổng hợp từ {new Date(startDate).toLocaleDateString('vi-VN')} đến {new Date(endDate).toLocaleDateString('vi-VN')}.</li>
+                        <li>• Dữ liệu tổng hợp từ {formatToViewDate(startDate)} đến {formatToViewDate(endDate)}.</li>
                         <li>• Chỉ tính các báo cáo đã có trạng thái Phê duyệt.</li>
                         <li>• Thay đổi đơn giá trong phần Cài đặt hệ thống.</li>
                     </ul>

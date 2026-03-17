@@ -1,3 +1,5 @@
+import { getVietnamNow } from './dateUtils'
+
 /**
  * Tính số suất mặn
  * Công thức: Sĩ số - Nghỉ học - Cháo - Chay
@@ -32,10 +34,10 @@ export function calculateTotalMeals(
 
 /**
  * Kiểm tra có đang trong giờ cho phép báo suất không (trước 7:00 AM)
- * @param serverTime - Thời gian server (ISO string)
+ * @param serverTime - Thời gian server (ISO string - nếu truyền vào thì dùng, không thì lấy giờ Việt Nam hiện tại)
  */
 export function isWithinReportingTime(serverTime?: string): boolean {
-    const now = serverTime ? new Date(serverTime) : new Date()
+    const now = serverTime ? new Date(serverTime) : getVietnamNow()
     const hours = now.getHours()
     const minutes = now.getMinutes()
     return hours < 7 || (hours === 7 && minutes === 0)
