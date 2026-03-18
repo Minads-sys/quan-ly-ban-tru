@@ -274,7 +274,7 @@ export default function KitchenPage() {
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-12 text-center shadow-lg">
                      <p className="text-6xl mb-6">⏰</p>
                      <p className="text-3xl font-bold text-amber-800">Đã hết thời gian xem số liệu ngày hôm nay.</p>
-                     <p className="text-xl text-amber-700 mt-4">Số liệu sẽ mở lại vào {moc1Close} ngày mai.</p>
+                     <p className="text-xl text-amber-700 mt-4">Số liệu của ngày mai sẽ được tự động hiển thị vào lúc {moc1Close} hôm nay.</p>
                 </div>
             ) : groupSummaries.length === 0 && !loading ? (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center shadow-sm">

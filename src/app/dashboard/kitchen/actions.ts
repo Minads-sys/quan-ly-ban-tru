@@ -27,10 +27,7 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole || '')
     
     let reportDate = date
-    if (isRestrictedRole) {
-        // Luôn force về ngày hôm nay cho kitchen/meal_distributor
-        reportDate = getVietnamDateString()
-    } else if (!reportDate) {
+    if (!reportDate || isRestrictedRole) {
         const currentTime = getVietnamMinutesToday()
         if (currentTime >= moc1TimeInMinutes) {
             const vnNow = getVietnamNow()
