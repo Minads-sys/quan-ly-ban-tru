@@ -4,8 +4,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Map role → trang mặc định
 const ROLE_REDIRECT: Record<string, string> = {
     admin: '/dashboard/admin',
+    school_approver: '/dashboard/school',
     group_manager: '/dashboard/group',
-    room_manager: '/dashboard/room',
+    room_manager: '/dashboard/group', // Room manager thường duyệt phòng
+    reporter: '/dashboard/room',
+    class_teacher: '/dashboard/room',
     kitchen: '/dashboard/kitchen',
     meal_distributor: '/dashboard/kitchen',
 }
@@ -13,9 +16,11 @@ const ROLE_REDIRECT: Record<string, string> = {
 // Map trang → role được phép truy cập
 const ROUTE_ROLES: Record<string, string[]> = {
     '/dashboard/admin': ['admin'],
-    '/dashboard/group': ['admin', 'group_manager'],
-    '/dashboard/room': ['admin', 'room_manager'],
-    '/dashboard/kitchen': ['admin', 'kitchen', 'meal_distributor'],
+    '/dashboard/finance': ['admin'],
+    '/dashboard/school': ['admin', 'school_approver'],
+    '/dashboard/group': ['admin', 'room_manager', 'school_approver', 'reporter'],
+    '/dashboard/room': ['admin', 'class_teacher', 'reporter'],
+    '/dashboard/kitchen': ['admin', 'kitchen', 'meal_distributor', 'school_approver', 'group_manager', 'reporter'],
     '/dashboard/settings': ['admin'],
 }
 
