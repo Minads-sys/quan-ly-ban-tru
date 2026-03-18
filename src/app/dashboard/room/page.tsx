@@ -25,6 +25,7 @@ export default function RoomPage() {
     // Admin / approver roles
     const [hasBulkAccess, setHasBulkAccess] = useState(false)
     const [bulkData, setBulkData] = useState<{rooms: any[], reports: any[]} | null>(null)
+    const [bulkPhase, setBulkPhase] = useState<string>('moc1')
 
     // Form state
     const [capacity, setCapacity] = useState(0)
@@ -52,6 +53,7 @@ export default function RoomPage() {
             if (bulkRes.phaseLabel) setPhaseLabel(bulkRes.phaseLabel)
             if (bulkRes.reportDate) setReportDate(bulkRes.reportDate)
             if (bulkRes.isWithinTime !== undefined) setIsWithinTime(bulkRes.isWithinTime)
+            if (bulkRes.phase) setBulkPhase(bulkRes.phase)
         }
 
         if ('error' in data && data.error && !hasBulkAccess && !bulkRes.rooms) {
@@ -203,6 +205,7 @@ export default function RoomPage() {
                  isWithinTime={isWithinTime}
                  phaseLabel={phaseLabel}
                  reportDate={reportDate}
+                 phase={bulkPhase}
                  onSuccess={loadData}
              />
             ) : (

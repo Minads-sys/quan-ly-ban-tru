@@ -179,7 +179,7 @@ export async function getBulkRoomData() {
     // Lấy báo cáo ngày hiện tại
     const { data: reports, error: reportsError } = await supabase
         .from('daily_reports')
-        .select('id, room_id, capacity, absent_count, porridge_count, vegetarian_count, salty_count, note, status')
+        .select('id, room_id, capacity, absent_count, porridge_count, vegetarian_count, salty_count, note, status, moc1_snapshot')
         .is('class_id', null) 
         .eq('report_date', state.reportDate)
         
@@ -191,5 +191,6 @@ export async function getBulkRoomData() {
         isWithinTime: state.isOpen,
         reportDate: state.reportDate,
         phaseLabel: state.phaseLabel,
+        phase: state.phase,
     }
 }
