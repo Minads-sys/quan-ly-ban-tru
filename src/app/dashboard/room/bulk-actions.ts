@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getSessionInfo } from '@/lib/session'
 import { TimeSettings, getFormState } from '@/utils/formState'
@@ -120,7 +121,8 @@ export async function submitBulkReports(reports: BulkReportData[]) {
         upsertDataList.push(reportToSave)
     }
 
-    const { error: upsertError } = await supabase
+    const supabaseAdmin = createAdminClient()
+    const { error: upsertError } = await supabaseAdmin
         .from('daily_reports')
         .upsert(upsertDataList, { onConflict: 'id' })
 
