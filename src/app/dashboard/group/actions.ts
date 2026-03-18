@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
@@ -120,11 +121,28 @@ export async function approveReport(reportId: string) {
     const { userId } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
 
-    // Kiểm tra quyền - chặn school_approver
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    if (profile?.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được duyệt' }
+    // Kiểm tra quyền
+    const { data: profile } = await supabase.from('profiles').select('role, room_id, group_id').eq('id', userId).single()
+    if (!profile) return { error: 'Lỗi xác thực' }
+    if (profile.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được duyệt' }
 
-    const { error } = await supabase
+    // Xác thực quyền với từng báo cáo con (bypass RLS requires software check)
+    const { data: report } = await supabase.from('daily_reports').select('room_id').eq('id', reportId).single()
+    if (!report) return { error: 'Không tìm thấy báo cáo' }
+
+    if (profile.role !== 'admin' && profile.role !== 'reporter') {
+        if (profile.role === 'group_manager' && profile.group_id) {
+            const { data: roomGroup } = await supabase.from('rooms').select('group_id').eq('id', report.room_id).single()
+            if (roomGroup?.group_id !== profile.group_id) return { error: 'Không quyền truy cập' }
+        } else if (profile.room_id) {
+            if (report.room_id !== profile.room_id) return { error: 'Không quyền truy cập' }
+        } else {
+            return { error: 'Không quyền truy cập' }
+        }
+    }
+
+    const supabaseAdmin = createAdminClient()
+    const { error } = await supabaseAdmin
         .from('daily_reports')
         .update({
             status: 'school_approved',
@@ -146,11 +164,27 @@ export async function rejectReport(reportId: string) {
     const { userId } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
 
-    // Kiểm tra quyền - chặn school_approver
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    if (profile?.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được từ chối' }
+    // Kiểm tra quyền
+    const { data: profile } = await supabase.from('profiles').select('role, room_id, group_id').eq('id', userId).single()
+    if (!profile) return { error: 'Lỗi xác thực' }
+    if (profile.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được từ chối' }
 
-    const { error } = await supabase
+    const { data: report } = await supabase.from('daily_reports').select('room_id').eq('id', reportId).single()
+    if (!report) return { error: 'Không tìm thấy báo cáo' }
+
+    if (profile.role !== 'admin' && profile.role !== 'reporter') {
+        if (profile.role === 'group_manager' && profile.group_id) {
+            const { data: roomGroup } = await supabase.from('rooms').select('group_id').eq('id', report.room_id).single()
+            if (roomGroup?.group_id !== profile.group_id) return { error: 'Không quyền truy cập' }
+        } else if (profile.room_id) {
+            if (report.room_id !== profile.room_id) return { error: 'Không quyền truy cập' }
+        } else {
+            return { error: 'Không quyền truy cập' }
+        }
+    }
+
+    const supabaseAdmin = createAdminClient()
+    const { error } = await supabaseAdmin
         .from('daily_reports')
         .update({
             status: 'rejected',
@@ -208,7 +242,8 @@ export async function approveAll(selectedDate?: string) {
 
     if (roomIds.length === 0) return { error: 'Không có phòng' }
 
-    const { error } = await supabase
+    const supabaseAdmin = createAdminClient()
+    const { error } = await supabaseAdmin
         .from('daily_reports')
         .update({
             status: 'school_approved',
