@@ -39,6 +39,7 @@ export default function GroupPage() {
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
+    const [userRole, setUserRole] = useState('')
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports(selectedDate || undefined)
@@ -47,6 +48,7 @@ export default function GroupPage() {
         setToday(data.today as string)
         setRoomName((data.roomName as string) || '')
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
+        if (data.userRole) setUserRole(data.userRole as string)
         setLoading(false)
     }, [selectedDate])
 
@@ -81,6 +83,7 @@ export default function GroupPage() {
     // Check school approval status
     const schoolApprovedCount = classes.filter(c => c.report?.status === 'school_approved').length
     const roomApprovedCount = classes.filter(c => c.report?.status === 'room_approved').length
+    const isReadOnly = userRole === 'school_approver'
 
     // Calculate totals
     const totalCapacity = classes.reduce((sum, cls) => sum + (cls.report?.capacity || 0), 0)
@@ -147,7 +150,7 @@ export default function GroupPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    {pendingCount > 0 && (
+                    {pendingCount > 0 && !isReadOnly && (
                         <button
                             onClick={handleApproveAll}
                             disabled={actionLoading === 'all'}
@@ -158,6 +161,11 @@ export default function GroupPage() {
                         >
                             {actionLoading === 'all' ? 'Đang duyệt...' : `✅ Duyệt tất cả (${pendingCount})`}
                         </button>
+                    )}
+                    {isReadOnly && (
+                        <span className="px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-sm font-semibold border border-gray-200">
+                            🔒 Chế độ xem
+                        </span>
                     )}
                     <button
                         onClick={() => window.print()}
@@ -203,7 +211,7 @@ export default function GroupPage() {
                                             </span>
                                         </td>
                                         <td className="text-center px-3 py-3">
-                                            {cls.report.status === 'submitted' && (
+                                            {cls.report.status === 'submitted' && !isReadOnly && (
                                                 <div className="flex gap-1.5 justify-center">
                                                     <button
                                                         onClick={() => handleApprove(cls.report!.id)}
@@ -268,7 +276,7 @@ export default function GroupPage() {
                                         <p className="font-semibold text-emerald-600">{cls.report.vegetarian_count}</p>
                                     </div>
                                 </div>
-                                {cls.report.status === 'submitted' && (
+                                {cls.report.status === 'submitted' && !isReadOnly && (
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => handleApprove(cls.report!.id)}

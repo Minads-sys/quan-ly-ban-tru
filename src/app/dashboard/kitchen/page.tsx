@@ -49,6 +49,8 @@ export default function KitchenPage() {
     const [isAfter14h, setIsAfter14h] = useState(false)
     const [showSummaryOnly, setShowSummaryOnly] = useState(false)
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
+    const [moc1Close, setMoc1Close] = useState('16:00')
+    const [isLocked, setIsLocked] = useState(false)
 
     // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
     const loadData = useCallback(async (selectedDate?: string) => {
@@ -66,23 +68,27 @@ export default function KitchenPage() {
             setDate(data.date as string)
         }
 
-        setUserRole(data.userRole as string)
-        setShowSummaryOnly(data.userRole === 'kitchen')
+        const role = data.userRole as string
+        setUserRole(role)
+        setShowSummaryOnly(role === 'kitchen' || role === 'meal_distributor')
+        if (data.moc1Close) setMoc1Close(data.moc1Close as string)
         
         // Default tab based on role
-        if (data.userRole === 'meal_distributor') {
+        if (role === 'meal_distributor') {
             setActiveTab('distributor')
         }
 
-        // Kiểm tra 14h
+        // Kiểm tra 14h lock cho Bếp & Chia suất
+        const isRestricted = ['kitchen', 'meal_distributor'].includes(role)
         const nowHours = getVietnamHours()
         if (nowHours >= 14) setIsAfter14h(true)
 
         const todayStr = getVietnamDateString()
         const isToday = (selectedDate || data.date) === todayStr
 
-        // Kiểm tra điều kiện 14h cho Bếp
-        if (data.userRole === 'kitchen' && isToday && nowHours >= 14) {
+        // Kiểm tra điều kiện khóa: 14h hôm nay → mốc 1 ngày mai
+        if (isRestricted && isToday && nowHours >= 14) {
+             setIsLocked(true)
              setTotalSalty(0)
              setTotalVegetarian(0)
              setTotalPorridge(0)
@@ -93,6 +99,7 @@ export default function KitchenPage() {
              return
         }
 
+        setIsLocked(false)
         setTotalSalty(data.totalSalty as number)
         setTotalVegetarian(data.totalVegetarian as number)
         setTotalPorridge(data.totalPorridge as number)
@@ -106,8 +113,10 @@ export default function KitchenPage() {
     // Load lần đầu (không truyền date → server tự tính)
     useEffect(() => { loadData() }, [loadData])
 
-    // Khi user đổi date thủ công
+    // Khi user đổi date thủ công (bị khóa cho kitchen/meal_distributor)
+    const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole)
     const handleDateChange = (newDate: string) => {
+        if (isRestrictedRole) return // Không cho đổi ngày
         setDate(newDate)
         loadData(newDate)
     }
@@ -181,9 +190,8 @@ export default function KitchenPage() {
         )
     }
 
-    // Kiểm tra render logic cho Bếp sau 14h hôm nay
-    const todayStr = new Date().toISOString().split('T')[0]
-    const isViewingTodayAfter14h = userRole === 'kitchen' && date === todayStr && new Date().getHours() >= 14
+    // Kiểm tra render logic cho Bếp/Chia suất sau 14h hôm nay
+    const isViewingTodayAfter14h = isLocked
 
     return (
         <div className={showSummaryOnly ? 'max-w-4xl mx-auto' : ''}>
@@ -212,8 +220,10 @@ export default function KitchenPage() {
                             type="date"
                             value={date}
                             onChange={e => handleDateChange(e.target.value)}
+                            disabled={isRestrictedRole}
                             className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
-                focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold`}
+                focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold
+                ${isRestrictedRole ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                         />
                         <button
                             onClick={exportToExcel}
@@ -232,8 +242,8 @@ export default function KitchenPage() {
                     </div>
                 </div>
 
-                {/* Tab Switcher - Only for non-kitchen restricted view */}
-                {!showSummaryOnly && (
+                {/* Tab Switcher - Only for admin (không hiện cho kitchen, meal_distributor) */}
+                {!showSummaryOnly && userRole !== 'meal_distributor' && (
                     <div className="flex p-1 bg-gray-100 rounded-xl max-w-fit border border-gray-200">
                         <button
                             onClick={() => setActiveTab('kitchen')}
@@ -264,7 +274,7 @@ export default function KitchenPage() {
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-12 text-center shadow-lg">
                      <p className="text-6xl mb-6">⏰</p>
                      <p className="text-3xl font-bold text-amber-800">Đã hết thời gian xem số liệu ngày hôm nay.</p>
-                     <p className="text-xl text-amber-700 mt-4">Vui lòng chọn ngày khác hoặc xem số liệu ngày mai.</p>
+                     <p className="text-xl text-amber-700 mt-4">Số liệu sẽ mở lại vào {moc1Close} ngày mai.</p>
                 </div>
             ) : groupSummaries.length === 0 && !loading ? (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center shadow-sm">

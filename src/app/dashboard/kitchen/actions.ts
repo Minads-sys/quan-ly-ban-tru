@@ -13,22 +13,26 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     const { userRole } = await getSessionInfo()
 
     // ⚡ Tính ngày trong action luôn (bỏ gọi getSettings riêng ở page)
+    const { data: settingsData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'moc1_close')
+        .single()
+    
+    const moc1Close = settingsData?.value || '16:00'
+    const [moc1H, moc1M] = moc1Close.split(':').map(Number)
+    const moc1TimeInMinutes = moc1H * 60 + moc1M
+
+    // Bếp & Chia suất: chỉ xem ngày hôm nay, không cho đổi ngày
+    const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole || '')
+    
     let reportDate = date
-    if (!reportDate) {
-        const { data: settingsData } = await supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'moc1_close')
-            .single()
-        
-        const moc1Close = settingsData?.value || '16:00'
-        const [moc1H, moc1M] = moc1Close.split(':').map(Number)
-        
+    if (isRestrictedRole) {
+        // Luôn force về ngày hôm nay cho kitchen/meal_distributor
+        reportDate = getVietnamDateString()
+    } else if (!reportDate) {
         const currentTime = getVietnamMinutesToday()
-        const moc1TimeInMinutes = moc1H * 60 + moc1M
-        
         if (currentTime >= moc1TimeInMinutes) {
-            // Nếu qua giờ chốt, mặc định sang ngày mai
             const vnNow = getVietnamNow()
             vnNow.setDate(vnNow.getDate() + 1)
             reportDate = getVietnamDateString(vnNow)
@@ -125,6 +129,7 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         groupSummaries,
         reports,
         userRole: userRole || 'kitchen',
-        schoolInfo: { name: schoolName, address: schoolAddress }
+        schoolInfo: { name: schoolName, address: schoolAddress },
+        moc1Close,
     }
 }

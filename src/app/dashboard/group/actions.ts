@@ -23,6 +23,8 @@ export async function getGroupReports(selectedDate?: string) {
     if (!profile) return { error: 'Không tìm thấy profile' }
 
     const isAdmin = profile.role === 'admin'
+    const isSchoolApprover = profile.role === 'school_approver'
+    const isReporter = profile.role === 'reporter'
 
     // Xây rooms query (cần profile trước)
     let roomsQuery = supabase
@@ -34,7 +36,7 @@ export async function getGroupReports(selectedDate?: string) {
         `)
         .order('name')
 
-    if (!isAdmin) {
+    if (!isAdmin && !isSchoolApprover && !isReporter) {
         if (profile.role === 'group_manager' && profile.group_id) {
             roomsQuery = roomsQuery.eq('group_id', profile.group_id)
         } else if (profile.room_id) {
@@ -66,7 +68,11 @@ export async function getGroupReports(selectedDate?: string) {
 
     // ⚡ Song song: reports + header name
     const headerPromise = (async () => {
-        if (profile.role === 'group_manager' && profile.group_id) {
+        if (isSchoolApprover) {
+            return 'Tất cả (xem)'
+        } else if (isReporter) {
+            return 'Tất cả'
+        } else if (profile.role === 'group_manager' && profile.group_id) {
             const { data: group } = await supabase.from('groups').select('name').eq('id', profile.group_id).single()
             return group?.name || ''
         } else if (profile.room_id) {
@@ -101,6 +107,7 @@ export async function getGroupReports(selectedDate?: string) {
         classes: roomsWithReports, 
         today: activeDate, 
         roomName: headerName,
+        userRole: profile.role,
         schoolInfo: { name: schoolName, address: schoolAddress }
     }
 }
@@ -112,6 +119,10 @@ export async function approveReport(reportId: string) {
     // ⚡ Đọc user ID từ cookie
     const { userId } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
+
+    // Kiểm tra quyền - chặn school_approver
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
+    if (profile?.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được duyệt' }
 
     const { error } = await supabase
         .from('daily_reports')
@@ -134,6 +145,10 @@ export async function rejectReport(reportId: string) {
     // ⚡ Đọc user ID từ cookie
     const { userId } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
+
+    // Kiểm tra quyền - chặn school_approver
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
+    if (profile?.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được từ chối' }
 
     const { error } = await supabase
         .from('daily_reports')
@@ -165,6 +180,9 @@ export async function approveAll(selectedDate?: string) {
 
     if (!profile) return { error: 'Không tìm thấy profile' }
 
+    // Chặn school_approver
+    if (profile.role === 'school_approver') return { error: 'Bạn chỉ có quyền xem, không được duyệt' }
+
     // Determine the active target date
     let activeDate = selectedDate
     if (!activeDate) {
@@ -176,7 +194,7 @@ export async function approveAll(selectedDate?: string) {
 
     // Lấy room_ids trong phạm vi quản lý
     let roomsQuery = supabase.from('rooms').select('id')
-    if (profile.role !== 'admin') {
+    if (profile.role !== 'admin' && profile.role !== 'reporter') {
         if (profile.role === 'group_manager' && profile.group_id) {
             roomsQuery = roomsQuery.eq('group_id', profile.group_id)
         } else if (profile.room_id) {

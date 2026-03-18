@@ -28,6 +28,7 @@ export default async function DashboardLayout({
         school_approver: 'GV cấp trường',
         group_manager: 'Quản lý nhóm',
         room_manager: 'Phụ trách phòng',
+        reporter: 'Báo suất',
         class_teacher: 'Giáo viên lớp',
         kitchen: 'Bếp / Kế toán',
         meal_distributor: 'Chia suất',

@@ -34,8 +34,10 @@ export async function login(formData: FormData) {
             school_approver: '/dashboard/school',
             group_manager: '/dashboard/group',
             room_manager: '/dashboard/group',
+            reporter: '/dashboard/room',
             class_teacher: '/dashboard/room',
             kitchen: '/dashboard/kitchen',
+            meal_distributor: '/dashboard/kitchen',
         }
 
         revalidatePath('/', 'layout')

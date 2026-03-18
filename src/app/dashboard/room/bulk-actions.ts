@@ -47,7 +47,7 @@ export async function submitBulkReports(reports: BulkReportData[]) {
         .eq('id', user.id)
         .single()
 
-    if (!profile || !['admin', 'school_approver'].includes(profile.role)) {
+    if (!profile || !['admin', 'school_approver', 'reporter'].includes(profile.role)) {
         return { error: 'Không có quyền thực hiện thao tác này' }
     }
 
@@ -137,7 +137,7 @@ export async function getBulkRoomData() {
     const { userId, userRole } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
 
-    if (!userRole || !['admin', 'school_approver'].includes(userRole)) {
+    if (!userRole || !['admin', 'school_approver', 'reporter'].includes(userRole)) {
        return { error: 'Không có quyền' }
     }
 
