@@ -16,12 +16,12 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
-    const [{ data: profile }, { data: settings }] = await Promise.all([
+    const [{ data: profile }, { data: schoolNameRow }] = await Promise.all([
         supabase.from('profiles').select('full_name, role').eq('id', user.id).single(),
-        supabase.from('settings').select('*')
+        supabase.from('settings').select('value').eq('key', 'school_name').maybeSingle()
     ])
 
-    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
+    const schoolName = schoolNameRow?.value || ''
 
     const roleName: Record<string, string> = {
         admin: 'Quản trị viên',

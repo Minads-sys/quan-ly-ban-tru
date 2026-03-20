@@ -2,19 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getCachedSettings } from '@/lib/cachedSettings'
 
 // =============================================
 // SETTINGS
 // =============================================
 
-/** Lấy tất cả settings */
+/** Lấy tất cả settings (deduplicated per-request qua React.cache) */
 export async function getSettings() {
-    const supabase = await createClient()
-    const { data } = await supabase
-        .from('settings')
-        .select('*')
-        .order('key')
-    return { settings: data || [] }
+    const data = await getCachedSettings()
+    return { settings: data }
 }
 
 /** Cập nhật setting */
