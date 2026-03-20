@@ -53,6 +53,23 @@ function getNextWorkingDayStr(date: Date, workingDays: number[], offDays: string
 }
 
 /**
+ * Tim ngay lam viec cuoi cung TRUOC ngay `date`.
+ * VD: T2 la ngay an, T7 nghi -> tra ve T6; T7 hoc -> tra ve T7
+ */
+function getPreviousWorkingDayDate(date: Date, workingDays: number[], offDays: string[]): Date {
+    if (!workingDays || workingDays.length === 0) workingDays = [1, 2, 3, 4, 5]
+    if (!offDays) offDays = []
+    const d = new Date(date)
+    d.setDate(d.getDate() - 1)
+    for (let i = 0; i < 14; i++) {
+        const dateStr = getVietnamDateString(d)
+        if (workingDays.includes(d.getDay()) && !offDays.includes(dateStr)) return d
+        d.setDate(d.getDate() - 1)
+    }
+    return d
+}
+
+/**
  * Xác định reportDate (ngày ăn) và trạng thái form dựa trên giờ hiện tại.
  */
 function getFormState(now: Date, settings: TimeSettings): FormState {
@@ -60,7 +77,7 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
         const m2c = toMinutes(settings.moc2Close)
         const current = now.getHours() * 60 + now.getMinutes()
         const reportDate = current < m2c ? formatDate(now) : getNextWorkingDayStr(now, settings.workingDays, settings.offDays)
-        return { reportDate, phase: 'moc1', isOpen: true, phaseLabel: 'Không giới hạn' }
+        return { reportDate, phase: 'moc1', isOpen: true, phaseLabel: 'Khong gioi han' }
     }
 
     const current = now.getHours() * 60 + now.getMinutes()
@@ -69,20 +86,62 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
     const m2o = toMinutes(settings.moc2Open)
     const m2c = toMinutes(settings.moc2Close)
 
-    if (current < m2c) {
-        return { reportDate: formatDate(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})` }
-    }
+    // Ngay an ke tiep (ngay lam viec tiep theo)
     const tomorrowStr = getNextWorkingDayStr(now, settings.workingDays, settings.offDays)
-    if (current >= m1o && current < m1c) {
-        return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }
+    const tomorrowDate = new Date(tomorrowStr + 'T00:00:00')
+
+    // Tim ngay lam viec cuoi cung truoc ngay an (de xac dinh khi nao Moc 1 mo)
+    // VD: T2 la ngay an, T7 nghi -> prevWorkDay = T6; T7 hoc -> prevWorkDay = T7
+    const prevWorkDay = getPreviousWorkingDayDate(tomorrowDate, settings.workingDays, settings.offDays)
+    const prevWorkDayStr = formatDate(prevWorkDay)
+    const nowDateStr = formatDate(now)
+
+    // Kiem tra xem hien tai co dang trong ngay lam viec truoc ngay an khong
+    const isOnPrevWorkDay = nowDateStr === prevWorkDayStr
+    // Kiem tra xem hien tai co dang trong ngay truoc ngay an (CN) khong
+    const dayBeforeTomorrow = new Date(tomorrowDate)
+    dayBeforeTomorrow.setDate(dayBeforeTomorrow.getDate() - 1)
+    const dayBeforeTomorrowStr = formatDate(dayBeforeTomorrow)
+    const isOnDayBeforeMeal = nowDateStr === dayBeforeTomorrowStr
+
+    // Moc 2: sang ngay an
+    if (current < m2c && nowDateStr === tomorrowStr) {
+        return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Moc 2 - Bo sung (truoc ${settings.moc2Close})` }
     }
-    if (current >= m1c && current < m2o) {
-        return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
+
+    // Moc 1 mo: tu sang ngay lam viec truoc - het gio dong moc1 ngay truoc ngay an
+    // Truong hop 1: Dang o ngay lam viec truoc (prevWorkDay), trong gio Moc 1
+    if (isOnPrevWorkDay && current >= m1o && current < m1c) {
+        return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Moc 1 - Bao suat ngay mai (truoc ${settings.moc1Close})` }
     }
-    if (current >= m2o) {
-        return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})` }
+    // Truong hop 2: Dang o ngay truoc ngay an (CN neu T2 la ngay an, T7 nghi)
+    // Va day KHONG PHAI la ngay lam viec truoc (tuc la T7 nghi -> CN la ngay truoc, prevWorkDay la T6)
+    // -> Moc 1 van mo trong ngay nay cho den gio dong
+    if (isOnDayBeforeMeal && !isOnPrevWorkDay && current < m1c) {
+        return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Moc 1 - Bao suat ngay mai (truoc ${settings.moc1Close})` }
     }
-    return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}` }
+    // Truong hop 3: Dang o ngay lam viec truoc, qua gio dong Moc 1
+    if (isOnPrevWorkDay && current >= m1c) {
+        // Neu prevWorkDay = dayBeforeMeal (T7 hoc): khoa den Moc 2
+        if (isOnDayBeforeMeal) {
+            if (current >= m2o) {
+                return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Moc 2 - Bo sung ngay mai (truoc ${settings.moc2Close})` }
+            }
+            return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Da chot Moc 1. Cho mo Moc 2 luc ${settings.moc2Open}` }
+        }
+        // Neu prevWorkDay != dayBeforeMeal (T7 nghi, prevWorkDay=T6): khoa trong T7, mo lai Moc 1 tu CN sang
+        return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Da chot Moc 1. Cho mo lai sang ${dayBeforeTomorrowStr}` }
+    }
+    // Truong hop 4: Ngay truoc ngay an (CN khi T7 nghi), sau gio dong Moc 1
+    if (isOnDayBeforeMeal && !isOnPrevWorkDay && current >= m1c) {
+        if (current >= m2o) {
+            return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Moc 2 - Bo sung ngay mai (truoc ${settings.moc2Close})` }
+        }
+        return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Da chot Moc 1. Cho mo Moc 2 luc ${settings.moc2Open}` }
+    }
+
+    // Mac dinh: chua den gio mo Moc 1
+    return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Cho mo Moc 1 luc ${settings.moc1Open} ngay ${prevWorkDayStr}` }
 }
 
 // ==================================================
