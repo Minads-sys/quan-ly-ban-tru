@@ -11,13 +11,18 @@ export default async function DashboardLayout({
 }) {
     const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // Dùng getSession() thay getUser() để ĐỌC JWT từ cookie local (không cần gọi mạng)
+    // - getUser()   : gọi Supabase Auth server mỗi lần → chậm ~100-200ms/tab
+    // - getSession(): đọc cookie local → gần như tức thì
+    // Layout chỉ dùng để hiển thị UI nên getSession() đủ an toàn.
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
         redirect('/login')
     }
+    const userId = session.user.id
 
     const [{ data: profile }, { data: schoolNameRow }] = await Promise.all([
-        supabase.from('profiles').select('full_name, role').eq('id', user.id).single(),
+        supabase.from('profiles').select('full_name, role').eq('id', userId).single(),
         supabase.from('settings').select('value').eq('key', 'school_name').maybeSingle()
     ])
 

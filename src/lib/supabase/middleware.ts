@@ -6,7 +6,7 @@ const ROLE_REDIRECT: Record<string, string> = {
     admin: '/dashboard/admin',
     school_approver: '/dashboard/school',
     group_manager: '/dashboard/group',
-    room_manager: '/dashboard/group', // Room manager thường duyệt phòng
+    room_manager: '/dashboard/group',
     reporter: '/dashboard/room',
     class_teacher: '/dashboard/room',
     kitchen: '/dashboard/kitchen',
@@ -25,25 +25,17 @@ const ROUTE_ROLES: Record<string, string[]> = {
 }
 
 export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({
-        request,
-    })
+    let supabaseResponse = NextResponse.next({ request })
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                getAll() {
-                    return request.cookies.getAll()
-                },
+                getAll() { return request.cookies.getAll() },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value }) =>
-                        request.cookies.set(name, value)
-                    )
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    })
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+                    supabaseResponse = NextResponse.next({ request })
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     )
@@ -52,15 +44,15 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // QUAN TRỌNG: getUser() ở đây để refresh session token (bắt buộc cho Supabase SSR).
+    // Nhưng chúng ta không dùng kết quả để query profile DB nữa —
+    // thay vào đó đọc role từ cookie đã cache.
+    const { data: { user } } = await supabase.auth.getUser()
 
     const pathname = request.nextUrl.pathname
 
     // --- Chưa đăng nhập ---
     if (!user) {
-        // Đang truy cập dashboard → redirect về login
         if (pathname.startsWith('/dashboard')) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
@@ -71,48 +63,48 @@ export async function updateSession(request: NextRequest) {
 
     // --- Đã đăng nhập ---
 
+    // Đọc role từ cookie (đã cache từ lần login hoặc request trước)
+    const cachedRole = request.cookies.get('user-role')?.value
+    const cachedUserId = request.cookies.get('user-id')?.value
+
+    // Kiểm tra cache có hợp lệ không (đúng user)
+    const roleFromCache = (cachedRole && cachedUserId === user.id) ? cachedRole : null
+
     // Đang ở trang login → redirect về dashboard theo role
     if (pathname.startsWith('/login') || pathname === '/') {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        const role = profile?.role || 'room_manager'
+        let role: string = roleFromCache ?? ''
+        if (!role) {
+            // Chỉ query DB khi cookie chưa có (lần đầu hoặc hết hạn)
+            const { data: profile } = await supabase
+                .from('profiles').select('role').eq('id', user.id).single()
+            role = profile?.role || 'class_teacher'
+        }
         const url = request.nextUrl.clone()
         url.pathname = ROLE_REDIRECT[role] || '/dashboard/room'
-
-        // Cache role vào cookie
         const redirectResponse = NextResponse.redirect(url)
         redirectResponse.cookies.set('user-id', user.id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
         redirectResponse.cookies.set('user-role', role, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
         return redirectResponse
     }
 
-    // Kiểm tra phân quyền: user có role đúng cho trang này không
+    // Kiểm tra phân quyền khi vào dashboard
     if (pathname.startsWith('/dashboard')) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
+        let role: string = roleFromCache ?? ''
+        if (!role) {
+            // Chỉ query DB khi cookie chưa có (lần đầu hoặc hết hạn)
+            const { data: profile } = await supabase
+                .from('profiles').select('role').eq('id', user.id).single()
+            role = profile?.role || 'class_teacher'
+            // Lưu vào cookie để dùng cho request tiếp theo
+            supabaseResponse.cookies.set('user-id', user.id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
+            supabaseResponse.cookies.set('user-role', role, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
+        }
 
-        const role = profile?.role || 'room_manager'
-
-        // Cache role vào cookie (cập nhật mỗi request dashboard)
-        supabaseResponse.cookies.set('user-id', user.id, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
-        supabaseResponse.cookies.set('user-role', role, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 3600 })
-
-        // Tìm route phù hợp nhất
-        const matchedRoute = Object.keys(ROUTE_ROLES).find(route =>
-            pathname.startsWith(route)
-        )
-
+        // Kiểm tra quyền truy cập route
+        const matchedRoute = Object.keys(ROUTE_ROLES).find(route => pathname.startsWith(route))
         if (matchedRoute) {
             const allowedRoles = ROUTE_ROLES[matchedRoute]
             if (!allowedRoles.includes(role)) {
-                // Không có quyền → redirect về trang đúng role
                 const url = request.nextUrl.clone()
                 url.pathname = ROLE_REDIRECT[role] || '/dashboard/room'
                 return NextResponse.redirect(url)
