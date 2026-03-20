@@ -11,9 +11,22 @@ async function getTimeSettings(supabase: any): Promise<TimeSettings> {
     const { data } = await supabase
         .from('settings')
         .select('key, value')
-        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit'])
+        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit', 'working_days', 'off_days'])
 
     const get = (key: string, def: string) => data?.find((s: any) => s.key === key)?.value || def
+
+    let workingDays = [1, 2, 3, 4, 5]
+    let offDays: string[] = []
+    
+    try {
+        const wdStr = get('working_days', '')
+        if (wdStr) workingDays = JSON.parse(wdStr)
+    } catch {}
+    
+    try {
+        const odStr = get('off_days', '')
+        if (odStr) offDays = JSON.parse(odStr)
+    } catch {}
 
     return {
         moc1Open: get('moc1_open', '07:00'),
@@ -21,6 +34,8 @@ async function getTimeSettings(supabase: any): Promise<TimeSettings> {
         moc2Open: get('moc2_open', '23:59'),
         moc2Close: get('moc2_close', '07:00'),
         noLimit: get('deadline_no_limit', 'false') === 'true',
+        workingDays,
+        offDays,
     }
 }
 

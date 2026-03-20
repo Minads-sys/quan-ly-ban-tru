@@ -13,6 +13,8 @@ interface TimeSettings {
     moc2Open: string   // e.g. "23:59"
     moc2Close: string  // e.g. "07:00"
     noLimit: boolean
+    workingDays: number[]
+    offDays: string[]
 }
 
 type Phase = 'moc1' | 'moc2' | 'locked'
@@ -33,9 +35,21 @@ function formatDate(d: Date): string {
     return getVietnamDateString(d)
 }
 
-function getTomorrow(now: Date): string {
-    const t = new Date(now.getTime() + 86400000)
-    return getVietnamDateString(t)
+function getNextWorkingDayStr(date: Date, workingDays: number[], offDays: string[]): string {
+    if (!workingDays || workingDays.length === 0) {
+        workingDays = [1, 2, 3, 4, 5]
+    }
+    if (!offDays) offDays = []
+
+    let next = new Date(date.getTime() + 86400000)
+    for (let i = 0; i < 30; i++) {
+        const dateStr = getVietnamDateString(next)
+        if (workingDays.includes(next.getDay()) && !offDays.includes(dateStr)) {
+            return dateStr
+        }
+        next = new Date(next.getTime() + 86400000)
+    }
+    return getVietnamDateString(next)
 }
 
 /**
@@ -45,7 +59,7 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
     if (settings.noLimit) {
         const m2c = toMinutes(settings.moc2Close)
         const current = now.getHours() * 60 + now.getMinutes()
-        const reportDate = current < m2c ? formatDate(now) : getTomorrow(now)
+        const reportDate = current < m2c ? formatDate(now) : getNextWorkingDayStr(now, settings.workingDays, settings.offDays)
         return { reportDate, phase: 'moc1', isOpen: true, phaseLabel: 'Không giới hạn' }
     }
 
@@ -58,16 +72,17 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
     if (current < m2c) {
         return { reportDate: formatDate(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})` }
     }
+    const tomorrowStr = getNextWorkingDayStr(now, settings.workingDays, settings.offDays)
     if (current >= m1o && current < m1c) {
-        return { reportDate: getTomorrow(now), phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }
+        return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }
     }
     if (current >= m1c && current < m2o) {
-        return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
+        return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
     }
     if (current >= m2o) {
-        return { reportDate: getTomorrow(now), phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})` }
+        return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung cho ngày mai (trước ${settings.moc2Close})` }
     }
-    return { reportDate: getTomorrow(now), phase: 'locked', isOpen: false, phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}` }
+    return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Chờ mở Mốc 1 lúc ${settings.moc1Open}` }
 }
 
 // ==================================================
@@ -77,9 +92,20 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
     const { data } = await supabase
         .from('settings')
         .select('key, value')
-        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit'])
+        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit', 'working_days', 'off_days'])
 
     const get = (key: string, def: string) => data?.find(s => s.key === key)?.value || def
+
+    let workingDays = [1, 2, 3, 4, 5]
+    let offDays: string[] = []
+    try {
+        const wdStr = get('working_days', '')
+        if (wdStr) workingDays = JSON.parse(wdStr)
+    } catch {}
+    try {
+        const odStr = get('off_days', '')
+        if (odStr) offDays = JSON.parse(odStr)
+    } catch {}
 
     return {
         moc1Open: get('moc1_open', '07:00'),
@@ -87,6 +113,8 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
         moc2Open: get('moc2_open', '23:59'),
         moc2Close: get('moc2_close', '07:00'),
         noLimit: get('deadline_no_limit', 'false') === 'true',
+        workingDays,
+        offDays,
     }
 }
 
@@ -313,6 +341,8 @@ export async function getRoomData() {
             moc2Open: settings.moc2Open,
             moc2Close: settings.moc2Close,
             noLimit: settings.noLimit,
+            workingDays: settings.workingDays,
+            offDays: settings.offDays,
         },
     }
 }

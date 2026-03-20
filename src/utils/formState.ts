@@ -6,10 +6,25 @@ export interface TimeSettings {
     moc2Open: string
     moc2Close: string
     noLimit: boolean
+    workingDays: number[]
+    offDays: string[]
 }
 
 export function mapTimeSettings(data: any[] | null): TimeSettings {
     const get = (key: string, def: string) => data?.find((s: any) => s.key === key)?.value || def
+
+    let workingDays = [1, 2, 3, 4, 5]
+    let offDays: string[] = []
+    
+    try {
+        const wdStr = get('working_days', '')
+        if (wdStr) workingDays = JSON.parse(wdStr)
+    } catch {}
+    
+    try {
+        const odStr = get('off_days', '')
+        if (odStr) offDays = JSON.parse(odStr)
+    } catch {}
 
     return {
         moc1Open: get('moc1_open', '07:00'),
@@ -17,6 +32,8 @@ export function mapTimeSettings(data: any[] | null): TimeSettings {
         moc2Open: get('moc2_open', '23:59'),
         moc2Close: get('moc2_close', '07:00'),
         noLimit: get('deadline_no_limit', 'false') === 'true',
+        workingDays,
+        offDays,
     }
 }
 
@@ -39,15 +56,28 @@ export function formatDate(d: Date): string {
     return getVietnamDateString(d)
 }
 
-export function getTomorrow(now: Date): Date {
-    return new Date(now.getTime() + 86400000)
+export function getNextWorkingDay(date: Date, workingDays: number[], offDays: string[]): Date {
+    if (!workingDays || workingDays.length === 0) {
+        workingDays = [1, 2, 3, 4, 5]
+    }
+    if (!offDays) offDays = []
+
+    let next = new Date(date.getTime() + 86400000)
+    for (let i = 0; i < 30; i++) {
+        const dateStr = getVietnamDateString(next)
+        if (workingDays.includes(next.getDay()) && !offDays.includes(dateStr)) {
+            return next
+        }
+        next = new Date(next.getTime() + 86400000)
+    }
+    return next
 }
 
 export function getFormState(now: Date, settings: TimeSettings): FormState {
     if (settings.noLimit) {
         const m2c = toMinutes(settings.moc2Close)
         const current = now.getHours() * 60 + now.getMinutes()
-        const targetDate = current < m2c ? now : getTomorrow(now)
+        const targetDate = current < m2c ? now : getNextWorkingDay(now, settings.workingDays, settings.offDays)
         return { reportDate: formatDate(targetDate), targetDate, phase: 'moc1', isOpen: true, phaseLabel: 'Không giới hạn' }
     }
 
@@ -61,7 +91,7 @@ export function getFormState(now: Date, settings: TimeSettings): FormState {
         return { reportDate: formatDate(now), targetDate: now, phase: 'moc2', isOpen: true, phaseLabel: `Mốc 2 — Bổ sung (trước ${settings.moc2Close})` }
     }
     
-    const tomorrow = getTomorrow(now)
+    const tomorrow = getNextWorkingDay(now, settings.workingDays, settings.offDays)
     
     if (current >= m1o && current < m1c) {
         return { reportDate: formatDate(tomorrow), targetDate: tomorrow, phase: 'moc1', isOpen: true, phaseLabel: `Mốc 1 — Báo suất ngày mai (trước ${settings.moc1Close})` }

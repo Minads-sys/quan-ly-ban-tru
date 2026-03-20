@@ -32,6 +32,8 @@ export default function SettingsPage() {
     const [moc2Open, setMoc2Open] = useState('23:59')
     const [moc2Close, setMoc2Close] = useState('07:00')
     const [noTimeLimit, setNoTimeLimit] = useState(false)
+    const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5])
+    const [offDays, setOffDays] = useState<string[]>([])
     const [schoolName, setSchoolName] = useState('')
     const [schoolAddress, setSchoolAddress] = useState('')
     const [mealPrice, setMealPrice] = useState(25000)
@@ -76,6 +78,14 @@ export default function SettingsPage() {
                 if (get('moc2_open')) setMoc2Open(get('moc2_open')!)
                 if (get('moc2_close')) setMoc2Close(get('moc2_close')!)
                 setNoTimeLimit(get('deadline_no_limit') === 'true')
+                
+                if (get('working_days')) {
+                    try { setWorkingDays(JSON.parse(get('working_days')!)) } catch {}
+                }
+                if (get('off_days')) {
+                    try { setOffDays(JSON.parse(get('off_days')!)) } catch {}
+                }
+
                 setSchoolName(get('school_name') || '')
                 setSchoolAddress(get('school_address') || '')
                 setMealPrice(parseInt(get('meal_price') || '25000') || 25000)
@@ -122,6 +132,8 @@ export default function SettingsPage() {
             updateSetting('moc2_open', moc2Open),
             updateSetting('moc2_close', moc2Close),
             updateSetting('deadline_no_limit', noTimeLimit ? 'true' : 'false'),
+            updateSetting('working_days', JSON.stringify(workingDays)),
+            updateSetting('off_days', JSON.stringify(offDays)),
         ])
         const err = results.find(r => r.error)
         if (err?.error) showMsg('error', err.error)
@@ -379,6 +391,66 @@ export default function SettingsPage() {
                             </div>
                         )}
                     </div>
+                    
+                    {/* 📅 Lịch học & Báo suất */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+                        <h3 className="font-semibold text-gray-700 mb-2">📅 Lịch học & Báo suất</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Chọn các ngày học trong tuần và cấu hình các ngày nghỉ lễ/đặc biệt. Hệ thống sẽ bỏ qua các ngày không học và nghỉ lễ.
+                        </p>
+                        
+                        <div className="mb-5">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày học trong tuần</label>
+                            <div className="flex flex-wrap gap-2">
+                                {[{d: 1, l: 'T2'}, {d: 2, l: 'T3'}, {d: 3, l: 'T4'}, {d: 4, l: 'T5'}, {d: 5, l: 'T6'}, {d: 6, l: 'T7'}, {d: 0, l: 'CN'}].map(day => (
+                                    <label key={day.d} className={`px-4 py-2 border rounded-lg cursor-pointer transition-colors text-sm font-medium ${workingDays.includes(day.d) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                                        <input type="checkbox" className="hidden" 
+                                            checked={workingDays.includes(day.d)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setWorkingDays([...workingDays, day.d].sort((a,b)=>a-b))
+                                                else setWorkingDays(workingDays.filter(d => d !== day.d))
+                                            }}
+                                        />
+                                        {day.l}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Ngày nghỉ lễ / đặc biệt</label>
+                            <div className="flex gap-2 mb-3">
+                                <input type="date" className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500" 
+                                    id="addOffDayInput"
+                                />
+                                <button type="button" 
+                                    onClick={() => {
+                                        const el = document.getElementById('addOffDayInput') as HTMLInputElement
+                                        if (el && el.value && !offDays.includes(el.value)) {
+                                            setOffDays([...offDays, el.value].sort())
+                                            el.value = ''
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-blue-100 text-blue-700 font-medium rounded-lg text-sm hover:bg-blue-200 transition-colors"
+                                >+ Thêm</button>
+                            </div>
+                            {offDays.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {offDays.map(od => {
+                                        const [y, m, d] = od.split('-')
+                                        return (
+                                        <span key={od} className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-semibold">
+                                            {`${d}/${m}/${y}`}
+                                            <button onClick={() => setOffDays(offDays.filter(x => x !== od))} className="hover:text-red-900 text-base leading-none">&times;</button>
+                                        </span>
+                                    )})}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-gray-400 italic">Chưa có ngày nghỉ nào</p>
+                            )}
+                        </div>
+                    </div>
+
                     <button onClick={handleSaveTime}
                         className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
                         💾 Lưu cài đặt thời gian

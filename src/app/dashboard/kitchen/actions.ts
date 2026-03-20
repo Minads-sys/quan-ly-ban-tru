@@ -13,15 +13,26 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     const { userRole } = await getSessionInfo()
 
     // ⚡ Tính ngày trong action luôn (bỏ gọi getSettings riêng ở page)
-    const { data: settingsData } = await supabase
+    const { data: settingsDataRaw } = await supabase
         .from('settings')
-        .select('value')
-        .eq('key', 'moc1_close')
-        .single()
+        .select('key, value')
+        .in('key', ['moc1_close', 'working_days', 'off_days'])
     
-    const moc1Close = settingsData?.value || '16:00'
+    const get = (key: string, def: string) => settingsDataRaw?.find(s => s.key === key)?.value || def
+    const moc1Close = get('moc1_close', '16:00')
     const [moc1H, moc1M] = moc1Close.split(':').map(Number)
     const moc1TimeInMinutes = moc1H * 60 + moc1M
+
+    let workingDays = [1, 2, 3, 4, 5]
+    let offDays: string[] = []
+    try {
+        const wdStr = get('working_days', '')
+        if (wdStr) workingDays = JSON.parse(wdStr)
+    } catch {}
+    try {
+        const odStr = get('off_days', '')
+        if (odStr) offDays = JSON.parse(odStr)
+    } catch {}
 
     // Bếp & Chia suất: chỉ xem ngày hôm nay, không cho đổi ngày
     const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole || '')
@@ -31,8 +42,16 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         const currentTime = getVietnamMinutesToday()
         if (currentTime >= moc1TimeInMinutes) {
             const vnNow = getVietnamNow()
-            vnNow.setDate(vnNow.getDate() + 1)
-            reportDate = getVietnamDateString(vnNow)
+            let next = new Date(vnNow.getTime() + 86400000)
+            reportDate = getVietnamDateString(next)
+            for (let i = 0; i < 30; i++) {
+                const dateStr = getVietnamDateString(next)
+                if (workingDays.includes(next.getDay()) && !offDays.includes(dateStr)) {
+                    reportDate = dateStr
+                    break
+                }
+                next = new Date(next.getTime() + 86400000)
+            }
         } else {
             reportDate = getVietnamDateString()
         }
