@@ -336,9 +336,10 @@ export default function SettingsPage() {
 
             {/* =================== TAB: TIME =================== */}
             {tab === 'time' && (
-                <div className="space-y-4 max-w-lg">
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <h3 className="font-semibold text-gray-700 mb-2">⏰ Thời gian chốt suất</h3>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h3 className="font-semibold text-gray-700 mb-2">⏰ Thời gian chốt suất</h3>
                         <p className="text-sm text-gray-500 mb-5">
                             Cấu hình 4 mốc thời gian: Mốc 1 (báo suất cho ngày mai) và Mốc 2 (bổ sung sáng ngày ăn).
                         </p>
@@ -393,7 +394,7 @@ export default function SettingsPage() {
                     </div>
                     
                     {/* 📅 Lịch học & Báo suất */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
                         <h3 className="font-semibold text-gray-700 mb-2">📅 Lịch học & Báo suất</h3>
                         <p className="text-sm text-gray-500 mb-4">
                             Chọn các ngày học trong tuần và cấu hình các ngày nghỉ lễ/đặc biệt. Hệ thống sẽ bỏ qua các ngày không học và nghỉ lễ.
@@ -450,9 +451,10 @@ export default function SettingsPage() {
                             )}
                         </div>
                     </div>
+                    </div>
 
                     <button onClick={handleSaveTime}
-                        className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
+                        className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all w-fit">
                         💾 Lưu cài đặt thời gian
                     </button>
 
