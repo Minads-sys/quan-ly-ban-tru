@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
 import { formatToViewDate, getVietnamHours, getVietnamDateString } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
 interface GroupSummary {
 // ... (trimmed for context but keeping imports safe)
@@ -112,6 +113,9 @@ export default function KitchenPage() {
 
     // Load lần đầu (không truyền date → server tự tính)
     useEffect(() => { loadData() }, [loadData])
+
+    // ⚡ Realtime: tự động làm mới khi có thay đổi daily_reports
+    useRealtimeRefresh(['daily_reports'], loadData)
 
     // Khi user đổi date thủ công (bị khóa cho kitchen/meal_distributor)
     const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole)

@@ -5,6 +5,7 @@ import { getAdvancePayments, AdvancePayment, deleteAdvancePayment, getDebtSummar
 import { VoucherForm } from './VoucherForm'
 import { VoucherPrint } from './VoucherPrint'
 import { formatToViewDate, getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
 export default function FinancePage() {
     const [payments, setPayments] = useState<AdvancePayment[]>([])
@@ -56,6 +57,9 @@ export default function FinancePage() {
     useEffect(() => {
         loadData()
     }, [loadData])
+
+    // ⚡ Realtime: tự động làm mới khi có thay đổi phiếu thu hoặc báo cáo
+    useRealtimeRefresh(['advance_payments', 'daily_reports'], loadData)
 
     const handleDelete = async (id: string) => {
         if (!confirm('Bạn có chắc chắn muốn xóa phiếu thu này?')) return
