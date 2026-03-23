@@ -77,7 +77,7 @@ export async function submitBulkReports(reports: BulkReportData[]) {
  
      const { data: existingReports, error: fetchError } = await supabase
          .from('daily_reports')
-         .select('id, room_id, capacity, absent_count, salty_count, porridge_count, vegetarian_count, absent_list, moc1_snapshot')
+         .select('id, room_id, capacity, absent_count, salty_count, porridge_count, vegetarian_count, absent_list, moc1_snapshot, created_by')
          .in('room_id', roomIds)
          .is('class_id', null) // Ensure we only update room-level reports
          .eq('report_date', reportDate)
@@ -112,6 +112,8 @@ export async function submitBulkReports(reports: BulkReportData[]) {
 
         if (existing) {
              reportToSave.id = existing.id
+             // Always include created_by to avoid NOT NULL violation if upsert falls back to INSERT
+             reportToSave.created_by = existing.created_by || user.id
              
              let moc1Snapshot = existing.moc1_snapshot
              if (state.phase === 'moc2' && !moc1Snapshot) {
