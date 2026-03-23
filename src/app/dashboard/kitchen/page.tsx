@@ -248,27 +248,35 @@ export default function KitchenPage() {
 
                 {/* Tab Switcher - Only for admin (không hiện cho kitchen, meal_distributor) */}
                 {!showSummaryOnly && userRole !== 'meal_distributor' && (
-                    <div className="flex p-1 bg-gray-100 rounded-xl max-w-fit border border-gray-200">
-                        <button
-                            onClick={() => setActiveTab('kitchen')}
-                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                                activeTab === 'kitchen' 
-                                ? 'bg-white text-blue-700 shadow-sm border border-gray-200' 
-                                : 'text-gray-600 hover:text-gray-700'
-                            }`}
-                        >
-                            🍳 Chế độ Bếp
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('distributor')}
-                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                                activeTab === 'distributor' 
-                                ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
-                                : 'text-gray-600 hover:text-gray-700'
-                            }`}
-                        >
-                            🍽️ Chia suất
-                        </button>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex p-1 bg-gray-100 rounded-xl max-w-fit border border-gray-200">
+                            <button
+                                onClick={() => setActiveTab('kitchen')}
+                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                    activeTab === 'kitchen' 
+                                    ? 'bg-white text-blue-700 shadow-sm border border-gray-200' 
+                                    : 'text-gray-600 hover:text-gray-700'
+                                }`}
+                            >
+                                🍳 Chế độ Bếp
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('distributor')}
+                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                    activeTab === 'distributor' 
+                                    ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
+                                    : 'text-gray-600 hover:text-gray-700'
+                                }`}
+                            >
+                                🍽️ Chia suất
+                            </button>
+                        </div>
+                        {/* Ghi chú mốc tương ứng tab */}
+                        <p className="text-xs font-semibold text-gray-500">
+                            {activeTab === 'kitchen'
+                                ? '🛒 Mốc 1 — Đi chợ'
+                                : '🍽️ Mốc 2 — Chia suất ra công'}
+                        </p>
                     </div>
                 )}
             </div>

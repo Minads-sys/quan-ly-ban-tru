@@ -247,6 +247,12 @@ export function BulkReportForm({
                         {isWithinTime ? (isMoc2 ? '✏️' : '📝') : '🔒'} {phaseLabel}
                         {reportDate && <span className="ml-2 opacity-70">— Ngày ăn: {reportDate}</span>}
                     </div>
+                    {/* Ghi chú mục đích mốc */}
+                    <p className="text-xs mt-1.5 font-semibold">
+                        {isMoc2
+                            ? '🍽️ Mốc 2 — Chia suất ra công'
+                            : '🛒 Mốc 1 — Đi chợ'}
+                    </p>
                     {isMoc2 && isWithinTime && (
                         <p className="text-xs mt-1 opacity-70">
                             Bấm "Sửa" ở từng dòng phòng cần chỉnh → sửa số liệu → bấm "Xác nhận điều chỉnh" để xem tổng hợp thay đổi.
