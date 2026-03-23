@@ -216,7 +216,7 @@ export default function KitchenPage() {
                             {showSummaryOnly ? '👨‍🍳 THỐNG KÊ SUẤT ĂN' : '🍳 Quản lý Bếp & Chia suất'}
                             {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                         </h2>
-                        {showSummaryOnly && <p className="text-gray-500 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
+                        {showSummaryOnly && <p className="text-gray-600 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function KitchenPage() {
                             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
                                 activeTab === 'kitchen' 
                                 ? 'bg-white text-blue-700 shadow-sm border border-gray-200' 
-                                : 'text-gray-500 hover:text-gray-700'
+                                : 'text-gray-600 hover:text-gray-700'
                             }`}
                         >
                             🍳 Chế độ Bếp
@@ -264,7 +264,7 @@ export default function KitchenPage() {
                             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
                                 activeTab === 'distributor' 
                                 ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
-                                : 'text-gray-500 hover:text-gray-700'
+                                : 'text-gray-600 hover:text-gray-700'
                             }`}
                         >
                             🍽️ Chia suất
@@ -283,8 +283,8 @@ export default function KitchenPage() {
             ) : groupSummaries.length === 0 && !loading ? (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center shadow-sm">
                     <p className="text-6xl mb-6">📊</p>
-                    <p className="text-3xl font-bold text-gray-500">Chưa có số liệu cho ngày {date}</p>
-                    <p className="text-lg text-gray-400 mt-2">(Chỉ hiển thị số liệu đã được duyệt)</p>
+                    <p className="text-3xl font-bold text-gray-600">Chưa có số liệu cho ngày {date}</p>
+                    <p className="text-lg text-gray-500 mt-2">(Chỉ hiển thị số liệu đã được duyệt)</p>
                 </div>
             ) : (
                 <>
@@ -325,7 +325,7 @@ export default function KitchenPage() {
                                         <div key={gs.group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between print:hidden">
                                                 <h3 className="font-bold text-gray-700 text-lg">{gs.group.name}</h3>
-                                                <div className="flex gap-4 text-xs text-gray-500">
+                                                <div className="flex gap-4 text-xs text-gray-600">
                                                     <span>Báo: <b className="text-blue-600">{gs.reportedCount}/{gs.totalRooms}</b></span>
                                                 </div>
                                             </div>
@@ -347,7 +347,7 @@ export default function KitchenPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="hidden sm:block overflow-x-auto max-h-[60vh] print:overflow-visible print:max-h-none print:block">
+                                            <div className="hidden sm:block overflow-x-auto max-h-[60vh] print:max-h-none print:overflow-visible print:block">
                                                 <table className="w-full text-sm">
                                                     <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm border-b border-gray-200">
                                                         <tr>
@@ -376,7 +376,7 @@ export default function KitchenPage() {
                                                                         </td>
                                                                     </>
                                                                 ) : (
-                                                                    <td colSpan={7} className="text-center px-2 py-2 text-gray-400 italic text-xs">Chưa báo</td>
+                                                                    <td colSpan={7} className="text-center px-2 py-2 text-gray-500 italic text-xs">Chưa báo</td>
                                                                 )}
                                                             </tr>
                                                         ))}
@@ -443,7 +443,7 @@ export default function KitchenPage() {
                                                 {lv > 0 && lp > 0 && <span>, </span>}
                                                 {lp > 0 && <span className="text-amber-700">{lp} suất lẻ cháo</span>}
                                                 {ls === 0 && lv === 0 && lp === 0 && (
-                                                    <span className="text-gray-400">Không có suất lẻ</span>
+                                                    <span className="text-gray-500">Không có suất lẻ</span>
                                                 )}
                                             </div>
 

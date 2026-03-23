@@ -76,7 +76,7 @@ export default function ReportsPage() {
                  <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-red-100">
                       <p className="text-5xl mb-4">🚫</p>
                       <h2 className="text-2xl font-bold text-gray-800">Không có quyền truy cập</h2>
-                      <p className="text-gray-500 mt-2">Bạn không có quyền xem báo cáo hệ thống.</p>
+                      <p className="text-gray-600 mt-2">Bạn không có quyền xem báo cáo hệ thống.</p>
                  </div>
              </div>
          )
@@ -90,7 +90,7 @@ export default function ReportsPage() {
                         <TrendingUp className="w-8 h-8 text-blue-600" />
                         Báo cáo & Thống kê
                     </h1>
-                    <p className="text-gray-500 mt-1">Tổng hợp số liệu suất ăn khu trú</p>
+                    <p className="text-gray-600 mt-1">Tổng hợp số liệu suất ăn khu trú</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -135,7 +135,7 @@ export default function ReportsPage() {
                                 onChange={e => setCustomStart(e.target.value)}
                                 className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             />
-                            <span className="text-gray-400">-</span>
+                            <span className="text-gray-500">-</span>
                             <input
                                 type="date"
                                 value={customEnd}
@@ -175,31 +175,31 @@ export default function ReportsPage() {
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
                             <div className="relative z-10">
-                                <p className="text-gray-500 text-sm font-medium mb-1">🍖 Suất Mặn</p>
+                                <p className="text-gray-600 text-sm font-medium mb-1">🍖 Suất Mặn</p>
                                 <p className="text-3xl font-bold text-gray-800">{formatNumber(summary.totalSalty)}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
                             <div className="relative z-10">
-                                <p className="text-gray-500 text-sm font-medium mb-1">🥣 Suất Cháo</p>
+                                <p className="text-gray-600 text-sm font-medium mb-1">🥣 Suất Cháo</p>
                                 <p className="text-3xl font-bold text-amber-600">{formatNumber(summary.totalPorridge)}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
                             <div className="relative z-10">
-                                <p className="text-gray-500 text-sm font-medium mb-1">🥬 Suất Chay</p>
+                                <p className="text-gray-600 text-sm font-medium mb-1">🥬 Suất Chay</p>
                                 <p className="text-3xl font-bold text-emerald-600">{formatNumber(summary.totalVegetarian)}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
                             <div className="relative z-10">
-                                <p className="text-gray-500 text-sm font-medium mb-1">👥 Tổng Sĩ số</p>
+                                <p className="text-gray-600 text-sm font-medium mb-1">👥 Tổng Sĩ số</p>
                                 <p className="text-3xl font-bold text-blue-600">{formatNumber(summary.totalCapacity)}</p>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
                             <div className="relative z-10">
-                                <p className="text-gray-500 text-sm font-medium mb-1">❌ Tổng Nghỉ</p>
+                                <p className="text-gray-600 text-sm font-medium mb-1">❌ Tổng Nghỉ</p>
                                 <p className="text-3xl font-bold text-red-500">{formatNumber(summary.totalAbsent)}</p>
                             </div>
                         </div>
@@ -209,18 +209,18 @@ export default function ReportsPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <Beaker className="w-5 h-5 text-gray-400" /> Biểu đồ Xu hướng
+                                <Beaker className="w-5 h-5 text-gray-500" /> Biểu đồ Xu hướng
                             </h3>
                             <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
                                 <button
                                     onClick={() => setChartType('line')}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${chartType === 'line' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${chartType === 'line' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-700'}`}
                                 >
                                     Đường
                                 </button>
                                 <button
                                     onClick={() => setChartType('bar')}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${chartType === 'bar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${chartType === 'bar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-700'}`}
                                 >
                                     Cột
                                 </button>
@@ -287,7 +287,7 @@ export default function ReportsPage() {
                                 </ResponsiveContainer>
                             </div>
                         ) : (
-                            <div className="h-[400px] flex flex-col items-center justify-center text-gray-400">
+                            <div className="h-[400px] flex flex-col items-center justify-center text-gray-500">
                                 <CalendarIcon className="w-16 h-16 mb-4 opacity-50" />
                                 <p>Không có dữ liệu trong khoảng thời gian này</p>
                             </div>
@@ -301,7 +301,7 @@ export default function ReportsPage() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                                <thead className="text-xs text-gray-600 uppercase bg-gray-50 border-b border-gray-200">
                                     <tr>
                                         <th className="px-6 py-4 font-semibold">Ngày</th>
                                         <th className="px-6 py-4 font-semibold text-center">Sĩ số</th>
@@ -325,7 +325,7 @@ export default function ReportsPage() {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic">Trống</td>
+                                            <td colSpan={7} className="px-6 py-8 text-center text-gray-500 italic">Trống</td>
                                         </tr>
                                     )}
                                 </tbody>

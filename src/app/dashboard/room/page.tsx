@@ -156,7 +156,7 @@ export default function RoomPage() {
                         🧑‍🏫 Báo suất ăn
                     </h2>
                     {viewMode === 'single' && room && (
-                        <p className="text-gray-500 mt-1">
+                        <p className="text-gray-600 mt-1">
                             Lớp: <span className="font-semibold text-gray-700">{room.name}</span>
                             {'room_name' in room && (room as {room_name?: string}).room_name && (
                                 <span> · Phòng: <span className="font-semibold text-gray-700">{String((room as {room_name?: string}).room_name)}</span></span>
@@ -179,7 +179,7 @@ export default function RoomPage() {
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
                                 viewMode === 'single'
                                     ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                    : 'text-gray-600 hover:text-gray-700'
                             }`}
                         >
                             Lớp của tôi
@@ -189,7 +189,7 @@ export default function RoomPage() {
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
                                 viewMode === 'bulk'
                                     ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                    : 'text-gray-600 hover:text-gray-700'
                             }`}
                         >
                             Báo suất hàng loạt
@@ -253,14 +253,14 @@ export default function RoomPage() {
                         disabled={isDisabled}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 text-lg font-semibold text-center
               focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none
-              disabled:bg-gray-50 disabled:text-gray-400"
+              disabled:bg-gray-50 disabled:text-gray-500"
                     />
                 </div>
 
                 {/* Nghỉ / Cháo / Chay */}
                 <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <label className="block text-xs font-medium text-gray-500 mb-2 text-center">🚫 Nghỉ học</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-2 text-center">🚫 Nghỉ học</label>
                         <input
                             type="number"
                             min={0}
@@ -270,11 +270,11 @@ export default function RoomPage() {
                             disabled={isDisabled}
                             className="w-full px-2 py-2.5 rounded-lg border border-gray-200 text-lg font-semibold text-center
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none
-                disabled:bg-gray-50 disabled:text-gray-400"
+                disabled:bg-gray-50 disabled:text-gray-500"
                         />
                     </div>
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <label className="block text-xs font-medium text-gray-500 mb-2 text-center">🥣 Cháo</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-2 text-center">🥣 Cháo</label>
                         <input
                             type="number"
                             min={0}
@@ -283,11 +283,11 @@ export default function RoomPage() {
                             disabled={isDisabled}
                             className="w-full px-2 py-2.5 rounded-lg border border-gray-200 text-lg font-semibold text-center
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none
-                disabled:bg-gray-50 disabled:text-gray-400"
+                disabled:bg-gray-50 disabled:text-gray-500"
                         />
                     </div>
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <label className="block text-xs font-medium text-gray-500 mb-2 text-center">🥬 Chay</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-2 text-center">🥬 Chay</label>
                         <input
                             type="number"
                             min={0}
@@ -296,7 +296,7 @@ export default function RoomPage() {
                             disabled={isDisabled}
                             className="w-full px-2 py-2.5 rounded-lg border border-gray-200 text-lg font-semibold text-center
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none
-                disabled:bg-gray-50 disabled:text-gray-400"
+                disabled:bg-gray-50 disabled:text-gray-500"
                         />
                     </div>
                 </div>
@@ -310,7 +310,7 @@ export default function RoomPage() {
                             {saltyCount}
                         </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                         = {capacity} - {absentCount} - {porridgeCount} - {vegetarianCount}
                     </p>
                     {saltyCount < 0 && (
@@ -322,13 +322,13 @@ export default function RoomPage() {
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                     <div className="flex items-center justify-between mb-3">
                         <label className="text-sm font-medium text-gray-600">
-                            📝 Danh sách nghỉ <span className="text-gray-400 font-normal">(không bắt buộc)</span>
+                            📝 Danh sách nghỉ <span className="text-gray-500 font-normal">(không bắt buộc)</span>
                         </label>
                         <button
                             type="button"
                             onClick={addAbsentStudent}
                             disabled={isDisabled}
-                            className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-500"
                         >
                             + Thêm
                         </button>
@@ -367,7 +367,7 @@ export default function RoomPage() {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-xs text-gray-400 italic">Chưa có học sinh nghỉ</p>
+                        <p className="text-xs text-gray-500 italic">Chưa có học sinh nghỉ</p>
                     )}
                 </div>
 
@@ -382,7 +382,7 @@ export default function RoomPage() {
                         rows={2}
                         className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm
               focus:border-blue-500 outline-none resize-none
-              disabled:bg-gray-50 disabled:text-gray-400"
+              disabled:bg-gray-50 disabled:text-gray-500"
                     />
                 </div>
 

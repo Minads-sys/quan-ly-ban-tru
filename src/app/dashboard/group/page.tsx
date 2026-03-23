@@ -112,13 +112,13 @@ export default function GroupPage() {
             </div>
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 print:hidden">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         👥 Duyệt suất ăn — Phòng {roomName} {schoolInfo.name && <span className="text-blue-600">| {schoolInfo.name}</span>}
                     </h2>
                     <div className="flex items-center gap-2 text-sm mt-2 mb-1">
-                        <span className="text-gray-500">Ngày:</span>
+                        <span className="text-gray-600">Ngày:</span>
                         <input 
                             type="date"
                             value={selectedDate || today}
@@ -126,7 +126,7 @@ export default function GroupPage() {
                             className="px-2 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-gray-700 bg-white"
                         />
                     </div>
-                    <p className="text-gray-500 text-sm mt-1">
+                    <p className="text-gray-600 text-sm mt-1">
                         Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{classes.length}</span>
                         {' · '}Chờ duyệt: <span className="font-semibold text-amber-600">{pendingCount}</span>
                     </p>
@@ -149,7 +149,7 @@ export default function GroupPage() {
                         )}
                     </div>
                 </div>
-                <div className="flex gap-2 print:hidden">
+                <div className="flex gap-2">
                     {pendingCount > 0 && !isReadOnly && (
                         <button
                             onClick={handleApproveAll}
@@ -163,7 +163,7 @@ export default function GroupPage() {
                         </button>
                     )}
                     {isReadOnly && (
-                        <span className="px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-sm font-semibold border border-gray-200">
+                        <span className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold border border-gray-200">
                             🔒 Chế độ xem
                         </span>
                     )}
@@ -178,7 +178,7 @@ export default function GroupPage() {
             </div>
 
             {/* Table - Desktop */}
-            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm max-h-[70vh]" data-print-show>
+            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm max-h-[70vh] print:max-h-none print:overflow-visible print:border-none print:shadow-none" data-print-show>
                 <table className="w-full text-sm">
                     <thead className="bg-gray-100 text-gray-600 font-medium sticky top-0 z-10 shadow-sm">
                         <tr className="border-b border-gray-200">
@@ -197,7 +197,7 @@ export default function GroupPage() {
                         {classes.map((cls) => (
                             <tr key={cls.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                                 <td className="px-4 py-3 font-medium text-gray-800">{cls.name}</td>
-                                <td className="px-4 py-3 text-gray-500 text-xs">{cls.teacherName}</td>
+                                <td className="px-4 py-3 text-gray-600 text-xs">{cls.teacherName}</td>
                                 {cls.report ? (
                                     <>
                                         <td className="text-center px-3 py-3 font-bold text-gray-800">{cls.report.capacity}</td>
@@ -234,7 +234,7 @@ export default function GroupPage() {
                                         </td>
                                     </>
                                 ) : (
-                                    <td colSpan={8} className="text-center px-3 py-3 text-gray-400 italic">
+                                    <td colSpan={8} className="text-center px-3 py-3 text-gray-500 italic">
                                         Chưa báo suất
                                     </td>
                                 )}
@@ -260,19 +260,19 @@ export default function GroupPage() {
                             <>
                                 <div className="grid grid-cols-4 gap-2 text-center mb-3">
                                     <div>
-                                        <p className="text-xs text-gray-400">Sĩ số</p>
+                                        <p className="text-xs text-gray-500">Sĩ số</p>
                                         <p className="font-bold text-gray-800">{cls.report.capacity}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">🍖 Mặn</p>
+                                        <p className="text-xs text-gray-500">🍖 Mặn</p>
                                         <p className="font-semibold text-blue-700">{cls.report.salty_count}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">🥣 Cháo</p>
+                                        <p className="text-xs text-gray-500">🥣 Cháo</p>
                                         <p className="font-semibold text-amber-600">{cls.report.porridge_count}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-400">🥬 Chay</p>
+                                        <p className="text-xs text-gray-500">🥬 Chay</p>
                                         <p className="font-semibold text-emerald-600">{cls.report.vegetarian_count}</p>
                                     </div>
                                 </div>
@@ -298,7 +298,7 @@ export default function GroupPage() {
                                 )}
                             </>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">Chưa báo suất</p>
+                            <p className="text-sm text-gray-500 italic">Chưa báo suất</p>
                         )}
                     </div>
                 ))}
@@ -307,19 +307,19 @@ export default function GroupPage() {
                         <h3 className="font-bold text-gray-800 mb-3 text-center">Tổng cộng Nhóm</h3>
                         <div className="grid grid-cols-4 gap-2 text-center">
                             <div>
-                                <p className="text-xs text-gray-500">Sĩ số</p>
+                                <p className="text-xs text-gray-600">Sĩ số</p>
                                 <p className="font-bold text-blue-600">{totalCapacity}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">🍖 Mặn</p>
+                                <p className="text-xs text-gray-600">🍖 Mặn</p>
                                 <p className="font-bold text-blue-700">{totalSalty}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">🥣 Cháo</p>
+                                <p className="text-xs text-gray-600">🥣 Cháo</p>
                                 <p className="font-bold text-amber-600">{totalPorridge}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">🥬 Chay</p>
+                                <p className="text-xs text-gray-600">🥬 Chay</p>
                                 <p className="font-bold text-emerald-600">{totalVegetarian}</p>
                             </div>
                         </div>
@@ -328,7 +328,7 @@ export default function GroupPage() {
             </div>
 
             {classes.length === 0 && (
-                <div className="text-center py-16 text-gray-400 print:hidden">
+                <div className="text-center py-16 text-gray-500 print:hidden">
                     <p className="text-4xl mb-3">📋</p>
                     <p>Chưa có phòng nào trong danh sách quản lý</p>
                 </div>

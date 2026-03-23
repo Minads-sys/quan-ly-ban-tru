@@ -138,3 +138,14 @@ textarea::placeholder {
     color: black !important;
   }
 }
+
+/* ========================================================================= */
+/* TĂNG ĐỘ TƯƠNG PHẢN VĂN BẢN (GLOBAL) - Theo yêu cầu "chữ xám nhạt khó nhìn" */
+/* Thay vì sửa từng trang, CSS này sẽ làm lớp text-gray-400, 500 đậm sắc hơn */
+/* ========================================================================= */
+body .text-gray-400 {
+  color: #6b7280 !important; /* Tương đương text-gray-500 gốc */
+}
+body .text-gray-500 {
+  color: #4b5563 !important; /* Tương đương text-gray-600 gốc */
+}

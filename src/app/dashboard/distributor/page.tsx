@@ -53,7 +53,7 @@ export default function DistributorPage() {
                     <h2 className="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
                         🍽️ CHIA SUẤT {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                     </h2>
-                    <p className="text-gray-500 mt-1 text-lg">Số liệu đã duyệt — sẵn sàng chia</p>
+                    <p className="text-gray-600 mt-1 text-lg">Số liệu đã duyệt — sẵn sàng chia</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <input
@@ -83,8 +83,8 @@ export default function DistributorPage() {
             {groupSummaries.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center shadow-sm">
                     <p className="text-6xl mb-6">📊</p>
-                    <p className="text-3xl font-bold text-gray-500">Chưa có số liệu cho ngày {date}</p>
-                    <p className="text-lg text-gray-400 mt-2">(Chỉ hiển thị số liệu đã được duyệt)</p>
+                    <p className="text-3xl font-bold text-gray-600">Chưa có số liệu cho ngày {date}</p>
+                    <p className="text-lg text-gray-500 mt-2">(Chỉ hiển thị số liệu đã được duyệt)</p>
                 </div>
             ) : (
                 <div className="space-y-8 print:space-y-6">
@@ -134,7 +134,7 @@ export default function DistributorPage() {
                                     {gs.leVegetarian > 0 && gs.lePorridge > 0 && <span>, </span>}
                                     {gs.lePorridge > 0 && <span className="text-orange-700">{gs.lePorridge} suất lẻ cháo</span>}
                                     {gs.leSalty === 0 && gs.leVegetarian === 0 && gs.lePorridge === 0 && (
-                                        <span className="text-gray-400">Không có suất lẻ</span>
+                                        <span className="text-gray-500">Không có suất lẻ</span>
                                     )}
                                 </div>
                                 {/* Chi tiết công từng loại */}
