@@ -149,7 +149,7 @@ export default function GroupPage() {
                         )}
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 print:hidden">
                     {pendingCount > 0 && !isReadOnly && (
                         <button
                             onClick={handleApproveAll}
@@ -328,11 +328,28 @@ export default function GroupPage() {
             </div>
 
             {classes.length === 0 && (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16 text-gray-400 print:hidden">
                     <p className="text-4xl mb-3">📋</p>
                     <p>Chưa có phòng nào trong danh sách quản lý</p>
                 </div>
             )}
+
+            {/* Signature Block (Only Visible on Print) */}
+            <div className="hidden print:flex justify-between items-start mt-12 text-center text-sm font-bold w-full break-inside-avoid px-8">
+                <div className="flex flex-col items-center">
+                    <p>ĐẠI DIỆN TRƯỜNG</p>
+                    <p className="invisible h-24">Signature</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <p>QUẢN LÝ BẾP</p>
+                    <p className="invisible h-24">Signature</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <p>NGƯỜI LẬP</p>
+                    <p className="invisible h-24">Signature</p>
+                    <p className="font-normal border-t border-dashed w-32 pt-1 uppercase">ký, ghi rõ họ tên</p>
+                </div>
+            </div>
         </div>
     )
 }

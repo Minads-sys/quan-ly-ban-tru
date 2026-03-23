@@ -38,7 +38,7 @@ textarea::placeholder {
   opacity: 1 !important;
 }
 
-/* ====== PRINT STYLES — A4 Landscape, narrow margins ====== */
+/* ====== PRINT STYLES — A4 Landscape, narrow margins, Black & White ====== */
 @media print {
   @page {
     size: A4 landscape;
@@ -51,42 +51,55 @@ textarea::placeholder {
     font-size: 11px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    /* Force completely black and white printing */
+    filter: grayscale(100%) contrast(120%) !important;
   }
 
-  /* Hide navigation, buttons, inputs, and non-print elements */
+  /* Hide navigation, buttons, inputs, non-print elements, and scrollbars */
   nav,
   .no-print,
   button:not(.print-include),
   input[type="date"],
   input[type="time"],
-  select {
+  select,
+  .print\:hidden {
     display: none !important;
   }
 
-  /* Full width, no padding */
+  /* Full width, no padding, no scrollbars */
   main {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
   }
+  
+  /* Disable any scroll containers */
+  * {
+    overflow: visible !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 
-  /* Remove shadows, borders, and backgrounds for clean print */
+  /* Remove gradient, shadow, and specific border radius for clean layout */
   .bg-gradient-to-br,
-  .bg-gradient-to-r {
-    background: white !important;
+  .bg-gradient-to-r,
+  [class*="bg-gradient"],
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    background-color: transparent !important;
+    background-image: none !important;
     color: black !important;
     box-shadow: none !important;
-    border: 1px solid #ccc !important;
+    border-radius: 0 !important;
+    border: 1px solid #000 !important;
   }
 
-  /* Clean cards for print */
-  .rounded-xl,
-  .rounded-2xl {
-    border-radius: 4px !important;
-    box-shadow: none !important;
-  }
-
-  /* Tables full width */
+  /* Tables full width, crisp borders */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
@@ -94,13 +107,14 @@ textarea::placeholder {
 
   table th,
   table td {
-    border: 1px solid #ccc !important;
-    padding: 4px 6px !important;
+    border: 1px solid #000 !important;
+    padding: 6px 8px !important;
     font-size: 11px !important;
+    color: black !important;
   }
 
   table th {
-    background-color: #f0f0f0 !important;
+    background-color: #e5e5e5 !important;
     font-weight: bold !important;
   }
 
@@ -116,5 +130,11 @@ textarea::placeholder {
 
   [data-print-show] {
     display: block !important;
+  }
+
+  /* Ensure text colors are universally black for high contrast */
+  .text-white, .text-gray-500, .text-blue-500, .text-blue-600, .text-red-500, .text-emerald-500, .text-amber-500,
+  .text-gray-400, .text-purple-600, .text-orange-500, .text-[currentColor] {
+    color: black !important;
   }
 }

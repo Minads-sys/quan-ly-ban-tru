@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
     { href: '/dashboard/group', label: 'Duyệt phòng', icon: '👥', roles: ['admin', 'room_manager', 'school_approver', 'reporter'], color: 'blue' },
     { href: '/dashboard/room', label: 'Báo suất', icon: '🧑‍🏫', roles: ['admin', 'class_teacher', 'reporter'], color: 'amber' },
     { href: '/dashboard/kitchen', label: 'Bếp', icon: '🍳', roles: ['admin', 'kitchen', 'meal_distributor', 'school_approver', 'group_manager', 'reporter'], color: 'orange' },
+    { href: '/dashboard/reports', label: 'Báo cáo', icon: '📈', roles: ['admin', 'school_approver', 'reporter'], color: 'indigo' },
     { href: '/dashboard/settings', label: 'Cài đặt', icon: '⚙️', roles: ['admin'], color: 'gray' },
 ]
 
@@ -30,6 +31,7 @@ const colorMap: Record<string, { active: string; inactive: string; sidebar: stri
     amber:  { active: 'bg-amber-50 text-amber-700 border-amber-200', inactive: 'text-amber-600 hover:bg-amber-50', sidebar: 'border-amber-500 bg-amber-50 text-amber-700' },
     orange: { active: 'bg-orange-50 text-orange-700 border-orange-200', inactive: 'text-orange-600 hover:bg-orange-50', sidebar: 'border-orange-500 bg-orange-50 text-orange-700' },
     teal:   { active: 'bg-teal-50 text-teal-700 border-teal-200', inactive: 'text-teal-600 hover:bg-teal-50', sidebar: 'border-teal-500 bg-teal-50 text-teal-700' },
+    indigo: { active: 'bg-indigo-50 text-indigo-700 border-indigo-200', inactive: 'text-indigo-600 hover:bg-indigo-50', sidebar: 'border-indigo-500 bg-indigo-50 text-indigo-700' },
     gray:   { active: 'bg-gray-100 text-gray-700 border-gray-300', inactive: 'text-gray-500 hover:bg-gray-50', sidebar: 'border-gray-500 bg-gray-50 text-gray-700' },
 }
 

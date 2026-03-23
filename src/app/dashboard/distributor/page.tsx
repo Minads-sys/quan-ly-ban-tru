@@ -163,6 +163,23 @@ export default function DistributorPage() {
                     ))}
                 </div>
             )}
+
+            {/* Signature Block (Only Visible on Print) */}
+            <div className="hidden print:flex justify-between items-start mt-12 text-center text-sm font-bold w-full break-inside-avoid px-8">
+                <div className="flex flex-col items-center">
+                    <p>ĐẠI DIỆN TRƯỜNG</p>
+                    <p className="invisible h-24">Signature</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <p>QUẢN LÝ BẾP</p>
+                    <p className="invisible h-24">Signature</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <p>NGƯỜI LẬP</p>
+                    <p className="invisible h-24">Signature</p>
+                    <p className="font-normal border-t border-dashed w-32 pt-1 uppercase">ký, ghi rõ họ tên</p>
+                </div>
+            </div>
         </div>
     )
 }
