@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { calculateCong } from '@/utils/calculations'
 import { getSessionInfo } from '@/lib/session'
 import { getVietnamNow, getVietnamDateString, getVietnamMinutesToday } from '@/utils/dateUtils'
+import { getFormState, mapTimeSettings } from '@/utils/formState'
 
 /** Lấy tổng hợp báo cáo cho Bếp */
 export async function getKitchenSummary(date?: string, onlyApproved: boolean = false) {
@@ -134,6 +135,17 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
 
     // totalCong = sum of each group's công (avoids ceiling-rounding discrepancy)
     const totalCong = groupSummaries.reduce((sum, gs) => sum + gs.cong, 0)
+    
+    // Tính phase
+    const state = getFormState(getVietnamNow(), mapTimeSettings(settings))
+    let currentPhaseLabel = ''
+    if (reportDate === state.reportDate) {
+        currentPhaseLabel = state.phaseLabel
+    } else if (reportDate < state.reportDate) {
+        currentPhaseLabel = 'Dữ liệu cũ (Đã qua mốc 2)'
+    } else {
+        currentPhaseLabel = 'Chưa mở mốc'
+    }
 
     return {
         date: reportDate,
@@ -147,5 +159,6 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         userRole: userRole || 'kitchen',
         schoolInfo: { name: schoolName, address: schoolAddress },
         moc1Close,
+        currentPhaseLabel,
     }
 }

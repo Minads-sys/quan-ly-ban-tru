@@ -40,6 +40,7 @@ export default function GroupPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
     const [userRole, setUserRole] = useState('')
+    const [currentPhaseLabel, setCurrentPhaseLabel] = useState('')
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports(selectedDate || undefined)
@@ -49,6 +50,7 @@ export default function GroupPage() {
         setRoomName((data.roomName as string) || '')
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         if (data.userRole) setUserRole(data.userRole as string)
+        if (data.currentPhaseLabel) setCurrentPhaseLabel(data.currentPhaseLabel as string)
         setLoading(false)
     }, [selectedDate])
 
@@ -145,6 +147,11 @@ export default function GroupPage() {
                         {reportedCount > 0 && schoolApprovedCount === 0 && roomApprovedCount === 0 && (
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
                                 🏫 Cấp trường: Chưa duyệt
+                            </span>
+                        )}
+                        {currentPhaseLabel && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 uppercase border border-red-200 shadow-sm ml-2">
+                                ⏱️ {currentPhaseLabel}
                             </span>
                         )}
                     </div>

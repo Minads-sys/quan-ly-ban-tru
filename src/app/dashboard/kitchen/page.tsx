@@ -52,6 +52,7 @@ export default function KitchenPage() {
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
     const [moc1Close, setMoc1Close] = useState('16:00')
     const [isLocked, setIsLocked] = useState(false)
+    const [currentPhaseLabel, setCurrentPhaseLabel] = useState('')
 
     // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
     const loadData = useCallback(async (selectedDate?: string) => {
@@ -108,6 +109,7 @@ export default function KitchenPage() {
         setTotalCong(data.totalCong as number)
         setGroupSummaries(data.groupSummaries as GroupSummary[])
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
+        if (data.currentPhaseLabel) setCurrentPhaseLabel(data.currentPhaseLabel as string)
         setLoading(false)
     }, [])
 
@@ -217,6 +219,13 @@ export default function KitchenPage() {
                             {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                         </h2>
                         {showSummaryOnly && <p className="text-gray-600 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
+                        {currentPhaseLabel && (
+                            <div className="mt-3">
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm sm:text-base font-bold bg-red-50 text-red-600 uppercase border border-red-200 shadow-sm">
+                                    ⏱️ {currentPhaseLabel}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex items-center gap-2">

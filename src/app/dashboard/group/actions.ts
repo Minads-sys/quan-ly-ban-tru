@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
 import { getSessionInfo } from '@/lib/session'
+import { getVietnamNow } from '@/utils/dateUtils'
 
 /** Lấy danh sách lớp + báo cáo trong phòng (cho room_manager) */
 export async function getGroupReports(selectedDate?: string) {
@@ -58,10 +59,22 @@ export async function getGroupReports(selectedDate?: string) {
     const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
 
     let activeDate = selectedDate
+    let currentPhaseLabel = ''
+
+    const now = getVietnamNow()
+    const state = getFormState(now, mapTimeSettings(settings))
+
     if (!activeDate) {
-        const now = new Date()
-        const state = getFormState(now, mapTimeSettings(settings))
         activeDate = state.reportDate
+        currentPhaseLabel = state.phaseLabel
+    } else {
+        if (activeDate === state.reportDate) {
+            currentPhaseLabel = state.phaseLabel
+        } else if (activeDate < state.reportDate) {
+            currentPhaseLabel = 'Dữ liệu cũ (Đã qua mốc 2)'
+        } else {
+            currentPhaseLabel = 'Chưa mở mốc'
+        }
     }
 
     const dbRooms = roomsResult.data
@@ -109,7 +122,8 @@ export async function getGroupReports(selectedDate?: string) {
         today: activeDate, 
         roomName: headerName,
         userRole: profile.role,
-        schoolInfo: { name: schoolName, address: schoolAddress }
+        schoolInfo: { name: schoolName, address: schoolAddress },
+        currentPhaseLabel
     }
 }
 
