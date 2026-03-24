@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
-import { getFormState, mapTimeSettings } from '@/utils/formState'
+import { getFormState, mapTimeSettings, getMilestoneStatus } from '@/utils/formState'
 import { getSessionInfo } from '@/lib/session'
 import { getVietnamNow } from '@/utils/dateUtils'
 
@@ -59,23 +59,17 @@ export async function getGroupReports(selectedDate?: string) {
     const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
 
     let activeDate = selectedDate
-    let currentPhaseLabel = ''
 
     const now = getVietnamNow()
-    const state = getFormState(now, mapTimeSettings(settings))
+    const mappedSettings = mapTimeSettings(settings)
+    const state = getFormState(now, mappedSettings)
 
     if (!activeDate) {
         activeDate = state.reportDate
-        currentPhaseLabel = state.phaseLabel
-    } else {
-        if (activeDate === state.reportDate) {
-            currentPhaseLabel = state.phaseLabel
-        } else if (activeDate < state.reportDate) {
-            currentPhaseLabel = 'Dữ liệu cũ (Đã qua mốc 2)'
-        } else {
-            currentPhaseLabel = 'Chưa mở mốc'
-        }
     }
+    
+    // Tính trạng thái mốc 1 và mốc 2 dựa trên ngày activeDate
+    const { isMoc1Closed, isMoc2Closed } = getMilestoneStatus(activeDate, now, mappedSettings)
 
     const dbRooms = roomsResult.data
     const roomIds = dbRooms?.map(r => r.id) || []
@@ -123,7 +117,8 @@ export async function getGroupReports(selectedDate?: string) {
         roomName: headerName,
         userRole: profile.role,
         schoolInfo: { name: schoolName, address: schoolAddress },
-        currentPhaseLabel
+        isMoc1Closed,
+        isMoc2Closed
     }
 }
 

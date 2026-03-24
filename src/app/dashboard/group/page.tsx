@@ -40,7 +40,8 @@ export default function GroupPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
     const [userRole, setUserRole] = useState('')
-    const [currentPhaseLabel, setCurrentPhaseLabel] = useState('')
+    const [isMoc1Closed, setIsMoc1Closed] = useState(false)
+    const [isMoc2Closed, setIsMoc2Closed] = useState(false)
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports(selectedDate || undefined)
@@ -50,7 +51,8 @@ export default function GroupPage() {
         setRoomName((data.roomName as string) || '')
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         if (data.userRole) setUserRole(data.userRole as string)
-        if (data.currentPhaseLabel) setCurrentPhaseLabel(data.currentPhaseLabel as string)
+        if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
+        if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
         setLoading(false)
     }, [selectedDate])
 
@@ -149,11 +151,18 @@ export default function GroupPage() {
                                 🏫 Cấp trường: Chưa duyệt
                             </span>
                         )}
-                        {currentPhaseLabel && (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 uppercase border border-red-200 shadow-sm ml-2">
-                                ⏱️ {currentPhaseLabel}
+                        <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 xl:ml-2">
+                            <span className={`px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm ${
+                                isMoc1Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'
+                            }`}>
+                                ⏱️ {isMoc1Closed ? 'Đã chốt Mốc 1 đi chợ' : 'Chưa chốt Mốc 1 đi chợ'}
                             </span>
-                        )}
+                            <span className={`px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm ${
+                                isMoc2Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                            }`}>
+                                ⏱️ {isMoc2Closed ? 'Đã chốt Mốc 2 chia suất' : 'Chưa chốt Mốc 2 chia suất'}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div className="flex gap-2">

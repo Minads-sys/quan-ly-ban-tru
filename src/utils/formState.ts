@@ -116,3 +116,16 @@ export function getFormState(now: Date, settings: TimeSettings): FormState {
     }
     return { reportDate: getVietnamDateString(candidate), targetDate: candidate, phase: 'locked', isOpen: false, phaseLabel: 'Không tìm thấy ngày học tiếp theo' }
 }
+
+export function getMilestoneStatus(dateStr: string, now: Date, settings: TimeSettings): { isMoc1Closed: boolean, isMoc2Closed: boolean } {
+    const d = new Date(dateStr)
+    d.setHours(0, 0, 0, 0)
+
+    const m1c = parseTimeObj(d, settings.moc1Close, -1)
+    const m2c = parseTimeObj(d, settings.moc2Close, 0)
+
+    return {
+        isMoc1Closed: now >= m1c,
+        isMoc2Closed: now >= m2c
+    }
+}

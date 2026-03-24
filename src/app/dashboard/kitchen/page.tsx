@@ -52,7 +52,8 @@ export default function KitchenPage() {
     const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
     const [moc1Close, setMoc1Close] = useState('16:00')
     const [isLocked, setIsLocked] = useState(false)
-    const [currentPhaseLabel, setCurrentPhaseLabel] = useState('')
+    const [isMoc1Closed, setIsMoc1Closed] = useState(false)
+    const [isMoc2Closed, setIsMoc2Closed] = useState(false)
 
     // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
     const loadData = useCallback(async (selectedDate?: string) => {
@@ -109,7 +110,8 @@ export default function KitchenPage() {
         setTotalCong(data.totalCong as number)
         setGroupSummaries(data.groupSummaries as GroupSummary[])
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
-        if (data.currentPhaseLabel) setCurrentPhaseLabel(data.currentPhaseLabel as string)
+        if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
+        if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
         setLoading(false)
     }, [])
 
@@ -219,13 +221,18 @@ export default function KitchenPage() {
                             {schoolInfo.name && <span className="text-blue-600 font-bold">| {schoolInfo.name}</span>}
                         </h2>
                         {showSummaryOnly && <p className="text-gray-600 mt-1 text-lg">Chào bạn, đây là số liệu đã được duyệt.</p>}
-                        {currentPhaseLabel && (
-                            <div className="mt-3">
-                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm sm:text-base font-bold bg-red-50 text-red-600 uppercase border border-red-200 shadow-sm">
-                                    ⏱️ {currentPhaseLabel}
-                                </span>
-                            </div>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm sm:text-base font-bold uppercase border shadow-sm ${
+                                isMoc1Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'
+                            }`}>
+                                ⏱️ {isMoc1Closed ? 'Đã chốt Mốc 1 đi chợ' : 'Chưa chốt Mốc 1 đi chợ'}
+                            </span>
+                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm sm:text-base font-bold uppercase border shadow-sm ${
+                                isMoc2Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                            }`}>
+                                ⏱️ {isMoc2Closed ? 'Đã chốt Mốc 2 chia suất' : 'Chưa chốt Mốc 2 chia suất'}
+                            </span>
+                        </div>
                     </div>
                     
                     <div className="flex items-center gap-2">
