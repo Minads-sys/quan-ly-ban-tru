@@ -129,7 +129,7 @@ export async function createReportForRoom(
             salty_count: data.salty_count,
             note: data.note,
             absent_list: data.absent_list,
-            status: 'approved',
+            status: 'school_approved',
             created_by: user.id,
             updated_by: user.id,
         })
@@ -222,7 +222,7 @@ export async function importHistoricalReports(rows: {
         porridge_count: row.porridge_count,
         vegetarian_count: row.vegetarian_count,
         note: row.note || 'Import lịch sử',
-        status: 'approved',
+        status: 'school_approved',
         created_by: user.id,
         updated_by: user.id
     }))
