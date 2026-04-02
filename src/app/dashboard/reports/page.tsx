@@ -14,7 +14,7 @@ import {
     BarChart,
     Bar
 } from 'recharts'
-import { Calendar as CalendarIcon, Filter, TrendingUp, Users, Utensils, Beaker } from 'lucide-react'
+import { Calendar as CalendarIcon, Filter, TrendingUp, Utensils, Beaker, FileSpreadsheet, Printer } from 'lucide-react'
 
 // Utilities
 const formatToViewDate = (dateStr: string) => {
@@ -68,6 +68,91 @@ export default function ReportsPage() {
 
     const handleFilterChange = (period: ReportFilter['period']) => {
         setFilter({ period })
+    }
+
+    // Compute date label for use in title
+    const getDateRange = () => {
+        const vnNow = new Date(new Date().getTime() + 7 * 60 * 60 * 1000)
+        const today = vnNow.toISOString().split('T')[0]
+        if (filter.period === 'today') return { start: today, end: today }
+        if (filter.period === 'yesterday') {
+            const y = new Date(vnNow.getTime() - 86400000).toISOString().split('T')[0]
+            return { start: y, end: y }
+        }
+        if (filter.period === 'this_month') {
+            const y = vnNow.getUTCFullYear(), m = vnNow.getUTCMonth()
+            return {
+                start: new Date(Date.UTC(y, m, 1)).toISOString().split('T')[0],
+                end: new Date(Date.UTC(y, m + 1, 0)).toISOString().split('T')[0]
+            }
+        }
+        if (filter.period === 'last_month') {
+            const y = vnNow.getUTCFullYear(), m = vnNow.getUTCMonth()
+            return {
+                start: new Date(Date.UTC(y, m - 1, 1)).toISOString().split('T')[0],
+                end: new Date(Date.UTC(y, m, 0)).toISOString().split('T')[0]
+            }
+        }
+        return { start: customStart, end: customEnd }
+    }
+
+    const handleExportExcel = async () => {
+        if (!summary || summary.dailyData.length === 0) return
+        const XLSX = await import('xlsx')
+        const { start, end } = getDateRange()
+        const schoolName = summary.schoolName || 'TRƯỜNG'
+        const title = `BẢNG ĐỐI SOÁT SUẤT ĂN BÁN TRÚ TRƯỜNG ${schoolName}`
+        const dateLabel = `Từ ngày ${formatToViewDate(start)} đến ngày ${formatToViewDate(end)}`
+
+        // Build rows
+        const headers = ['Ngày', 'Sĩ số', 'Nghỉ', 'Tổng Suất', 'Mặn', 'Cháo', 'Chay']
+        const rows = summary.dailyData.map(row => [
+            formatToViewDate(row.date),
+            row.capacity,
+            row.absent,
+            row.meals,
+            row.salty,
+            row.porridge,
+            row.vegetarian,
+        ])
+        // Total row
+        rows.push([
+            'TỔNG CỘNG',
+            summary.totalCapacity,
+            summary.totalAbsent,
+            summary.totalMeals,
+            summary.totalSalty,
+            summary.totalPorridge,
+            summary.totalVegetarian,
+        ])
+
+        const wsData = [
+            [title],
+            [dateLabel],
+            [],
+            headers,
+            ...rows,
+        ]
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData)
+
+        // Merge title cell
+        ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+        ]
+
+        // Column widths
+        ws['!cols'] = [{ wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }]
+
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Đối soát suất ăn')
+        const fileName = `doi-soat-suat-an_${start}_${end}.xlsx`
+        XLSX.writeFile(wb, fileName)
+    }
+
+    const handlePrint = () => {
+        window.print()
     }
 
     if (errorMsg === 'Unauthorized') {
@@ -149,8 +234,10 @@ export default function ReportsPage() {
 
             {/* Print Header */}
             <div className="hidden print:block text-center mb-6">
-                <h1 className="text-2xl font-bold uppercase">BÁO CÁO TỔNG HỢP SUẤT ĂN</h1>
-                <p className="text-sm mt-1">Từ ngày: {filter.period === 'today' ? formatToViewDate(new Date().toISOString().split('T')[0]) : customStart ? formatToViewDate(customStart) : '...'} - Đến ngày: {filter.period === 'today' ? formatToViewDate(new Date().toISOString().split('T')[0]) : customEnd ? formatToViewDate(customEnd) : '...'}</p>
+                <h1 className="text-xl font-bold uppercase">BẢNG ĐỐI SOÁT SUẤT ĂN BÁN TRÚ TRƯỜNG {summary?.schoolName || ''}</h1>
+                <p className="text-sm mt-1 font-medium">
+                    Từ ngày {formatToViewDate(getDateRange().start)} đến ngày {formatToViewDate(getDateRange().end)}
+                </p>
                 <div className="h-px bg-gray-300 w-full my-4" />
             </div>
 
@@ -296,8 +383,27 @@ export default function ReportsPage() {
                     
                     {/* Detail Table */}
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-wrap gap-3">
                             <h3 className="font-bold text-gray-800">Chi tiết theo ngày</h3>
+                            <div className="flex items-center gap-2 print:hidden">
+                                <button
+                                    id="btn-export-excel"
+                                    onClick={handleExportExcel}
+                                    disabled={!summary || summary.dailyData.length === 0}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    Xuất Excel
+                                </button>
+                                <button
+                                    id="btn-print-report"
+                                    onClick={handlePrint}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
+                                >
+                                    <Printer className="w-4 h-4" />
+                                    In báo cáo
+                                </button>
+                            </div>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">

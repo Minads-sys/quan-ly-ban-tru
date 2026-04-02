@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCachedSettings } from '@/lib/cachedSettings'
 import { getSessionInfo } from '@/lib/session'
 
 export interface ReportFilter {
@@ -16,6 +17,7 @@ export interface ReportSummary {
     totalPorridge: number
     totalAbsent: number
     totalCapacity: number
+    schoolName: string
     dailyData: {
         date: string
         meals: number
@@ -76,6 +78,11 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         startD = filter.startDate
         endD = filter.endDate
     }
+
+    // Fetch school name from settings
+    const allSettings = await getCachedSettings()
+    const getSettingVal = (k: string) => (allSettings as { key: string; value: string }[]).find(s => s.key === k)?.value || ''
+    const schoolName = getSettingVal('school_name')
 
     // Query Data from daily_reports
     const { data: reports, error } = await supabase
@@ -150,6 +157,7 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         totalPorridge,
         totalAbsent,
         totalCapacity,
+        schoolName,
         dailyData
     }
 }
