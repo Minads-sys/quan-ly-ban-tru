@@ -408,6 +408,85 @@ export default function KitchenPage() {
                     ) : (
                         /* Distributor View (Merged from distributor/page.tsx) */
                         <div className="space-y-8 print:space-y-6">
+                            {/* System Overall Block */}
+                            <div className="print:break-inside-avoid">
+                                {/* Khối 1: Tổng suất Hệ thống */}
+                                <div className="bg-white rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8 mb-4">
+                                    <h3 className="text-3xl sm:text-4xl font-bold text-gray-800 text-center mb-1 uppercase tracking-tight">
+                                        HỆ THỐNG
+                                    </h3>
+                                    <p className="text-center text-xl font-bold text-purple-700 mb-5">
+                                        Tổng suất: <span className="text-4xl sm:text-5xl">{totalMeals}</span> suất
+                                    </p>
+                                    <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                                        <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 sm:p-5 text-center">
+                                            <p className="text-lg sm:text-xl font-bold text-blue-800">🍖 Mặn</p>
+                                            <p className="text-4xl sm:text-5xl font-bold text-blue-700 mt-2">{totalSalty}</p>
+                                        </div>
+                                        <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-4 sm:p-5 text-center">
+                                            <p className="text-lg sm:text-xl font-bold text-emerald-800">🥬 Chay</p>
+                                            <p className="text-4xl sm:text-5xl font-bold text-emerald-700 mt-2">{totalVegetarian}</p>
+                                        </div>
+                                        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 sm:p-5 text-center">
+                                            <p className="text-lg sm:text-xl font-bold text-amber-800">🥣 Cháo</p>
+                                            <p className="text-4xl sm:text-5xl font-bold text-amber-700 mt-2">{totalPorridge}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Khối 2: Công Hệ thống */}
+                                {(() => {
+                                    const sys_cs = Math.floor(totalSalty / 20)
+                                    const sys_ls = totalSalty % 20
+                                    const sys_cv = Math.floor(totalVegetarian / 20)
+                                    const sys_lv = totalVegetarian % 20
+                                    const sys_cp = Math.floor(totalPorridge / 20)
+                                    const sys_lp = totalPorridge % 20
+                                    const sys_totalC = sys_cs + sys_cv + sys_cp
+
+                                    return (
+                                        <div className="bg-gray-50 rounded-2xl border-2 border-gray-300 shadow-md p-6 sm:p-8 mb-8">
+                                            <h3 className="text-2xl sm:text-3xl font-bold text-gray-700 text-center mb-1">
+                                                Công Hệ thống
+                                            </h3>
+                                            <p className="text-center mb-2">
+                                                <span className="text-5xl sm:text-7xl font-bold text-gray-900">{sys_totalC}</span>
+                                                <span className="text-2xl sm:text-3xl font-bold text-gray-600 ml-2">công</span>
+                                            </p>
+                                            
+                                            <div className="text-center mb-5 text-lg sm:text-xl text-gray-600 font-semibold leading-relaxed">
+                                                {sys_ls > 0 && <span className="text-blue-700">{sys_ls} suất lẻ mặn</span>}
+                                                {sys_ls > 0 && (sys_lv > 0 || sys_lp > 0) && <span>, </span>}
+                                                {sys_lv > 0 && <span className="text-emerald-700">{sys_lv} suất lẻ chay</span>}
+                                                {sys_lv > 0 && sys_lp > 0 && <span>, </span>}
+                                                {sys_lp > 0 && <span className="text-amber-700">{sys_lp} suất lẻ cháo</span>}
+                                                {sys_ls === 0 && sys_lv === 0 && sys_lp === 0 && (
+                                                    <span className="text-gray-500">Không có suất lẻ</span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                                                <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-blue-900">Mặn</p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-blue-800 mt-1">{sys_cs} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-blue-600 mt-1">{sys_ls} suất lẻ</p>
+                                                </div>
+                                                <div className="bg-emerald-100 border-2 border-emerald-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-emerald-900">Chay</p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-emerald-800 mt-1">{sys_cv} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-emerald-600 mt-1">{sys_lv} suất lẻ</p>
+                                                </div>
+                                                <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-4 sm:p-5 text-center">
+                                                    <p className="text-lg sm:text-xl font-bold text-amber-900">Cháo</p>
+                                                    <p className="text-3xl sm:text-5xl font-bold text-amber-800 mt-1">{sys_cp} <span className="text-lg sm:text-2xl">công</span></p>
+                                                    <p className="text-base sm:text-lg font-semibold text-amber-600 mt-1">{sys_lp} suất lẻ</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                            </div>
+
                             {groupSummaries.map((gs) => {
                                 const cs = Math.floor(gs.totalSalty / 20)
                                 const ls = gs.totalSalty % 20
