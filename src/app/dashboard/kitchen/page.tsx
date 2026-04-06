@@ -338,7 +338,7 @@ export default function KitchenPage() {
                             {/* Group Breakdown - ONLY for non-kitchen roles */}
                             {!showSummaryOnly && (
                                 <div className="space-y-4">
-                                    {groupSummaries.map((gs) => (
+                                    {groupSummaries.filter(gs => gs.group.name.toLowerCase() !== 'hệ thống').map((gs) => (
                                         <div key={gs.group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between print:hidden">
                                                 <h3 className="font-bold text-gray-700 text-lg">{gs.group.name}</h3>
@@ -487,7 +487,7 @@ export default function KitchenPage() {
                                 })()}
                             </div>
 
-                            {groupSummaries.map((gs) => {
+                            {groupSummaries.filter(gs => gs.group.name.toLowerCase() !== 'hệ thống').map((gs) => {
                                 const cs = Math.floor(gs.totalSalty / 20)
                                 const ls = gs.totalSalty % 20
                                 const cv = Math.floor(gs.totalVegetarian / 20)
