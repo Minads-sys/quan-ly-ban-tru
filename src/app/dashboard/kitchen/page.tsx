@@ -316,7 +316,7 @@ export default function KitchenPage() {
                     {activeTab === 'kitchen' ? (
                         <>
                             {/* Summary Cards - Kitchen */}
-                            <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-5 gap-3'} mb-8`}>
+                            <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-4 gap-3'} mb-8`}>
                                 <div className={`bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất</p>
                                     <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-bold mt-2`}>{totalMeals}</p>
@@ -333,13 +333,6 @@ export default function KitchenPage() {
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥣 Tổng suất Cháo</p>
                                     <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{totalPorridge}</p>
                                 </div>
-                                {!showSummaryOnly && (
-                                    <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl p-4 text-white shadow-md">
-                                        <p className="text-sm font-semibold opacity-90">⚙️ Số Công</p>
-                                        <p className="text-3xl font-bold mt-1">{totalCong}</p>
-                                        <p className="text-xs opacity-70 mt-0.5">= Σ công các nhóm</p>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Group Breakdown - ONLY for non-kitchen roles */}
