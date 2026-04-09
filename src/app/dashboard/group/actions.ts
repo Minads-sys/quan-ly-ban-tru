@@ -36,6 +36,7 @@ export async function getGroupReports(selectedDate?: string) {
             groups(name),
             profiles!room_id(full_name, role)
         `)
+        .neq('name', 'Dữ liệu lịch sử (Import)')
         .order('name')
 
     if (!isAdmin && !isSchoolApprover && !isReporter) {
@@ -236,7 +237,7 @@ export async function approveAll(selectedDate?: string) {
     }
 
     // Lấy room_ids trong phạm vi quản lý
-    let roomsQuery = supabase.from('rooms').select('id')
+    let roomsQuery = supabase.from('rooms').select('id').neq('name', 'Dữ liệu lịch sử (Import)')
     if (profile.role !== 'admin' && profile.role !== 'reporter') {
         if (profile.role === 'group_manager' && profile.group_id) {
             roomsQuery = roomsQuery.eq('group_id', profile.group_id)

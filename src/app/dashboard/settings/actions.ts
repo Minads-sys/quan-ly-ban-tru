@@ -99,6 +99,7 @@ export async function getRooms() {
             groups(name),
             profiles!room_id(full_name, role)
         `)
+        .neq('name', 'Dữ liệu lịch sử (Import)')
         .order('name')
         
     // Map data to extract room managers

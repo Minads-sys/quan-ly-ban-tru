@@ -44,6 +44,7 @@ export async function getSchoolReports(selectedDate?: string) {
             groups(name),
             profiles!room_id(full_name, role)
         `)
+        .neq('name', 'Dữ liệu lịch sử (Import)')
         .order('name')
 
     // Map teacherName vào rooms

@@ -89,7 +89,8 @@ export async function submitBulkReports(reports: BulkReportData[]) {
      const state = getFormState(now, settings)
 
     // Prepare data for upsert
-    const upsertDataList = []
+    const insertDataList = []
+    const updateDataList = []
     
     // Process existing ones
     for (const report of reports) {
@@ -130,20 +131,29 @@ export async function submitBulkReports(reports: BulkReportData[]) {
              reportToSave.moc1_snapshot = moc1Snapshot
              // Retain old absent_list if updating
              reportToSave.absent_list = existing.absent_list || []
+             updateDataList.push(reportToSave)
         } else {
              reportToSave.created_by = user.id
              reportToSave.absent_list = []
+             insertDataList.push(reportToSave)
         }
-        
-        upsertDataList.push(reportToSave)
     }
 
     const supabaseAdmin = createAdminClient()
-    const { error: upsertError } = await supabaseAdmin
-        .from('daily_reports')
-        .upsert(upsertDataList, { onConflict: 'id' })
 
-    if (upsertError) return { error: upsertError.message }
+    if (insertDataList.length > 0) {
+        const { error: insertErr } = await supabaseAdmin
+            .from('daily_reports')
+            .insert(insertDataList)
+        if (insertErr) return { error: insertErr.message }
+    }
+
+    if (updateDataList.length > 0) {
+        const { error: upsertError } = await supabaseAdmin
+            .from('daily_reports')
+            .upsert(updateDataList, { onConflict: 'id' })
+        if (upsertError) return { error: upsertError.message }
+    }
 
     revalidatePath('/dashboard/room')
     return { success: true }
@@ -170,6 +180,7 @@ export async function getBulkRoomData() {
                 groups(name),
                 profiles!room_id(full_name, role)
             `)
+            .neq('name', 'Dữ liệu lịch sử (Import)')
             .order('name'),
     ])
 

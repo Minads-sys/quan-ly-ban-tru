@@ -146,6 +146,7 @@ export async function getAllRooms() {
     const { data: rooms } = await supabase
         .from('rooms')
         .select('*, groups(name)')
+        .neq('name', 'Dữ liệu lịch sử (Import)')
         .order('name')
     return { rooms: rooms || [] }
 }
