@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
-import { formatToViewDate, getVietnamHours, getVietnamDateString } from '@/utils/dateUtils'
+import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
@@ -133,7 +133,7 @@ export default function KitchenPage() {
         // Sheet 1: Tổng hợp
         const summaryData = [
             ['BÁO CÁO SUẤT ĂN BÁN TRÚ'],
-            [`Ngày: ${date}`],
+            [`Ngày: ${date} (${getDayOfWeek(date)})`],
             [],
             ['Loại suất', 'Số lượng'],
             ['🍖 Suất mặn', totalSalty],
@@ -146,7 +146,7 @@ export default function KitchenPage() {
         // Sheet 2: Chi tiết theo nhóm
         const detailData: (string | number)[][] = [
             ['BÁO CÁO CHI TIẾT THEO NHÓM/LỚP'],
-            [`Ngày: ${date}`],
+            [`Ngày: ${date} (${getDayOfWeek(date)})`],
             [],
             ['Nhóm', 'Phòng', 'Sĩ số', 'Nghỉ', 'Mặn', 'Cháo', 'Chay', 'Trạng thái'],
         ]
@@ -235,16 +235,23 @@ export default function KitchenPage() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={e => handleDateChange(e.target.value)}
-                            disabled={isRestrictedRole}
-                            className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
-                focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold
-                ${isRestrictedRole ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                        />
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={e => handleDateChange(e.target.value)}
+                                disabled={isRestrictedRole}
+                                className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold
+                    ${isRestrictedRole ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                            />
+                            {date && (
+                                <span className={`${showSummaryOnly ? 'text-lg px-4 py-2.5' : 'text-sm px-3 py-1.5'} font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl whitespace-nowrap`}>
+                                    📅 {getDayOfWeek(date)}
+                                </span>
+                            )}
+                        </div>
                         <button
                             onClick={exportToExcel}
                             className={`${showSummaryOnly ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-emerald-500 text-white rounded-xl font-bold

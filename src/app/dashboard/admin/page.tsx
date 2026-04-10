@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { searchReportsRange, importHistoricalReports } from './actions'
-import { getVietnamDateString, getVietnamNow, formatToViewDate } from '@/utils/dateUtils'
+import { getVietnamDateString, getVietnamNow, formatToViewDate, getDayOfWeekShort } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 
 interface Report {
@@ -396,6 +396,9 @@ export default function AdminPage() {
                                             {/* Date Label */}
                                             <div className="mt-3 text-[10px] sm:text-xs font-bold text-gray-500 group-hover:text-blue-600 transition-colors">
                                                 {formatToViewDate(item.date).split('/')[0]}/{formatToViewDate(item.date).split('/')[1]}
+                                            </div>
+                                            <div className="text-[9px] sm:text-[10px] font-semibold text-gray-400">
+                                                {getDayOfWeekShort(item.date)}
                                             </div>
                                         </div>
                                     )

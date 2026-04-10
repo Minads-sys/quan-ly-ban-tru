@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getGroupReports, approveReport, rejectReport, approveAll } from './actions'
+import { getDayOfWeek } from '@/utils/dateUtils'
 
 interface ClassWithReport {
     id: string
@@ -129,6 +130,11 @@ export default function GroupPage() {
                             onChange={(e) => setSelectedDate(e.target.value)}
                             className="px-2 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-gray-700 bg-white"
                         />
+                        {(selectedDate || today) && (
+                            <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 text-xs whitespace-nowrap">
+                                📅 {getDayOfWeek(selectedDate || today)}
+                            </span>
+                        )}
                     </div>
                     <p className="text-gray-600 text-sm mt-1">
                         Đã báo: <span className="font-semibold text-blue-600">{reportedCount}/{classes.length}</span>

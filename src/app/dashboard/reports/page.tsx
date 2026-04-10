@@ -17,6 +17,8 @@ import {
 import { Calendar as CalendarIcon, Filter, TrendingUp, Utensils, Beaker, FileSpreadsheet, Printer } from 'lucide-react'
 
 // Utilities
+import { getDayOfWeek } from '@/utils/dateUtils'
+
 const formatToViewDate = (dateStr: string) => {
     if (!dateStr) return ''
     const [y, m, d] = dateStr.split('-')
@@ -105,9 +107,10 @@ export default function ReportsPage() {
         const dateLabel = `Từ ngày ${formatToViewDate(start)} đến ngày ${formatToViewDate(end)}`
 
         // Build rows
-        const headers = ['Ngày', 'Sĩ số', 'Nghỉ', 'Tổng Suất', 'Mặn', 'Cháo', 'Chay']
+        const headers = ['Ngày', 'Thứ', 'Sĩ số', 'Nghỉ', 'Tổng Suất', 'Mặn', 'Cháo', 'Chay']
         const rows = summary.dailyData.map(row => [
             formatToViewDate(row.date),
+            getDayOfWeek(row.date),
             row.capacity,
             row.absent,
             row.meals,
@@ -118,6 +121,7 @@ export default function ReportsPage() {
         // Total row
         rows.push([
             'TỔNG CỘNG',
+            '',
             summary.totalCapacity,
             summary.totalAbsent,
             summary.totalMeals,
@@ -138,12 +142,12 @@ export default function ReportsPage() {
 
         // Merge title cell
         ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
         ]
 
         // Column widths
-        ws['!cols'] = [{ wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }]
+        ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }]
 
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Đối soát suất ăn')
@@ -410,6 +414,7 @@ export default function ReportsPage() {
                                 <thead className="text-xs text-gray-600 uppercase bg-gray-50 border-b border-gray-200">
                                     <tr>
                                         <th className="px-6 py-4 font-semibold">Ngày</th>
+                                        <th className="px-4 py-4 font-semibold">Thứ</th>
                                         <th className="px-6 py-4 font-semibold text-center">Sĩ số</th>
                                         <th className="px-6 py-4 font-semibold text-center">Nghỉ</th>
                                         <th className="px-6 py-4 font-semibold text-center">Tổng Suất</th>
@@ -422,6 +427,7 @@ export default function ReportsPage() {
                                     {summary.dailyData.length > 0 ? summary.dailyData.map((row, idx) => (
                                         <tr key={idx} className="bg-white border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                                             <td className="px-6 py-4 font-medium text-gray-900">{formatToViewDate(row.date)}</td>
+                                            <td className="px-4 py-4 font-medium text-blue-600 whitespace-nowrap">{getDayOfWeek(row.date)}</td>
                                             <td className="px-6 py-4 text-center">{formatNumber(row.capacity)}</td>
                                             <td className="px-6 py-4 text-center text-red-500 font-medium">{formatNumber(row.absent)}</td>
                                             <td className="px-6 py-4 text-center font-bold text-blue-700">{formatNumber(row.meals)}</td>
@@ -431,7 +437,7 @@ export default function ReportsPage() {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={7} className="px-6 py-8 text-center text-gray-500 italic">Trống</td>
+                                            <td colSpan={8} className="px-6 py-8 text-center text-gray-500 italic">Trống</td>
                                         </tr>
                                     )}
                                 </tbody>

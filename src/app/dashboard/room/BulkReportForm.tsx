@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { submitBulkReports } from './bulk-actions'
+import { getDayOfWeek } from '@/utils/dateUtils'
 
 interface RoomData {
     id: string
@@ -245,7 +246,14 @@ export function BulkReportForm({
                     }`}>
                     <div className="font-medium text-sm">
                         {isWithinTime ? (isMoc2 ? '✏️' : '📝') : '🔒'} {phaseLabel}
-                        {reportDate && <span className="ml-2 opacity-70">— Ngày ăn: {reportDate}</span>}
+                        {reportDate && (
+                            <span className="ml-2 opacity-70">
+                                — Ngày ăn: {reportDate}
+                                <span className="ml-1.5 font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 text-xs">
+                                    📅 {getDayOfWeek(reportDate)}
+                                </span>
+                            </span>
+                        )}
                     </div>
                     {/* Ghi chú mục đích mốc */}
                     <p className="text-xs mt-1.5 font-semibold">

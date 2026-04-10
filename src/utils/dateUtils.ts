@@ -46,3 +46,26 @@ export function getVietnamMinutesToday(): number {
     const now = getVietnamNow()
     return now.getHours() * 60 + now.getMinutes()
 }
+
+/**
+ * Lấy tên thứ trong tuần từ chuỗi ngày YYYY-MM-DD
+ * Trả về 'Thứ Hai', 'Thứ Ba', ..., 'Chủ Nhật'
+ */
+export function getDayOfWeek(dateStr: string): string {
+    if (!dateStr || !dateStr.includes('-')) return ''
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+    return dayNames[date.getDay()]
+}
+
+/**
+ * Lấy tên thứ viết tắt (T2, T3, ..., CN)
+ */
+export function getDayOfWeekShort(dateStr: string): string {
+    if (!dateStr || !dateStr.includes('-')) return ''
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+    return dayNames[date.getDay()]
+}

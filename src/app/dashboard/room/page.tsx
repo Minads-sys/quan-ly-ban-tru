@@ -5,6 +5,7 @@ import { submitReport, getRoomData } from './actions'
 import { getBulkRoomData } from './bulk-actions'
 import { calculateSaltyMeals } from '@/utils/calculations'
 import { BulkReportForm } from './BulkReportForm'
+import { getDayOfWeek } from '@/utils/dateUtils'
 
 interface AbsentStudent {
     name: string
@@ -217,7 +218,14 @@ export default function RoomPage() {
                         : 'bg-amber-50 text-amber-800 border-amber-200'
                     }`}>
                     {isWithinTime ? '📝' : '🔒'} {phaseLabel}
-                    {reportDate && <span className="ml-2 opacity-70">— Ngày ăn: {reportDate}</span>}
+                    {reportDate && (
+                        <span className="ml-2 opacity-70">
+                            — Ngày ăn: {reportDate}
+                            <span className="ml-1.5 font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 text-xs">
+                                📅 {getDayOfWeek(reportDate)}
+                            </span>
+                        </span>
+                    )}
                 </div>
             )}
 
