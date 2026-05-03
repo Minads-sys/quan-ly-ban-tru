@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
-import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek } from '@/utils/dateUtils'
+import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek, getVietnamNow } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
@@ -54,10 +54,40 @@ export default function KitchenPage() {
     const [isLocked, setIsLocked] = useState(false)
     const [isMoc1Closed, setIsMoc1Closed] = useState(false)
     const [isMoc2Closed, setIsMoc2Closed] = useState(false)
+    const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5])
+    const [offDays, setOffDays] = useState<string[]>([])
+    const [dayOffMessage, setDayOffMessage] = useState<string | null>(null)
+
+    // Helper: kiểm tra ngày có phải ngày làm việc không
+    const isWorkingDayCheck = useCallback((dateStr: string, wDays: number[], oDays: string[]) => {
+        if (!dateStr || !dateStr.includes('-')) return true
+        const [y, m, d] = dateStr.split('-').map(Number)
+        const dateObj = new Date(y, m - 1, d)
+        return wDays.includes(dateObj.getDay()) && !oDays.includes(dateStr)
+    }, [])
+
+    // Helper: tìm ngày làm việc gần nhất (hôm nay hoặc trước đó)
+    const findNearestWorkingDay = useCallback((wDays: number[], oDays: string[]) => {
+        const now = getVietnamNow()
+        // Thử hôm nay trước, rồi lùi lại tối đa 30 ngày
+        for (let i = 0; i < 30; i++) {
+            const candidate = new Date(now)
+            candidate.setDate(candidate.getDate() - i)
+            const yyyy = candidate.getFullYear()
+            const mm = String(candidate.getMonth() + 1).padStart(2, '0')
+            const dd = String(candidate.getDate()).padStart(2, '0')
+            const dateStr = `${yyyy}-${mm}-${dd}`
+            if (wDays.includes(candidate.getDay()) && !oDays.includes(dateStr)) {
+                return dateStr
+            }
+        }
+        return getVietnamDateString()
+    }, [])
 
     // ⚡ 1 lần gọi duy nhất — getKitchenSummary tự tính ngày nếu chưa có
     const loadData = useCallback(async (selectedDate?: string) => {
         setLoading(true)
+        setDayOffMessage(null)
 
         const data = await getKitchenSummary(selectedDate || undefined, true)
         
@@ -66,10 +96,11 @@ export default function KitchenPage() {
             return
         }
 
-        // Cập nhật date từ server (lần đầu)
-        if (!selectedDate && data.date) {
-            setDate(data.date as string)
-        }
+        // Lưu cấu hình ngày nghỉ từ server
+        const serverWorkingDays = (data.workingDays as number[]) || [1, 2, 3, 4, 5]
+        const serverOffDays = (data.offDays as string[]) || []
+        setWorkingDays(serverWorkingDays)
+        setOffDays(serverOffDays)
 
         const role = data.userRole as string
         setUserRole(role)
@@ -81,8 +112,38 @@ export default function KitchenPage() {
             setActiveTab('distributor')
         }
 
-        // Kiểm tra 14h lock cho Bếp & Chia suất
+        // Cập nhật date từ server (lần đầu) — tìm ngày làm việc gần nhất
         const isRestricted = ['kitchen', 'meal_distributor'].includes(role)
+        if (!selectedDate && data.date) {
+            if (isRestricted) {
+                // Bếp/Chia suất: server đã tính ngày phù hợp
+                setDate(data.date as string)
+            } else {
+                // Admin: tìm ngày làm việc gần nhất (hôm nay hoặc lùi lại)
+                const nearestDate = findNearestWorkingDay(serverWorkingDays, serverOffDays)
+                setDate(nearestDate)
+                // Nếu ngày gần nhất khác ngày server trả về, reload lại với ngày đúng
+                if (nearestDate !== data.date) {
+                    setLoading(true)
+                    const reloadData = await getKitchenSummary(nearestDate, true)
+                    if (!('error' in reloadData)) {
+                        setTotalSalty(reloadData.totalSalty as number)
+                        setTotalVegetarian(reloadData.totalVegetarian as number)
+                        setTotalPorridge(reloadData.totalPorridge as number)
+                        setTotalMeals(reloadData.totalMeals as number)
+                        setTotalCong(reloadData.totalCong as number)
+                        setGroupSummaries(reloadData.groupSummaries as GroupSummary[])
+                        if (reloadData.schoolInfo) setSchoolInfo(reloadData.schoolInfo)
+                        if (typeof reloadData.isMoc1Closed === 'boolean') setIsMoc1Closed(reloadData.isMoc1Closed)
+                        if (typeof reloadData.isMoc2Closed === 'boolean') setIsMoc2Closed(reloadData.isMoc2Closed)
+                    }
+                    setLoading(false)
+                    return
+                }
+            }
+        }
+
+        // Kiểm tra 14h lock cho Bếp & Chia suất
         const nowHours = getVietnamHours()
         if (nowHours >= 14) setIsAfter14h(true)
 
@@ -113,7 +174,7 @@ export default function KitchenPage() {
         if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
         if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
         setLoading(false)
-    }, [])
+    }, [findNearestWorkingDay])
 
     // Load lần đầu (không truyền date → server tự tính)
     useEffect(() => { loadData() }, [loadData])
@@ -126,6 +187,21 @@ export default function KitchenPage() {
     const handleDateChange = (newDate: string) => {
         if (isRestrictedRole) return // Không cho đổi ngày
         setDate(newDate)
+        
+        // Kiểm tra ngày nghỉ
+        if (!isWorkingDayCheck(newDate, workingDays, offDays)) {
+            const formattedDate = formatToViewDate(newDate)
+            setDayOffMessage(`Ngày ${formattedDate} học sinh nghỉ học`)
+            setTotalSalty(0)
+            setTotalVegetarian(0)
+            setTotalPorridge(0)
+            setTotalMeals(0)
+            setTotalCong(0)
+            setGroupSummaries([])
+            return
+        }
+        
+        setDayOffMessage(null)
         loadData(newDate)
     }
 
@@ -305,7 +381,14 @@ export default function KitchenPage() {
             </div>
 
             {/* Content for Kitchen View After 14h today */}
-            {isViewingTodayAfter14h ? (
+            {/* Thông báo ngày nghỉ */}
+            {dayOffMessage ? (
+                <div className="bg-orange-50 border-2 border-orange-300 rounded-3xl p-12 text-center shadow-lg">
+                    <p className="text-6xl mb-6">🏖️</p>
+                    <p className="text-3xl font-bold text-orange-700">{dayOffMessage}</p>
+                    <p className="text-lg text-orange-600 mt-4">Vui lòng chọn ngày học để xem số liệu suất ăn.</p>
+                </div>
+            ) : isViewingTodayAfter14h ? (
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-12 text-center shadow-lg">
                      <p className="text-6xl mb-6">⏰</p>
                      <p className="text-3xl font-bold text-amber-800">Đã hết thời gian xem số liệu ngày hôm nay.</p>

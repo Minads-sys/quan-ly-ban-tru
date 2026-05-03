@@ -154,5 +154,7 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         moc1Close,
         isMoc1Closed,
         isMoc2Closed,
+        workingDays,
+        offDays,
     }
 }
