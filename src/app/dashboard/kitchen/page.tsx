@@ -38,6 +38,7 @@ interface GroupSummary {
 
 export default function KitchenPage() {
     const [date, setDate] = useState('')
+    const [pendingDate, setPendingDate] = useState('')
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'kitchen' | 'distributor'>('kitchen')
     const [totalSalty, setTotalSalty] = useState(0)
@@ -66,13 +67,13 @@ export default function KitchenPage() {
         return wDays.includes(dateObj.getDay()) && !oDays.includes(dateStr)
     }, [])
 
-    // Helper: tìm ngày làm việc gần nhất (hôm nay hoặc trước đó)
+    // Helper: tìm ngày làm việc gần nhất KẾ TIẾP (hôm nay hoặc tương lai)
     const findNearestWorkingDay = useCallback((wDays: number[], oDays: string[]) => {
         const now = getVietnamNow()
-        // Thử hôm nay trước, rồi lùi lại tối đa 30 ngày
+        // Thử hôm nay trước, rồi tiến tới tối đa 30 ngày
         for (let i = 0; i < 30; i++) {
             const candidate = new Date(now)
-            candidate.setDate(candidate.getDate() - i)
+            candidate.setDate(candidate.getDate() + i)
             const yyyy = candidate.getFullYear()
             const mm = String(candidate.getMonth() + 1).padStart(2, '0')
             const dd = String(candidate.getDate()).padStart(2, '0')
@@ -118,10 +119,12 @@ export default function KitchenPage() {
             if (isRestricted) {
                 // Bếp/Chia suất: server đã tính ngày phù hợp
                 setDate(data.date as string)
+                setPendingDate(data.date as string)
             } else {
-                // Admin: tìm ngày làm việc gần nhất (hôm nay hoặc lùi lại)
+                // Admin: tìm ngày làm việc gần nhất kế tiếp
                 const nearestDate = findNearestWorkingDay(serverWorkingDays, serverOffDays)
                 setDate(nearestDate)
+                setPendingDate(nearestDate)
                 // Nếu ngày gần nhất khác ngày server trả về, reload lại với ngày đúng
                 if (nearestDate !== data.date) {
                     setLoading(true)
@@ -184,13 +187,21 @@ export default function KitchenPage() {
 
     // Khi user đổi date thủ công (bị khóa cho kitchen/meal_distributor)
     const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole)
-    const handleDateChange = (newDate: string) => {
-        if (isRestrictedRole) return // Không cho đổi ngày
-        setDate(newDate)
+    
+    // Chỉ cập nhật pendingDate khi user thay đổi input (không load data)
+    const handleDateInputChange = (newDate: string) => {
+        if (isRestrictedRole) return
+        setPendingDate(newDate)
+    }
+
+    // Xác nhận ngày đã chọn — load data
+    const handleDateConfirm = () => {
+        if (isRestrictedRole || !pendingDate) return
+        setDate(pendingDate)
         
         // Kiểm tra ngày nghỉ
-        if (!isWorkingDayCheck(newDate, workingDays, offDays)) {
-            const formattedDate = formatToViewDate(newDate)
+        if (!isWorkingDayCheck(pendingDate, workingDays, offDays)) {
+            const formattedDate = formatToViewDate(pendingDate)
             setDayOffMessage(`Ngày ${formattedDate} học sinh nghỉ học`)
             setTotalSalty(0)
             setTotalVegetarian(0)
@@ -202,7 +213,7 @@ export default function KitchenPage() {
         }
         
         setDayOffMessage(null)
-        loadData(newDate)
+        loadData(pendingDate)
     }
 
     function exportToExcel() {
@@ -315,13 +326,23 @@ export default function KitchenPage() {
                         <div className="flex items-center gap-2">
                             <input
                                 type="date"
-                                value={date}
-                                onChange={e => handleDateChange(e.target.value)}
+                                value={pendingDate}
+                                onChange={e => handleDateInputChange(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleDateConfirm() }}
                                 disabled={isRestrictedRole}
                                 className={`${showSummaryOnly ? 'px-6 py-3 text-xl' : 'px-4 py-2 text-sm'} rounded-xl border border-gray-200 
                     focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold
                     ${isRestrictedRole ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                             />
+                            {!isRestrictedRole && pendingDate !== date && (
+                                <button
+                                    onClick={handleDateConfirm}
+                                    className={`${showSummaryOnly ? 'px-5 py-3 text-lg' : 'px-4 py-2 text-sm'} bg-blue-500 text-white rounded-xl font-bold
+                        hover:bg-blue-600 shadow-md transition-all active:scale-[0.98]`}
+                                >
+                                    🔍 Xem
+                                </button>
+                            )}
                             {date && (
                                 <span className={`${showSummaryOnly ? 'text-lg px-4 py-2.5' : 'text-sm px-3 py-1.5'} font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl whitespace-nowrap`}>
                                     📅 {getDayOfWeek(date)}
