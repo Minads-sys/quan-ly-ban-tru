@@ -151,6 +151,12 @@ export function TeacherReportForm({ reportDate, isWithinTime, phaseLabel }: { re
                     </div>
                 </div>
 
+                {/* Tổng suất tự động */}
+                <div className="bg-rose-50 border-2 border-rose-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+                    <span className="text-sm font-bold text-rose-700 uppercase tracking-wider">📊 Tổng suất Giáo viên</span>
+                    <span className="text-3xl font-bold text-rose-800">{salty + porridge + vegetarian}</span>
+                </div>
+
                 <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">💬 Ghi chú (nếu có)</label>
                     <textarea
