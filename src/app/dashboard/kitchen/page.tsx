@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
-import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek, getVietnamNow } from '@/utils/dateUtils'
+import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek, getVietnamNow, getVietnamMinutesToday } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
@@ -68,10 +68,21 @@ export default function KitchenPage() {
     }, [])
 
     // Helper: tìm ngày làm việc gần nhất KẾ TIẾP (hôm nay hoặc tương lai)
-    const findNearestWorkingDay = useCallback((wDays: number[], oDays: string[]) => {
+    // Sau giờ chốt mốc 1 → mặc định xem ngày làm việc tiếp theo
+    const findNearestWorkingDay = useCallback((wDays: number[], oDays: string[], moc1CloseTime?: string) => {
         const now = getVietnamNow()
-        // Thử hôm nay trước, rồi tiến tới tối đa 30 ngày
-        for (let i = 0; i < 30; i++) {
+        // Kiểm tra đã qua giờ chốt mốc 1 chưa
+        let startOffset = 0
+        if (moc1CloseTime) {
+            const [mH, mM] = moc1CloseTime.split(':').map(Number)
+            const moc1Minutes = mH * 60 + mM
+            const currentMinutes = getVietnamMinutesToday()
+            if (currentMinutes >= moc1Minutes) {
+                startOffset = 1 // Bắt đầu từ ngày mai
+            }
+        }
+        // Thử từ startOffset, rồi tiến tới tối đa 30 ngày
+        for (let i = startOffset; i < 30; i++) {
             const candidate = new Date(now)
             candidate.setDate(candidate.getDate() + i)
             const yyyy = candidate.getFullYear()
@@ -121,8 +132,8 @@ export default function KitchenPage() {
                 setDate(data.date as string)
                 setPendingDate(data.date as string)
             } else {
-                // Admin: tìm ngày làm việc gần nhất kế tiếp
-                const nearestDate = findNearestWorkingDay(serverWorkingDays, serverOffDays)
+                // Admin: tìm ngày làm việc gần nhất (sau giờ chốt mốc 1 → xem ngày tiếp theo)
+                const nearestDate = findNearestWorkingDay(serverWorkingDays, serverOffDays, data.moc1Close as string)
                 setDate(nearestDate)
                 setPendingDate(nearestDate)
                 // Nếu ngày gần nhất khác ngày server trả về, reload lại với ngày đúng
