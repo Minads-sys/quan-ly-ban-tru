@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { getKitchenSummary } from './actions'
+import { getTeacherMealReport, upsertTeacherMealReport } from './teacher-actions'
 import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek, getVietnamNow, getVietnamMinutesToday } from '@/utils/dateUtils'
 import * as XLSX from 'xlsx'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
@@ -40,7 +41,7 @@ export default function KitchenPage() {
     const [date, setDate] = useState('')
     const [pendingDate, setPendingDate] = useState('')
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'kitchen' | 'distributor'>('kitchen')
+    const [activeTab, setActiveTab] = useState<'kitchen' | 'distributor' | 'teacher'>('kitchen')
     const [totalSalty, setTotalSalty] = useState(0)
     const [totalVegetarian, setTotalVegetarian] = useState(0)
     const [totalPorridge, setTotalPorridge] = useState(0)
@@ -58,6 +59,21 @@ export default function KitchenPage() {
     const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5])
     const [offDays, setOffDays] = useState<string[]>([])
     const [dayOffMessage, setDayOffMessage] = useState<string | null>(null)
+
+    // Teacher meal states
+    const [teacherSalty, setTeacherSalty] = useState(0)
+    const [teacherPorridge, setTeacherPorridge] = useState(0)
+    const [teacherVegetarian, setTeacherVegetarian] = useState(0)
+    const [teacherNote, setTeacherNote] = useState('')
+    const [teacherTotal, setTeacherTotal] = useState(0)
+    const [teacherReportExists, setTeacherReportExists] = useState(false)
+    const [teacherSaving, setTeacherSaving] = useState(false)
+    const [teacherMsg, setTeacherMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    // Editable form values (separate from display)
+    const [teacherFormSalty, setTeacherFormSalty] = useState(0)
+    const [teacherFormPorridge, setTeacherFormPorridge] = useState(0)
+    const [teacherFormVegetarian, setTeacherFormVegetarian] = useState(0)
+    const [teacherFormNote, setTeacherFormNote] = useState('')
 
     // Helper: kiểm tra ngày có phải ngày làm việc không
     const isWorkingDayCheck = useCallback((dateStr: string, wDays: number[], oDays: string[]) => {
@@ -187,6 +203,37 @@ export default function KitchenPage() {
         if (data.schoolInfo) setSchoolInfo(data.schoolInfo)
         if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
         if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
+
+        // Load teacher meal data
+        const effectiveDate = selectedDate || (data.date as string)
+        if (effectiveDate) {
+            const teacherResult = await getTeacherMealReport(effectiveDate)
+            if (teacherResult.report) {
+                const tr = teacherResult.report
+                setTeacherSalty(tr.salty_count)
+                setTeacherPorridge(tr.porridge_count)
+                setTeacherVegetarian(tr.vegetarian_count)
+                setTeacherNote(tr.note || '')
+                setTeacherTotal(tr.salty_count + tr.porridge_count + tr.vegetarian_count)
+                setTeacherReportExists(true)
+                setTeacherFormSalty(tr.salty_count)
+                setTeacherFormPorridge(tr.porridge_count)
+                setTeacherFormVegetarian(tr.vegetarian_count)
+                setTeacherFormNote(tr.note || '')
+            } else {
+                setTeacherSalty(0)
+                setTeacherPorridge(0)
+                setTeacherVegetarian(0)
+                setTeacherNote('')
+                setTeacherTotal(0)
+                setTeacherReportExists(false)
+                setTeacherFormSalty(0)
+                setTeacherFormPorridge(0)
+                setTeacherFormVegetarian(0)
+                setTeacherFormNote('')
+            }
+        }
+
         setLoading(false)
     }, [findNearestWorkingDay])
 
@@ -194,7 +241,7 @@ export default function KitchenPage() {
     useEffect(() => { loadData() }, [loadData])
 
     // ⚡ Realtime: tự động làm mới khi có thay đổi daily_reports
-    useRealtimeRefresh(['daily_reports'], loadData)
+    useRealtimeRefresh(['daily_reports', 'teacher_meal_reports'], loadData)
 
     // Khi user đổi date thủ công (bị khóa cho kitchen/meal_distributor)
     const isRestrictedRole = ['kitchen', 'meal_distributor'].includes(userRole)
@@ -401,12 +448,24 @@ export default function KitchenPage() {
                             >
                                 🍽️ Chia suất
                             </button>
+                            <button
+                                onClick={() => setActiveTab('teacher')}
+                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                    activeTab === 'teacher' 
+                                    ? 'bg-white text-rose-700 shadow-sm border border-gray-200' 
+                                    : 'text-gray-600 hover:text-gray-700'
+                                }`}
+                            >
+                                👩‍🏫 Suất GV
+                            </button>
                         </div>
                         {/* Ghi chú mốc tương ứng tab */}
                         <p className="text-xs font-semibold text-gray-500">
                             {activeTab === 'kitchen'
                                 ? '🛒 Mốc 1 — Đi chợ'
-                                : '🍽️ Mốc 2 — Chia suất ra công'}
+                                : activeTab === 'distributor'
+                                ? '🍽️ Mốc 2 — Chia suất ra công'
+                                : '👩‍🏫 Suất ăn giáo viên — Riêng biệt'}
                         </p>
                     </div>
                 )}
@@ -677,6 +736,184 @@ export default function KitchenPage() {
                                     </div>
                                 )
                             })}
+                        </div>
+                    ) : (
+                        /* Teacher Meals Tab */
+                        <div className="space-y-8 print:space-y-6">
+                            {/* Summary Cards */}
+                            <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-4 gap-3'} mb-2`}>
+                                <div className={`bg-gradient-to-br from-rose-600 to-pink-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất GV</p>
+                                    <p className={`${showSummaryOnly ? 'text-7xl' : 'text-3xl'} font-bold mt-2`}>{teacherTotal}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🍖 Mặn GV</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{teacherSalty}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥬 Chay GV</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{teacherVegetarian}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
+                                    <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>🥣 Cháo GV</p>
+                                    <p className={`${showSummaryOnly ? 'text-6xl' : 'text-3xl'} font-bold mt-2`}>{teacherPorridge}</p>
+                                </div>
+                            </div>
+
+                            {/* Chia Công GV */}
+                            {(() => {
+                                const tcs = Math.floor(teacherSalty / 20)
+                                const tls = teacherSalty % 20
+                                const tcv = Math.floor(teacherVegetarian / 20)
+                                const tlv = teacherVegetarian % 20
+                                const tcp = Math.floor(teacherPorridge / 20)
+                                const tlp = teacherPorridge % 20
+                                const tTotalC = tcs + tcv + tcp
+
+                                return (
+                                    <div className="bg-rose-50 rounded-2xl border-2 border-rose-300 shadow-md p-6 sm:p-8">
+                                        <h3 className="text-2xl sm:text-3xl font-bold text-rose-800 text-center mb-1">
+                                            Công Suất GV
+                                        </h3>
+                                        <p className="text-center mb-2">
+                                            <span className="text-5xl sm:text-7xl font-bold text-rose-900">{tTotalC}</span>
+                                            <span className="text-2xl sm:text-3xl font-bold text-rose-600 ml-2">công</span>
+                                        </p>
+                                        
+                                        <div className="text-center mb-5 text-lg sm:text-xl text-rose-600 font-semibold leading-relaxed">
+                                            {tls > 0 && <span className="text-blue-700">{tls} suất lẻ mặn</span>}
+                                            {tls > 0 && (tlv > 0 || tlp > 0) && <span>, </span>}
+                                            {tlv > 0 && <span className="text-emerald-700">{tlv} suất lẻ chay</span>}
+                                            {tlv > 0 && tlp > 0 && <span>, </span>}
+                                            {tlp > 0 && <span className="text-amber-700">{tlp} suất lẻ cháo</span>}
+                                            {tls === 0 && tlv === 0 && tlp === 0 && (
+                                                <span className="text-gray-500">Không có suất lẻ</span>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                                            <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-4 sm:p-5 text-center">
+                                                <p className="text-lg sm:text-xl font-bold text-blue-900">Mặn</p>
+                                                <p className="text-3xl sm:text-5xl font-bold text-blue-800 mt-1">{tcs} <span className="text-lg sm:text-2xl">công</span></p>
+                                                <p className="text-base sm:text-lg font-semibold text-blue-600 mt-1">{tls} suất lẻ</p>
+                                            </div>
+                                            <div className="bg-emerald-100 border-2 border-emerald-400 rounded-xl p-4 sm:p-5 text-center">
+                                                <p className="text-lg sm:text-xl font-bold text-emerald-900">Chay</p>
+                                                <p className="text-3xl sm:text-5xl font-bold text-emerald-800 mt-1">{tcv} <span className="text-lg sm:text-2xl">công</span></p>
+                                                <p className="text-base sm:text-lg font-semibold text-emerald-600 mt-1">{tlv} suất lẻ</p>
+                                            </div>
+                                            <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-4 sm:p-5 text-center">
+                                                <p className="text-lg sm:text-xl font-bold text-amber-900">Cháo</p>
+                                                <p className="text-3xl sm:text-5xl font-bold text-amber-800 mt-1">{tcp} <span className="text-lg sm:text-2xl">công</span></p>
+                                                <p className="text-base sm:text-lg font-semibold text-amber-600 mt-1">{tlp} suất lẻ</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })()}
+
+                            {/* Ghi chú */}
+                            {teacherNote && (
+                                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                                    <p className="text-sm font-medium text-gray-600">💬 Ghi chú: <span className="text-gray-800">{teacherNote}</span></p>
+                                </div>
+                            )}
+
+                            {/* Form nhập — chỉ hiện cho admin + school_approver */}
+                            {!showSummaryOnly && ['admin', 'school_approver'].includes(userRole) && (
+                                <div className="bg-white rounded-2xl border-2 border-rose-200 shadow-md p-6 sm:p-8 print:hidden">
+                                    <h3 className="text-xl font-bold text-rose-800 mb-4 flex items-center gap-2">
+                                        ✏️ {teacherReportExists ? 'Cập nhật' : 'Nhập'} suất ăn Giáo viên
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">🍖 Suất mặn</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                value={teacherFormSalty}
+                                                onChange={e => setTeacherFormSalty(parseInt(e.target.value) || 0)}
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-blue-200 text-2xl font-bold text-center text-blue-700
+                                                    focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">🥣 Suất cháo</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                value={teacherFormPorridge}
+                                                onChange={e => setTeacherFormPorridge(parseInt(e.target.value) || 0)}
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 text-2xl font-bold text-center text-amber-700
+                                                    focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">🥬 Suất chay</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                value={teacherFormVegetarian}
+                                                onChange={e => setTeacherFormVegetarian(parseInt(e.target.value) || 0)}
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 text-2xl font-bold text-center text-emerald-700
+                                                    focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">💬 Ghi chú</label>
+                                        <textarea
+                                            value={teacherFormNote}
+                                            onChange={e => setTeacherFormNote(e.target.value)}
+                                            placeholder="Ghi chú (nếu có)..."
+                                            rows={2}
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm
+                                                focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none resize-none"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-2">
+                                            <span className="text-sm font-medium text-rose-600">Tổng suất: </span>
+                                            <span className="text-xl font-bold text-rose-800">{teacherFormSalty + teacherFormPorridge + teacherFormVegetarian}</span>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                setTeacherSaving(true)
+                                                setTeacherMsg(null)
+                                                const result = await upsertTeacherMealReport(date, {
+                                                    salty_count: teacherFormSalty,
+                                                    porridge_count: teacherFormPorridge,
+                                                    vegetarian_count: teacherFormVegetarian,
+                                                    note: teacherFormNote,
+                                                })
+                                                if (result.error) {
+                                                    setTeacherMsg({ type: 'error', text: result.error })
+                                                } else {
+                                                    setTeacherMsg({ type: 'success', text: teacherReportExists ? 'Đã cập nhật suất GV!' : 'Đã lưu suất GV!' })
+                                                    loadData(date)
+                                                }
+                                                setTeacherSaving(false)
+                                                setTimeout(() => setTeacherMsg(null), 3000)
+                                            }}
+                                            disabled={teacherSaving}
+                                            className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl
+                                                hover:from-rose-600 hover:to-pink-700 shadow-md transition-all active:scale-[0.98]
+                                                disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        >
+                                            {teacherSaving ? '⏳ Đang lưu...' : teacherReportExists ? '📤 Cập nhật' : '💾 Lưu'}
+                                        </button>
+                                    </div>
+                                    {teacherMsg && (
+                                        <div className={`mt-3 rounded-xl p-3 text-sm font-medium border ${
+                                            teacherMsg.type === 'success' 
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                : 'bg-red-50 text-red-700 border-red-200'
+                                        }`}>
+                                            {teacherMsg.text}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </>

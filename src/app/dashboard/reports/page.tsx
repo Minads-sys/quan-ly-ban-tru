@@ -107,7 +107,7 @@ export default function ReportsPage() {
         const dateLabel = `Từ ngày ${formatToViewDate(start)} đến ngày ${formatToViewDate(end)}`
 
         // Build rows
-        const headers = ['Ngày', 'Thứ', 'Sĩ số', 'Nghỉ', 'Tổng Suất', 'Mặn', 'Cháo', 'Chay']
+        const headers = ['Ngày', 'Thứ', 'Sĩ số', 'Nghỉ', 'Tổng Suất HS', 'Mặn HS', 'Cháo HS', 'Chay HS', 'Tổng Suất GV', 'Mặn GV', 'Cháo GV', 'Chay GV']
         const rows = summary.dailyData.map(row => [
             formatToViewDate(row.date),
             getDayOfWeek(row.date),
@@ -117,6 +117,10 @@ export default function ReportsPage() {
             row.salty,
             row.porridge,
             row.vegetarian,
+            row.teacherMeals,
+            row.teacherSalty,
+            row.teacherPorridge,
+            row.teacherVegetarian,
         ])
         // Total row
         rows.push([
@@ -128,6 +132,10 @@ export default function ReportsPage() {
             summary.totalSalty,
             summary.totalPorridge,
             summary.totalVegetarian,
+            summary.teacherMeals,
+            summary.teacherSalty,
+            summary.teacherPorridge,
+            summary.teacherVegetarian,
         ])
 
         const wsData = [
@@ -147,7 +155,7 @@ export default function ReportsPage() {
         ]
 
         // Column widths
-        ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }]
+        ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 9 }, { wch: 9 }, { wch: 9 }]
 
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Đối soát suất ăn')
@@ -255,8 +263,9 @@ export default function ReportsPage() {
                 </div>
             ) : summary ? (
                 <>
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* KPI Cards - Học sinh */}
+                    <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">👨‍🎓 Suất ăn Học sinh</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-5 rounded-2xl text-white shadow-lg relative overflow-hidden group">
                             <div className="relative z-10">
                                 <p className="text-indigo-100 text-sm font-medium mb-1 flex items-center gap-2"><Utensils className="w-4 h-4" /> TỔNG SUẤT</p>
@@ -292,6 +301,36 @@ export default function ReportsPage() {
                             <div className="relative z-10">
                                 <p className="text-gray-600 text-sm font-medium mb-1">❌ Tổng Nghỉ</p>
                                 <p className="text-3xl font-bold text-red-500">{formatNumber(summary.totalAbsent)}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* KPI Cards - Giáo viên */}
+                    <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">👩‍🏫 Suất ăn Giáo viên</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-5 rounded-2xl text-white shadow-lg relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <p className="text-rose-100 text-sm font-medium mb-1 flex items-center gap-2"><Utensils className="w-4 h-4" /> TỔNG SUẤT GV</p>
+                                <p className="text-3xl font-bold">{formatNumber(summary.teacherMeals)}</p>
+                            </div>
+                            <Utensils className="absolute -right-4 -bottom-4 w-24 h-24 text-white opacity-10 group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <p className="text-gray-600 text-sm font-medium mb-1">🍖 Mặn GV</p>
+                                <p className="text-3xl font-bold text-gray-800">{formatNumber(summary.teacherSalty)}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <p className="text-gray-600 text-sm font-medium mb-1">🥣 Cháo GV</p>
+                                <p className="text-3xl font-bold text-amber-600">{formatNumber(summary.teacherPorridge)}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <p className="text-gray-600 text-sm font-medium mb-1">🥬 Chay GV</p>
+                                <p className="text-3xl font-bold text-emerald-600">{formatNumber(summary.teacherVegetarian)}</p>
                             </div>
                         </div>
                     </div>
@@ -370,9 +409,12 @@ export default function ReportsPage() {
                                                 labelFormatter={(label) => formatToViewDate(label as string)}
                                             />
                                             <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                            <Bar name="Mặn" dataKey="salty" stackId="a" fill="#3b82f6" radius={[0,0,4,4]} />
-                                            <Bar name="Cháo" dataKey="porridge" stackId="a" fill="#fbbf24" />
-                                            <Bar name="Chay" dataKey="vegetarian" stackId="a" fill="#10b981" radius={[4,4,0,0]} />
+                                            <Bar name="Mặn HS" dataKey="salty" stackId="a" fill="#3b82f6" radius={[0,0,4,4]} />
+                                            <Bar name="Cháo HS" dataKey="porridge" stackId="a" fill="#fbbf24" />
+                                            <Bar name="Chay HS" dataKey="vegetarian" stackId="a" fill="#10b981" radius={[4,4,0,0]} />
+                                            <Bar name="Mặn GV" dataKey="teacherSalty" stackId="b" fill="#e11d48" radius={[0,0,4,4]} />
+                                            <Bar name="Cháo GV" dataKey="teacherPorridge" stackId="b" fill="#d97706" />
+                                            <Bar name="Chay GV" dataKey="teacherVegetarian" stackId="b" fill="#059669" radius={[4,4,0,0]} />
                                         </BarChart>
                                     )}
                                 </ResponsiveContainer>
@@ -417,10 +459,14 @@ export default function ReportsPage() {
                                         <th className="px-4 py-4 font-semibold">Thứ</th>
                                         <th className="px-6 py-4 font-semibold text-center">Sĩ số</th>
                                         <th className="px-6 py-4 font-semibold text-center">Nghỉ</th>
-                                        <th className="px-6 py-4 font-semibold text-center">Tổng Suất</th>
-                                        <th className="px-6 py-4 font-semibold text-center">Mặn</th>
-                                        <th className="px-6 py-4 font-semibold text-center">Cháo</th>
-                                        <th className="px-6 py-4 font-semibold text-center">Chay</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Tổng HS</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Mặn HS</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Cháo HS</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Chay HS</th>
+                                        <th className="px-6 py-4 font-semibold text-center border-l border-gray-200">Tổng GV</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Mặn GV</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Cháo GV</th>
+                                        <th className="px-6 py-4 font-semibold text-center">Chay GV</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -434,6 +480,10 @@ export default function ReportsPage() {
                                             <td className="px-6 py-4 text-center font-semibold text-gray-700">{formatNumber(row.salty)}</td>
                                             <td className="px-6 py-4 text-center font-semibold text-amber-600">{formatNumber(row.porridge)}</td>
                                             <td className="px-6 py-4 text-center font-semibold text-emerald-600">{formatNumber(row.vegetarian)}</td>
+                                            <td className="px-6 py-4 text-center font-bold text-rose-700 border-l border-gray-100">{formatNumber(row.teacherMeals)}</td>
+                                            <td className="px-6 py-4 text-center font-semibold text-gray-700">{formatNumber(row.teacherSalty)}</td>
+                                            <td className="px-6 py-4 text-center font-semibold text-amber-600">{formatNumber(row.teacherPorridge)}</td>
+                                            <td className="px-6 py-4 text-center font-semibold text-emerald-600">{formatNumber(row.teacherVegetarian)}</td>
                                         </tr>
                                     )) : (
                                         <tr>

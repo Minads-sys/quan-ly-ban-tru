@@ -37,6 +37,7 @@ export default function SettingsPage() {
     const [schoolName, setSchoolName] = useState('')
     const [schoolAddress, setSchoolAddress] = useState('')
     const [mealPrice, setMealPrice] = useState(25000)
+    const [teacherMealPrice, setTeacherMealPrice] = useState(30000)
     const [groups, setGroups] = useState<Group[]>([])
     const [rooms, setRooms] = useState<Room[]>([])
     const [classes, setClasses] = useState<ClassItem[]>([])
@@ -89,6 +90,7 @@ export default function SettingsPage() {
                 setSchoolName(get('school_name') || '')
                 setSchoolAddress(get('school_address') || '')
                 setMealPrice(parseInt(get('meal_price') || '25000') || 25000)
+                setTeacherMealPrice(parseInt(get('teacher_meal_price') || '30000') || 30000)
                 break
             }
             case 'rooms': {
@@ -145,6 +147,7 @@ export default function SettingsPage() {
             updateSetting('school_name', schoolName),
             updateSetting('school_address', schoolAddress),
             updateSetting('meal_price', mealPrice.toString()),
+            updateSetting('teacher_meal_price', teacherMealPrice.toString()),
         ])
         const err = results.find(r => r.error)
         if (err?.error) showMsg('error', err.error)
@@ -478,10 +481,16 @@ export default function SettingsPage() {
                                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Đơn giá suất ăn (VNĐ)</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Đơn giá suất ăn HS (VNĐ)</label>
                                 <input type="number" value={mealPrice} onChange={e => setMealPrice(parseInt(e.target.value) || 0)}
                                     placeholder="25000"
                                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-blue-700 focus:border-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Đơn giá suất ăn GV (VNĐ)</label>
+                                <input type="number" value={teacherMealPrice} onChange={e => setTeacherMealPrice(parseInt(e.target.value) || 0)}
+                                    placeholder="30000"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-rose-700 focus:border-blue-500 outline-none" />
                             </div>
                         </div>
                         <button onClick={handleSaveSchoolInfo}

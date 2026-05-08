@@ -116,15 +116,17 @@ export async function getDebtSummary(startDate: string, endDate: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Chưa đăng nhập' }
 
-    // 1. Lấy đơn giá suất ăn
-    const { data: settings } = await supabase
+    // 1. Lấy đơn giá suất ăn HS + GV
+    const { data: settingsData } = await supabase
         .from('settings')
-        .select('value')
-        .eq('key', 'meal_price')
-        .single()
-    const mealPrice = parseInt(settings?.value || '25000') || 25000
+        .select('key, value')
+        .in('key', ['meal_price', 'teacher_meal_price'])
 
-    // 2. Tính tổng số suất trong khoảng thời gian
+    const getVal = (k: string, def: string) => settingsData?.find(s => s.key === k)?.value || def
+    const mealPrice = parseInt(getVal('meal_price', '25000')) || 25000
+    const teacherMealPrice = parseInt(getVal('teacher_meal_price', '35000')) || 35000
+
+    // 2. Tính tổng số suất HS trong khoảng thời gian
     const { data: reports } = await supabase
         .from('daily_reports')
         .select('salty_count, porridge_count, vegetarian_count')
@@ -136,7 +138,18 @@ export async function getDebtSummary(startDate: string, endDate: string) {
         sum + (Number(r.salty_count) || 0) + (Number(r.porridge_count) || 0) + (Number(r.vegetarian_count) || 0), 0)
     const totalMealMoney = totalMeals * mealPrice
 
-    // 3. Tính tổng tiền đã thu tạm ứng trong khoảng thời gian
+    // 3. Tính tổng suất GV
+    const { data: teacherReports } = await supabase
+        .from('teacher_meal_reports')
+        .select('salty_count, porridge_count, vegetarian_count')
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+
+    const teacherTotalMeals = (teacherReports || []).reduce((sum, r) =>
+        sum + (Number(r.salty_count) || 0) + (Number(r.porridge_count) || 0) + (Number(r.vegetarian_count) || 0), 0)
+    const teacherTotalMoney = teacherTotalMeals * teacherMealPrice
+
+    // 4. Tính tổng tiền đã thu tạm ứng trong khoảng thời gian
     const { data: advances } = await supabase
         .from('advance_payments')
         .select('amount')
@@ -145,11 +158,91 @@ export async function getDebtSummary(startDate: string, endDate: string) {
 
     const totalAdvance = (advances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0)
 
+    const totalAllMoney = totalMealMoney + teacherTotalMoney
+    const overallDebt = totalAllMoney - totalAdvance
+
     return {
         totalMeals,
         totalMealMoney,
         totalAdvance,
         debt: totalMealMoney - totalAdvance,
-        mealPrice
+        overallDebt,
+        mealPrice,
+        // Teacher meal data (riêng biệt)
+        teacherTotalMeals,
+        teacherTotalMoney,
+        teacherMealPrice,
+        totalAllMoney,
     }
 }
+
+export interface TeacherDebtDay {
+    report_date: string
+    salty_count: number
+    vegetarian_count: number
+    porridge_count: number
+    total_meals: number
+    total_money: number
+    teacher_name: string | null
+    class_name: string | null
+    room_name: string | null
+}
+
+/** Lấy chi tiết nợ giáo viên theo từng ngày báo cáo */
+export async function getTeacherDebtReport(startDate: string, endDate: string) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Chưa đăng nhập' }
+
+    // Lấy đơn giá GV
+    const { data: settingsData } = await supabase
+        .from('settings')
+        .select('key, value')
+        .eq('key', 'teacher_meal_price')
+
+    const teacherMealPrice = parseInt(settingsData?.find(s => s.key === 'teacher_meal_price')?.value || '35000') || 35000
+
+    // Lấy báo cáo suất ăn GV kèm thông tin lớp/phòng
+    const { data: reports, error } = await supabase
+        .from('teacher_meal_reports')
+        .select(`
+            report_date,
+            salty_count,
+            vegetarian_count,
+            porridge_count,
+            teacher_name,
+            classes ( name, rooms ( name ) )
+        `)
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+        .order('report_date', { ascending: false })
+
+    if (error) return { error: error.message }
+
+    const rows: TeacherDebtDay[] = (reports || []).map((r: any) => {
+        const total = (r.salty_count || 0) + (r.vegetarian_count || 0) + (r.porridge_count || 0)
+        return {
+            report_date: r.report_date,
+            salty_count: r.salty_count || 0,
+            vegetarian_count: r.vegetarian_count || 0,
+            porridge_count: r.porridge_count || 0,
+            total_meals: total,
+            total_money: total * teacherMealPrice,
+            teacher_name: r.teacher_name || null,
+            class_name: r.classes?.name || null,
+            room_name: r.classes?.rooms?.name || null,
+        }
+    })
+
+    const grandTotal = rows.reduce((s, r) => s + r.total_meals, 0)
+    const grandMoney = rows.reduce((s, r) => s + r.total_money, 0)
+
+    return {
+        rows,
+        grandTotal,
+        grandMoney,
+        teacherMealPrice,
+    }
+}
+

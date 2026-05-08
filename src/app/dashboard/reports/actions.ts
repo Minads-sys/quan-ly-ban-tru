@@ -17,6 +17,10 @@ export interface ReportSummary {
     totalPorridge: number
     totalAbsent: number
     totalCapacity: number
+    teacherMeals: number
+    teacherSalty: number
+    teacherVegetarian: number
+    teacherPorridge: number
     schoolName: string
     dailyData: {
         date: string
@@ -26,6 +30,10 @@ export interface ReportSummary {
         porridge: number
         absent: number
         capacity: number
+        teacherMeals: number
+        teacherSalty: number
+        teacherVegetarian: number
+        teacherPorridge: number
     }[]
 }
 
@@ -98,10 +106,20 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         `)
         .gte('report_date', startD)
         .lte('report_date', endD)
-        // Optionally only approved reports? Usually reports tab wants all or just approved. We'll include all but might want to add a status filter later.
 
-    if (error) {
-        console.error("Error fetching reports:", error)
+    const { data: teacherReports, error: teacherError } = await supabase
+        .from('teacher_meal_reports')
+        .select(`
+            report_date,
+            salty_count,
+            vegetarian_count,
+            porridge_count
+        `)
+        .gte('report_date', startD)
+        .lte('report_date', endD)
+
+    if (error || teacherError) {
+        console.error("Error fetching reports:", error || teacherError)
         return { error: 'Failed to fetch reports' }
     }
 
@@ -112,8 +130,12 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
     let totalAbsent = 0
     let totalCapacity = 0
 
+    let teacherSalty = 0
+    let teacherVegetarian = 0
+    let teacherPorridge = 0
+
     // Group by Date for Chart
-    const dailyMap = new Map<string, { meals: number, salty: number, vegetarian: number, porridge: number, absent: number, capacity: number }>()
+    const dailyMap = new Map<string, { meals: number, salty: number, vegetarian: number, porridge: number, absent: number, capacity: number, teacherMeals: number, teacherSalty: number, teacherVegetarian: number, teacherPorridge: number }>()
 
     reports?.forEach(r => {
         const date = r.report_date
@@ -132,7 +154,7 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         totalCapacity += c
 
         if (!dailyMap.has(date)) {
-            dailyMap.set(date, { meals: 0, salty: 0, vegetarian: 0, porridge: 0, absent: 0, capacity: 0 })
+            dailyMap.set(date, { meals: 0, salty: 0, vegetarian: 0, porridge: 0, absent: 0, capacity: 0, teacherMeals: 0, teacherSalty: 0, teacherVegetarian: 0, teacherPorridge: 0 })
         }
         const dm = dailyMap.get(date)!
         dm.meals += meals
@@ -143,7 +165,29 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         dm.capacity += c
     })
 
+    teacherReports?.forEach(r => {
+        const date = r.report_date
+        const s = r.salty_count || 0
+        const v = r.vegetarian_count || 0
+        const p = r.porridge_count || 0
+        const meals = s + v + p
+
+        teacherSalty += s
+        teacherVegetarian += v
+        teacherPorridge += p
+
+        if (!dailyMap.has(date)) {
+            dailyMap.set(date, { meals: 0, salty: 0, vegetarian: 0, porridge: 0, absent: 0, capacity: 0, teacherMeals: 0, teacherSalty: 0, teacherVegetarian: 0, teacherPorridge: 0 })
+        }
+        const dm = dailyMap.get(date)!
+        dm.teacherMeals += meals
+        dm.teacherSalty += s
+        dm.teacherVegetarian += v
+        dm.teacherPorridge += p
+    })
+
     const totalMeals = totalSalty + totalVegetarian + totalPorridge
+    const teacherMeals = teacherSalty + teacherVegetarian + teacherPorridge
 
     // Convert Map to Array and sort by date
     const dailyData = Array.from(dailyMap.entries())
@@ -157,6 +201,10 @@ export async function getReportsData(filter: ReportFilter): Promise<ReportSummar
         totalPorridge,
         totalAbsent,
         totalCapacity,
+        teacherMeals,
+        teacherSalty,
+        teacherVegetarian,
+        teacherPorridge,
         schoolName,
         dailyData
     }

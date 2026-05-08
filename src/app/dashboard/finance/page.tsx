@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getAdvancePayments, AdvancePayment, deleteAdvancePayment, getDebtSummary } from './actions'
+import { getAdvancePayments, AdvancePayment, deleteAdvancePayment, getDebtSummary, getTeacherDebtReport, TeacherDebtDay } from './actions'
 import { VoucherForm } from './VoucherForm'
 import { VoucherPrint } from './VoucherPrint'
 import { formatToViewDate, getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
@@ -13,6 +13,8 @@ export default function FinancePage() {
     const [showForm, setShowForm] = useState(false)
     const [selectedPayment, setSelectedPayment] = useState<AdvancePayment | null>(null)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>('student')
+    const [teacherReports, setTeacherReports] = useState<TeacherDebtDay[]>([])
 
     // Bộ lọc dải ngày
     const now = getVietnamNow()
@@ -25,15 +27,21 @@ export default function FinancePage() {
         totalMealMoney: 0,
         totalAdvance: 0,
         debt: 0,
-        mealPrice: 0
+        mealPrice: 0,
+        teacherTotalMeals: 0,
+        teacherTotalMoney: 0,
+        teacherMealPrice: 0,
+        overallDebt: 0,
+        totalAllMoney: 0,
     })
 
     const loadData = useCallback(async () => {
         setLoading(true)
         try {
-            const [paymentsResult, debtResult] = await Promise.all([
+            const [paymentsResult, debtResult, teacherDebtResult] = await Promise.all([
                 getAdvancePayments(startDate, endDate),
-                getDebtSummary(startDate, endDate)
+                getDebtSummary(startDate, endDate),
+                getTeacherDebtReport(startDate, endDate)
             ])
 
             if (paymentsResult.error) {
@@ -47,6 +55,12 @@ export default function FinancePage() {
             } else {
                 setDebtSummary(debtResult as any)
             }
+
+            if ('error' in teacherDebtResult) {
+                console.error(teacherDebtResult.error)
+            } else {
+                setTeacherReports(teacherDebtResult.rows || [])
+            }
         } catch (err) {
             console.error(err)
         } finally {
@@ -59,7 +73,7 @@ export default function FinancePage() {
     }, [loadData])
 
     // ⚡ Realtime: tự động làm mới khi có thay đổi phiếu thu hoặc báo cáo
-    useRealtimeRefresh(['advance_payments', 'daily_reports'], loadData)
+    useRealtimeRefresh(['advance_payments', 'daily_reports', 'teacher_meal_reports'], loadData)
 
     const handleDelete = async (id: string) => {
         if (!confirm('Bạn có chắc chắn muốn xóa phiếu thu này?')) return
@@ -108,123 +122,229 @@ export default function FinancePage() {
                 </div>
             </div>
 
-            {/* Stats - Công nợ */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 border border-blue-100 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Tổng tiền cơm</div>
-                        <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{debtSummary.totalMeals} SUẤT</span>
-                    </div>
-                    <div className="text-2xl font-bold text-blue-600">
-                        {debtSummary.totalMealMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá: {debtSummary.mealPrice.toLocaleString('vi-VN')}đ</div>
-                </div>
-                <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Đã thu tạm ứng</div>
-                        <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{payments.length} PHIẾU</span>
-                    </div>
-                    <div className="text-2xl font-bold text-emerald-600">
-                        {debtSummary.totalAdvance.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Bao gồm các khoản thu trong kỳ</div>
-                </div>
-                <div className="bg-orange-50/50 rounded-2xl p-5 border border-orange-200 shadow-sm transition-all hover:shadow-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-orange-200/20 rounded-full -mr-8 -mt-8"></div>
-                    <div className="text-orange-700 text-[10px] font-bold mb-2 uppercase tracking-wider relative">Công nợ trường nợ</div>
-                    <div className="text-2xl font-bold text-orange-600 relative">
-                        {debtSummary.debt.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
-                    </div>
-                    <div className="text-[10px] text-orange-400 mt-1 font-bold italic relative">Cần thu hồi</div>
-                </div>
-                <div className={`rounded-2xl p-5 shadow-lg text-white transition-all hover:scale-[1.02] flex flex-col justify-center ${
-                    debtSummary.debt <= 0 ? 'bg-emerald-600' : 'bg-red-500'
-                }`}>
-                    <div className="text-white/70 text-[10px] font-bold mb-1 uppercase tracking-wider">Trạng thái kỳ này</div>
-                    <div className="text-xl font-bold flex items-center gap-2">
-                        {debtSummary.debt <= 0 ? (
-                            <><span>✅</span> ĐÃ TẤT TOÁN</>
-                        ) : (
-                            <><span>⚠️</span> CÒN NỢ</>
-                        )}
-                    </div>
-                    <div className="text-[10px] text-white/50 mt-1 font-medium">Cập nhật lúc: {getVietnamNow().toLocaleTimeString('vi-VN')}</div>
-                </div>
+            {/* Tabs */}
+            <div className="flex gap-4 border-b border-gray-200 mt-4 mb-6">
+                <button
+                    className={`py-3 px-6 font-semibold text-sm transition-all border-b-2 ${activeTab === 'student' ? 'border-teal-500 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setActiveTab('student')}
+                >
+                    🎓 Nợ Học sinh
+                </button>
+                <button
+                    className={`py-3 px-6 font-semibold text-sm transition-all border-b-2 ${activeTab === 'teacher' ? 'border-rose-500 text-rose-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setActiveTab('teacher')}
+                >
+                    👩‍🏫 Nợ Giáo viên
+                </button>
             </div>
 
-            {/* List */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
-                <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
-                    <div>
-                        <h2 className="font-bold text-gray-800 tracking-tight text-lg">Lịch sử phiếu thu</h2>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Thời gian: {formatToViewDate(startDate)} → {formatToViewDate(endDate)}</p>
+            {activeTab === 'student' && (
+                <>
+                    {/* Stats - Học sinh */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-2xl p-5 border border-blue-100 shadow-sm transition-all hover:shadow-md">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Tiền cơm Học sinh</div>
+                                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{debtSummary.totalMeals} SUẤT</span>
+                            </div>
+                            <div className="text-2xl font-bold text-blue-600">
+                                {debtSummary.totalMealMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá HS: {debtSummary.mealPrice.toLocaleString('vi-VN')}đ</div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Đã thu tạm ứng</div>
+                                <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{payments.length} PHIẾU</span>
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-600">
+                                {debtSummary.totalAdvance.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Bao gồm các khoản thu trong kỳ</div>
+                        </div>
+
+                        <div className="bg-orange-50/50 rounded-2xl p-5 border border-orange-200 shadow-sm transition-all hover:shadow-md relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-orange-200/20 rounded-full -mr-8 -mt-8"></div>
+                            <div className="text-orange-700 text-[10px] font-bold mb-2 uppercase tracking-wider relative">Nợ cần thu HS</div>
+                            <div className="text-2xl font-bold text-orange-600 relative">
+                                {debtSummary.debt.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                            </div>
+                            <div className="text-[10px] text-orange-400 mt-1 font-bold italic relative">Chỉ tính công nợ Học sinh</div>
+                        </div>
+
+                        <div className={`rounded-2xl p-5 shadow-lg text-white transition-all hover:scale-[1.02] flex flex-col justify-center ${
+                            debtSummary.debt <= 0 ? 'bg-emerald-600' : 'bg-red-500'
+                        }`}>
+                            <div className="text-white/70 text-[10px] font-bold mb-1 uppercase tracking-wider">Trạng thái kỳ này</div>
+                            <div className="text-xl font-bold flex items-center gap-2">
+                                {debtSummary.debt <= 0 ? (
+                                    <><span>✨</span> ĐÃ TẤT TOÁN</>
+                                ) : (
+                                    <><span>⚠️</span> CÒN NỢ</>
+                                )}
+                            </div>
+                            <div className="text-[10px] text-white/50 mt-1 font-medium">Cập nhật lúc: {getVietnamNow().toLocaleTimeString('vi-VN')}</div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100">
-                        <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></span>
-                        <span className="text-[10px] text-teal-700 font-bold uppercase">Dữ liệu thời gian thực</span>
+
+                    {/* List - Phiếu thu HS */}
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden mt-6">
+                        <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                            <div>
+                                <h2 className="font-bold text-gray-800 tracking-tight text-lg">Lịch sử phiếu thu</h2>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Thời gian: {formatToViewDate(startDate)} → {formatToViewDate(endDate)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100">
+                                <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></span>
+                                <span className="text-[10px] text-teal-700 font-bold uppercase">Dữ liệu thời gian thực</span>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-white text-gray-400 font-bold border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">NGÀY THU</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">NGƯỜI NỘP TIỀN</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">LÝ DO THU</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest text-right">SỐ TIỀN</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest text-right">THÀNH PHẦN</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {payments.map((p: AdvancePayment) => (
+                                        <tr key={p.id} className="hover:bg-teal-50/20 transition-all group">
+                                            <td className="px-8 py-5 font-semibold text-gray-500">{formatToViewDate(p.payment_date)}</td>
+                                            <td className="px-8 py-5">
+                                                <div className="font-bold text-gray-900">{p.payer_name}</div>
+                                                <div className="text-[10px] text-gray-400 mt-0.5">{p.bank || 'Tiền mặt'}</div>
+                                            </td>
+                                            <td className="px-8 py-5 text-gray-600 max-w-[250px] truncate leading-relaxed">{p.reason}</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className="font-bold text-teal-700 text-lg">{p.amount.toLocaleString('vi-VN')}</span>
+                                                <span className="text-[10px] ml-1 text-gray-400 font-bold">đ</span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                    <button
+                                                        onClick={() => setSelectedPayment(p)}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 transition-all font-bold text-[10px] uppercase active:scale-95"
+                                                    >
+                                                        In phiếu
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(p.id)}
+                                                        className="p-2 text-red-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                                        title="Xóa"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {payments.length === 0 && !loading && (
+                                        <tr>
+                                            <td colSpan={5} className="px-8 py-24 text-center">
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-4xl grayscale opacity-50">📂</div>
+                                                    <div className="space-y-1">
+                                                        <p className="font-bold text-gray-400 uppercase text-xs tracking-widest">Không có dữ liệu</p>
+                                                        <p className="text-gray-300 text-[10px] font-bold">Vui lòng điều chỉnh lại thời gian lọc</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-white text-gray-400 font-bold border-b border-gray-100">
-                            <tr>
-                                <th className="px-8 py-5 text-[10px] uppercase tracking-widest">NGÀY THU</th>
-                                <th className="px-8 py-5 text-[10px] uppercase tracking-widest">NGƯỜI NỘP TIỀN</th>
-                                <th className="px-8 py-5 text-[10px] uppercase tracking-widest">LÝ DO THU</th>
-                                <th className="px-8 py-5 text-[10px] uppercase tracking-widest text-right">SỐ TIỀN</th>
-                                <th className="px-8 py-5 text-[10px] uppercase tracking-widest text-right">THÀNH PHẦN</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {payments.map((p: AdvancePayment) => (
-                                <tr key={p.id} className="hover:bg-teal-50/20 transition-all group">
-                                    <td className="px-8 py-5 font-semibold text-gray-500">{formatToViewDate(p.payment_date)}</td>
-                                    <td className="px-8 py-5">
-                                        <div className="font-bold text-gray-900">{p.payer_name}</div>
-                                        <div className="text-[10px] text-gray-400 mt-0.5">{p.bank || 'Tiền mặt'}</div>
-                                    </td>
-                                    <td className="px-8 py-5 text-gray-600 max-w-[250px] truncate leading-relaxed">{p.reason}</td>
-                                    <td className="px-8 py-5 text-right">
-                                        <span className="font-bold text-teal-700 text-lg">{p.amount.toLocaleString('vi-VN')}</span>
-                                        <span className="text-[10px] ml-1 text-gray-400 font-bold">đ</span>
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button
-                                                onClick={() => setSelectedPayment(p)}
-                                                className="px-4 py-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200 transition-all font-bold text-[10px] uppercase active:scale-95"
-                                            >
-                                                In phiếu
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(p.id)}
-                                                className="p-2 text-red-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                                title="Xóa"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {payments.length === 0 && !loading && (
-                                <tr>
-                                    <td colSpan={5} className="px-8 py-24 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-4xl grayscale opacity-50">📂</div>
-                                            <div className="space-y-1">
-                                                <p className="font-bold text-gray-400 uppercase text-xs tracking-widest">Không có dữ liệu</p>
-                                                <p className="text-gray-300 text-[10px] font-bold">Vui lòng điều chỉnh lại thời gian lọc</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                </>
+            )}
+
+            {activeTab === 'teacher' && (
+                <>
+                    {/* Stats - Giáo viên */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-2xl p-5 border border-rose-100 shadow-sm transition-all hover:shadow-md">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Tiền cơm Giáo viên</div>
+                                <span className="bg-rose-50 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{debtSummary.teacherTotalMeals} SUẤT</span>
+                            </div>
+                            <div className="text-2xl font-bold text-rose-600">
+                                {debtSummary.teacherTotalMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá GV: {debtSummary.teacherMealPrice.toLocaleString('vi-VN')}đ</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-5 text-white shadow-lg transition-all hover:shadow-xl flex flex-col justify-center">
+                            <div className="text-white/70 text-[10px] font-bold uppercase tracking-wider mb-2">Tổng nợ cần thu từ Giáo viên</div>
+                            <div className="text-2xl font-bold">
+                                {debtSummary.teacherTotalMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                            </div>
+                            <div className="text-[10px] text-white/50 mt-1 font-medium">Dữ liệu tính dựa trên tổng suất ăn hằng ngày</div>
+                        </div>
+                    </div>
+
+                    {/* List - Báo cáo nợ GV */}
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden mt-6">
+                        <div className="px-8 py-6 border-b border-gray-50 bg-rose-50/30 flex justify-between items-center">
+                            <div>
+                                <h2 className="font-bold text-rose-900 tracking-tight text-lg">Chi tiết Báo suất Giáo viên</h2>
+                                <p className="text-[10px] text-rose-600 font-bold uppercase mt-0.5">Thời gian: {formatToViewDate(startDate)} → {formatToViewDate(endDate)}</p>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-white text-gray-400 font-bold border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">NGÀY BÁO</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">TỔNG SUẤT</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest">MẶN / CHAY / CHÁO</th>
+                                        <th className="px-8 py-5 text-[10px] uppercase tracking-widest text-right">THÀNH TIỀN</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {teacherReports.map((r: TeacherDebtDay, idx) => (
+                                        <tr key={idx} className="hover:bg-rose-50/20 transition-all">
+                                            <td className="px-8 py-5 font-semibold text-gray-700">
+                                                {formatToViewDate(r.report_date)}
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="font-bold text-rose-600 text-lg">{r.total_meals}</span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex gap-2 text-xs font-medium">
+                                                    <span className="text-gray-600">🍖 {r.salty_count}</span>
+                                                    <span className="text-emerald-600">🥬 {r.vegetarian_count}</span>
+                                                    <span className="text-amber-600">🥣 {r.porridge_count}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className="font-bold text-rose-700 text-lg">{r.total_money.toLocaleString('vi-VN')}</span>
+                                                <span className="text-[10px] ml-1 text-gray-400 font-bold">đ</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {teacherReports.length === 0 && !loading && (
+                                        <tr>
+                                            <td colSpan={4} className="px-8 py-24 text-center">
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-4xl grayscale opacity-50">📂</div>
+                                                    <div className="space-y-1">
+                                                        <p className="font-bold text-gray-400 uppercase text-xs tracking-widest">Không có dữ liệu</p>
+                                                        <p className="text-gray-300 text-[10px] font-bold">Vui lòng điều chỉnh lại thời gian lọc</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* Modals */}
             {showForm && (
