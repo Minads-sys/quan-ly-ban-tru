@@ -577,7 +577,7 @@ export default function KitchenPage() {
                                 </div>
                             )}
                         </>
-                    ) : (
+                    ) : activeTab === 'distributor' ? (
                         /* Distributor View (Merged from distributor/page.tsx) */
                         <div className="space-y-8 print:space-y-6">
                             {/* System Overall Block */}
