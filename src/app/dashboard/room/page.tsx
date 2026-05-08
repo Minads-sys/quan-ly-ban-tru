@@ -5,6 +5,7 @@ import { submitReport, getRoomData } from './actions'
 import { getBulkRoomData } from './bulk-actions'
 import { calculateSaltyMeals } from '@/utils/calculations'
 import { BulkReportForm } from './BulkReportForm'
+import { TeacherReportForm } from './TeacherReportForm'
 import { getDayOfWeek } from '@/utils/dateUtils'
 
 interface AbsentStudent {
@@ -21,7 +22,7 @@ export default function RoomPage() {
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-    const [viewMode, setViewMode] = useState<'single' | 'bulk'>('single')
+    const [viewMode, setViewMode] = useState<'single' | 'bulk' | 'teacher'>('single')
     
     // Admin / approver roles
     const [hasBulkAccess, setHasBulkAccess] = useState(false)
@@ -195,6 +196,16 @@ export default function RoomPage() {
                         >
                             Báo suất hàng loạt
                         </button>
+                        <button
+                            onClick={() => setViewMode('teacher')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                viewMode === 'teacher'
+                                    ? 'bg-white text-rose-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-700'
+                            }`}
+                        >
+                            👩‍🏫 Suất Giáo viên
+                        </button>
                     </div>
                 )}
             </div>
@@ -209,6 +220,12 @@ export default function RoomPage() {
                  phase={bulkPhase}
                  onSuccess={loadData}
              />
+            ) : viewMode === 'teacher' ? (
+                <TeacherReportForm
+                    reportDate={reportDate}
+                    isWithinTime={isWithinTime}
+                    phaseLabel={phaseLabel}
+                />
             ) : (
                 <div className="max-w-lg mx-auto">
                     {/* Phase banner */}
