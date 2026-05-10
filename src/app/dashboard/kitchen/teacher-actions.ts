@@ -64,9 +64,9 @@ export async function upsertTeacherMealReport(
     const { userId, userRole } = await getSessionInfo()
     if (!userId) return { error: 'Chưa đăng nhập' }
 
-    // Chỉ admin + school_approver được phép
-    if (!['admin', 'school_approver'].includes(userRole || '')) {
-        return { error: 'Chỉ Admin hoặc GV cấp trường mới được nhập suất GV' }
+    // Chỉ admin + school_approver + reporter được phép
+    if (!['admin', 'school_approver', 'reporter'].includes(userRole || '')) {
+        return { error: 'Chỉ Admin, GV cấp trường hoặc Báo suất mới được nhập suất GV' }
     }
 
     // Kiểm tra đã có báo cáo chưa
