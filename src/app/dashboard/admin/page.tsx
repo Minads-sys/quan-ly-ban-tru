@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { searchReportsRange, importHistoricalReports } from './actions'
 import { getVietnamDateString, getVietnamNow, formatToViewDate, getDayOfWeekShort } from '@/utils/dateUtils'
+import { formatVND } from '@/utils/formatNumber'
 import * as XLSX from 'xlsx'
 
 interface Report {
@@ -295,8 +296,8 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
                     <p className="text-sm font-semibold opacity-80 uppercase tracking-wider">💰 Tổng tiền bán trú</p>
-                    <p className="text-3xl font-bold mt-2">{totalMoney.toLocaleString()} <span className="text-lg">đ</span></p>
-                    <p className="text-xs mt-2 opacity-70 italic">(Đơn giá: {mealPrice.toLocaleString()} đ/suất)</p>
+                    <p className="text-3xl font-bold mt-2">{formatVND(totalMoney)} <span className="text-lg">đ</span></p>
+                    <p className="text-xs mt-2 opacity-70 italic">(Đơn giá: {formatVND(mealPrice)} đ/suất)</p>
                 </div>
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">📦 Tổng số suất</p>
@@ -444,7 +445,7 @@ export default function AdminPage() {
                                     <td className="px-4 py-5 text-center font-bold text-amber-600">{gs.porridge}</td>
                                     <td className="px-4 py-5 text-center font-bold text-emerald-600">{gs.vegetarian}</td>
                                     <td className="px-8 py-5 text-right font-bold text-indigo-600">
-                                        {(gs.totalMeals * mealPrice).toLocaleString()}
+                                        {formatVND(gs.totalMeals * mealPrice)}
                                     </td>
                                 </tr>
                             ))}
@@ -466,7 +467,7 @@ export default function AdminPage() {
                                     <td className="px-4 py-6 text-center text-amber-600">{totalPorridge}</td>
                                     <td className="px-4 py-6 text-center text-emerald-600">{totalVegetarian}</td>
                                     <td className="px-8 py-6 text-right text-3xl text-indigo-700">
-                                        {totalMoney.toLocaleString()} <span className="text-sm">đ</span>
+                                        {formatVND(totalMoney)} <span className="text-sm">đ</span>
                                     </td>
                                 </tr>
                             </tfoot>

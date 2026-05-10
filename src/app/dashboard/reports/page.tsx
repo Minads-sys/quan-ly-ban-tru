@@ -18,6 +18,7 @@ import { Calendar as CalendarIcon, Filter, TrendingUp, Utensils, Beaker, FileSpr
 
 // Utilities
 import { getDayOfWeek } from '@/utils/dateUtils'
+import { formatVND } from '@/utils/formatNumber'
 
 const formatToViewDate = (dateStr: string) => {
     if (!dateStr) return ''
@@ -26,7 +27,7 @@ const formatToViewDate = (dateStr: string) => {
 }
 
 const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('vi-VN').format(num)
+    return formatVND(num)
 }
 
 export default function ReportsPage() {

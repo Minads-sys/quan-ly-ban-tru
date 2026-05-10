@@ -496,7 +496,7 @@ export default function KitchenPage() {
                     {/* View based on activeTab */}
                     {activeTab === 'kitchen' ? (
                         <>
-                            {/* Summary Cards - Kitchen */}
+                            {/* Summary Cards - Kitchen (Học sinh) */}
                             <div className={`grid ${showSummaryOnly ? 'grid-cols-1 sm:grid-cols-2 gap-8' : 'grid-cols-2 sm:grid-cols-4 gap-3'} mb-8`}>
                                 <div className={`bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl transform transition-hover hover:scale-[1.02] ${showSummaryOnly ? 'order-first' : ''}`}>
                                     <p className={`${showSummaryOnly ? 'text-2xl' : 'text-sm'} font-bold opacity-90`}>📊 Tổng suất</p>

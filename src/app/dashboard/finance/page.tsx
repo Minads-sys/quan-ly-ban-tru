@@ -5,6 +5,7 @@ import { getAdvancePayments, AdvancePayment, deleteAdvancePayment, getDebtSummar
 import { VoucherForm } from './VoucherForm'
 import { VoucherPrint } from './VoucherPrint'
 import { formatToViewDate, getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
+import { formatVND } from '@/utils/formatNumber'
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 
 export default function FinancePage() {
@@ -148,9 +149,9 @@ export default function FinancePage() {
                                 <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{debtSummary.totalMeals} SUẤT</span>
                             </div>
                             <div className="text-2xl font-bold text-blue-600">
-                                {debtSummary.totalMealMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                                {formatVND(debtSummary.totalMealMoney)} <span className="text-xs font-normal">đ</span>
                             </div>
-                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá HS: {debtSummary.mealPrice.toLocaleString('vi-VN')}đ</div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá HS: {formatVND(debtSummary.mealPrice)}đ</div>
                         </div>
 
                         <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm transition-all hover:shadow-md">
@@ -159,7 +160,7 @@ export default function FinancePage() {
                                 <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{payments.length} PHIẾU</span>
                             </div>
                             <div className="text-2xl font-bold text-emerald-600">
-                                {debtSummary.totalAdvance.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                                {formatVND(debtSummary.totalAdvance)} <span className="text-xs font-normal">đ</span>
                             </div>
                             <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Bao gồm các khoản thu trong kỳ</div>
                         </div>
@@ -168,7 +169,7 @@ export default function FinancePage() {
                             <div className="absolute top-0 right-0 w-16 h-16 bg-orange-200/20 rounded-full -mr-8 -mt-8"></div>
                             <div className="text-orange-700 text-[10px] font-bold mb-2 uppercase tracking-wider relative">Nợ cần thu HS</div>
                             <div className="text-2xl font-bold text-orange-600 relative">
-                                {debtSummary.debt.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                                {formatVND(debtSummary.debt)} <span className="text-xs font-normal">đ</span>
                             </div>
                             <div className="text-[10px] text-orange-400 mt-1 font-bold italic relative">Chỉ tính công nợ Học sinh</div>
                         </div>
@@ -184,7 +185,7 @@ export default function FinancePage() {
                                     <><span>⚠️</span> CÒN NỢ</>
                                 )}
                             </div>
-                            <div className="text-[10px] text-white/50 mt-1 font-medium">Cập nhật lúc: {getVietnamNow().toLocaleTimeString('vi-VN')}</div>
+                            <div className="text-[10px] text-white/50 mt-1 font-medium" suppressHydrationWarning>Cập nhật lúc: {new Date().toLocaleTimeString('vi-VN')}</div>
                         </div>
                     </div>
 
@@ -221,7 +222,7 @@ export default function FinancePage() {
                                             </td>
                                             <td className="px-8 py-5 text-gray-600 max-w-[250px] truncate leading-relaxed">{p.reason}</td>
                                             <td className="px-8 py-5 text-right">
-                                                <span className="font-bold text-teal-700 text-lg">{p.amount.toLocaleString('vi-VN')}</span>
+                                                <span className="font-bold text-teal-700 text-lg">{formatVND(p.amount)}</span>
                                                 <span className="text-[10px] ml-1 text-gray-400 font-bold">đ</span>
                                             </td>
                                             <td className="px-8 py-5 text-right">
@@ -273,14 +274,14 @@ export default function FinancePage() {
                                 <span className="bg-rose-50 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{debtSummary.teacherTotalMeals} SUẤT</span>
                             </div>
                             <div className="text-2xl font-bold text-rose-600">
-                                {debtSummary.teacherTotalMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                                {formatVND(debtSummary.teacherTotalMoney)} <span className="text-xs font-normal">đ</span>
                             </div>
-                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá GV: {debtSummary.teacherMealPrice.toLocaleString('vi-VN')}đ</div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic font-medium">Đơn giá GV: {formatVND(debtSummary.teacherMealPrice)}đ</div>
                         </div>
                         <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-5 text-white shadow-lg transition-all hover:shadow-xl flex flex-col justify-center">
                             <div className="text-white/70 text-[10px] font-bold uppercase tracking-wider mb-2">Tổng nợ cần thu từ Giáo viên</div>
                             <div className="text-2xl font-bold">
-                                {debtSummary.teacherTotalMoney.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                                {formatVND(debtSummary.teacherTotalMoney)} <span className="text-xs font-normal">đ</span>
                             </div>
                             <div className="text-[10px] text-white/50 mt-1 font-medium">Dữ liệu tính dựa trên tổng suất ăn hằng ngày</div>
                         </div>
@@ -321,7 +322,7 @@ export default function FinancePage() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5 text-right">
-                                                <span className="font-bold text-rose-700 text-lg">{r.total_money.toLocaleString('vi-VN')}</span>
+                                                <span className="font-bold text-rose-700 text-lg">{formatVND(r.total_money)}</span>
                                                 <span className="text-[10px] ml-1 text-gray-400 font-bold">đ</span>
                                             </td>
                                         </tr>

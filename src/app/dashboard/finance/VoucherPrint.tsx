@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { AdvancePayment } from './actions'
 import { formatToViewDate } from '@/utils/dateUtils'
+import { formatVND } from '@/utils/formatNumber'
 
 interface VoucherPrintProps {
     payment: AdvancePayment
@@ -46,7 +47,7 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
                     </div>
                     <div className="flex">
                         <span className="min-w-[150px]">Số tiền thu:</span>
-                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">{payment.amount.toLocaleString('vi-VN')} VNĐ</span>
+                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">{formatVND(payment.amount)} VNĐ</span>
                     </div>
                     <div className="flex">
                         <span className="min-w-[150px]">Nhận qua TK:</span>
