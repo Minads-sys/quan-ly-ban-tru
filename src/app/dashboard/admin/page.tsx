@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { searchReportsRange, importHistoricalReports } from './actions'
+import { searchReportsRange, importHistoricalReports, importHistoricalTeacherMeals } from './actions'
 import { getVietnamDateString, getVietnamNow, formatToViewDate, getDayOfWeekShort } from '@/utils/dateUtils'
 import { formatVND } from '@/utils/formatNumber'
 import * as XLSX from 'xlsx'
@@ -37,6 +37,7 @@ export default function AdminPage() {
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const teacherFileInputRef = useRef<HTMLInputElement>(null)
 
     const handleSearch = useCallback(async (s: string, e: string) => {
         setLoading(true)
@@ -111,6 +112,67 @@ export default function AdminPage() {
         }
     }
 
+    const handleImportTeacherExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setLoading(true)
+        setMessage(null)
+
+        try {
+            const reader = new FileReader()
+            reader.onload = async (evt) => {
+                const bstr = evt.target?.result
+                const wb = XLSX.read(bstr, { type: 'binary' })
+                const wsname = wb.SheetNames[0]
+                const ws = wb.Sheets[wsname]
+                const rawData = XLSX.utils.sheet_to_json(ws) as any[]
+
+                // Filter & Map data: Kỳ vọng các cột: "Ngày" (YYYY-MM-DD hoặc DD/MM/YYYY), "Mặn", "Cháo", "Chay", "Ghi chú"
+                const formattedRows = rawData.map(row => {
+                    let dateStr = String(row['Ngày'] || row['date'] || '')
+                    // Xử lý nếu là số (Excel date serial)
+                    if (!isNaN(Number(dateStr)) && Number(dateStr) > 40000) {
+                        const dateObj = XLSX.utils.format_cell({ v: Number(dateStr), t: 'd' })
+                        dateStr = dateObj // Trình bày dạng YYYY-MM-DD
+                    } else if (dateStr.includes('/')) {
+                        // Chuyển DD/MM/YYYY sang YYYY-MM-DD
+                        const [d, m, y] = dateStr.split('/')
+                        dateStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+                    }
+
+                    return {
+                        report_date: dateStr,
+                        salty_count: Number(row['Mặn'] || row['mặn'] || row['salty'] || 0),
+                        porridge_count: Number(row['Cháo'] || row['cháo'] || row['porridge'] || 0),
+                        vegetarian_count: Number(row['Chay'] || row['chay'] || row['vegetarian'] || 0),
+                        note: row['Ghi chú'] || row['note'] || 'Import từ Excel (GV)'
+                    }
+                }).filter(r => r.report_date && r.report_date.length >= 10)
+
+                if (formattedRows.length === 0) {
+                    setMessage({ type: 'error', text: 'Không tìm thấy dữ liệu hợp lệ trong file Excel suất GV' })
+                    setLoading(false)
+                    return
+                }
+
+                const res = await importHistoricalTeacherMeals(formattedRows)
+                if (res.error) {
+                    setMessage({ type: 'error', text: res.error })
+                } else {
+                    setMessage({ type: 'success', text: `Đã nhập thành công ${res.count} ngày dữ liệu suất GV!` })
+                    // handleSearch is for student reports, for teacher we might not need to refresh this table as it only shows student
+                    // but calling it anyway won't hurt, or we just don't call it.
+                }
+                setLoading(false)
+            }
+            reader.readAsBinaryString(file)
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Lỗi parse file: ' + String(err) })
+            setLoading(false)
+        }
+    }
+
     const handleDownloadTemplate = () => {
         const data = [
             { 'Ngày': '2026-03-01', 'Mặn': 100, 'Cháo': 10, 'Chay': 5, 'Ghi chú': 'Dữ liệu mẫu' },
@@ -119,7 +181,18 @@ export default function AdminPage() {
         const ws = XLSX.utils.json_to_sheet(data)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu mẫu")
-        XLSX.writeFile(wb, "mau_nhap_lieu_lich_su.xlsx")
+        XLSX.writeFile(wb, "mau_nhap_lieu_lich_su_hoc_sinh.xlsx")
+    }
+
+    const handleDownloadTeacherTemplate = () => {
+        const data = [
+            { 'Ngày': '2026-03-01', 'Mặn': 20, 'Cháo': 2, 'Chay': 1, 'Ghi chú': 'Dữ liệu mẫu GV' },
+            { 'Ngày': '2026-03-02', 'Mặn': 22, 'Cháo': 1, 'Chay': 2, 'Ghi chú': '' }
+        ]
+        const ws = XLSX.utils.json_to_sheet(data)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu mẫu GV")
+        XLSX.writeFile(wb, "mau_nhap_lieu_giao_vien.xlsx")
     }
 
     useEffect(() => {
@@ -236,18 +309,49 @@ export default function AdminPage() {
                             accept=".xlsx, .xls"
                             className="hidden"
                         />
-                        <button
-                            onClick={handleDownloadTemplate}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all border border-blue-100 flex items-center gap-2"
-                        >
-                            📋 Tải file mẫu
-                        </button>
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all border border-emerald-100 flex items-center gap-2"
-                        >
-                            📥 Nhập Excel lịch sử
-                        </button>
+                        <input
+                            type="file"
+                            ref={teacherFileInputRef}
+                            onChange={handleImportTeacherExcel}
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                        />
+                        
+                        <div className="flex items-center gap-2 bg-blue-50/50 p-1 rounded-xl border border-blue-100/50">
+                            <span className="text-xs font-bold text-blue-800 px-2 hidden xl:inline">Học sinh:</span>
+                            <button
+                                onClick={handleDownloadTemplate}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-blue-700 hover:bg-blue-50 shadow-sm transition-all border border-blue-100 flex items-center gap-1"
+                                title="Tải file mẫu suất học sinh"
+                            >
+                                📋 Mẫu HS
+                            </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm transition-all border border-emerald-100 flex items-center gap-1"
+                                title="Nhập Excel lịch sử suất học sinh"
+                            >
+                                📥 Nhập HS
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 bg-purple-50/50 p-1 rounded-xl border border-purple-100/50">
+                            <span className="text-xs font-bold text-purple-800 px-2 hidden xl:inline">Giáo viên:</span>
+                            <button
+                                onClick={handleDownloadTeacherTemplate}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-purple-700 hover:bg-purple-50 shadow-sm transition-all border border-purple-100 flex items-center gap-1"
+                                title="Tải file mẫu suất giáo viên"
+                            >
+                                📋 Mẫu GV
+                            </button>
+                            <button
+                                onClick={() => teacherFileInputRef.current?.click()}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-pink-700 hover:bg-pink-50 shadow-sm transition-all border border-pink-100 flex items-center gap-1"
+                                title="Nhập Excel lịch sử suất giáo viên"
+                            >
+                                📥 Nhập GV
+                            </button>
+                        </div>
                     </div>
 
                     {/* Custom Range */}

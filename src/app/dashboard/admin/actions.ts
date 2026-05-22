@@ -239,3 +239,50 @@ export async function importHistoricalReports(rows: {
     revalidatePath('/dashboard/admin')
     return { success: true, count: rows.length }
 }
+
+/** Nhập dữ liệu suất ăn giáo viên lịch sử từ Excel */
+export async function importHistoricalTeacherMeals(rows: {
+    report_date: string,
+    salty_count: number,
+    porridge_count: number,
+    vegetarian_count: number,
+    note?: string
+}[]) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Chưa đăng nhập' }
+
+    // Kiểm tra quyền admin
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'admin') {
+        return { error: 'Chỉ Admin mới được nhập dữ liệu lịch sử' }
+    }
+
+    const upsertData = rows.map(row => ({
+        report_date: row.report_date,
+        salty_count: row.salty_count,
+        porridge_count: row.porridge_count,
+        vegetarian_count: row.vegetarian_count,
+        note: row.note || 'Import lịch sử',
+        created_by: user.id,
+        updated_by: user.id
+    }))
+
+    // Sử dụng upsert dựa trên report_date. 
+    // Yêu cầu table teacher_meal_reports phải có UNIQUE constraint trên report_date (thường là id hoặc (report_date)).
+    // Trong trường hợp này có thể dùng onConflict: 'report_date'
+    const { error: upsertErr } = await supabase
+        .from('teacher_meal_reports')
+        .upsert(upsertData, { onConflict: 'report_date' })
+
+    if (upsertErr) return { error: 'Lỗi lưu dữ liệu suất ăn giáo viên: ' + upsertErr.message }
+
+    revalidatePath('/dashboard/admin')
+    return { success: true, count: rows.length }
+}
