@@ -325,7 +325,7 @@ export async function deleteClass(id: string) {
     return { success: true }
 }
 
-/** Import phòng từ Excel (parse rows: Tên phòng, Tên GV phòng, Sĩ số) */
+/** Import phòng từ Excel (nếu đã có thì cập nhật, chưa có thì thêm mới) */
 export async function importRoomsFromExcel(rows: { roomName: string; teacherName: string; capacity: number; groupId: string }[]) {
     const supabase = await createClient()
 
@@ -334,36 +334,66 @@ export async function importRoomsFromExcel(rows: { roomName: string; teacherName
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'admin') return { error: 'Không có quyền' }
 
+    let addedCount = 0
+    let updatedCount = 0
     const results: string[] = []
 
     for (const row of rows) {
-        if (!row.roomName || !row.groupId) continue
+        if (!row.roomName?.trim() || !row.groupId) continue
+        const roomNameTrim = row.roomName.trim()
 
-        // Tạo phòng
-        const { data: room, error: roomErr } = await supabase
+        // Kiểm tra xem phòng đã tồn tại trong nhóm chưa
+        const { data: existingRooms, error: findErr } = await supabase
             .from('rooms')
-            .insert({
-                name: row.roomName,
-                group_id: row.groupId,
-                default_capacity: row.capacity || 0,
-                teacher_name: row.teacherName || null
-            })
-            .select('id')
-            .single()
+            .select('id, name')
+            .eq('group_id', row.groupId)
+            .ilike('name', roomNameTrim)
+            .limit(1)
 
-        if (roomErr) {
-            results.push(`❌ ${row.roomName}: ${roomErr.message}`)
+        if (findErr) {
+            results.push(`❌ ${roomNameTrim}: ${findErr.message}`)
             continue
         }
 
-        results.push(`✅ ${row.roomName} (sĩ số: ${row.capacity})`)
+        const existing = existingRooms && existingRooms.length > 0 ? existingRooms[0] : null
 
-        if (row.teacherName) {
-             results.push(`   → GV: ${row.teacherName} (Chỉ lưu tên, chưa tạo tài khoản)`)
+        if (existing) {
+            // Cập nhật phòng đã có
+            const { error: updateErr } = await supabase
+                .from('rooms')
+                .update({
+                    default_capacity: row.capacity || 0,
+                    teacher_name: row.teacherName?.trim() || null,
+                })
+                .eq('id', existing.id)
+
+            if (updateErr) {
+                results.push(`❌ Cập nhật ${roomNameTrim}: ${updateErr.message}`)
+            } else {
+                updatedCount++
+                results.push(`🟡 Cập nhật ${roomNameTrim} (sĩ số: ${row.capacity}${row.teacherName ? `, GV: ${row.teacherName}` : ''})`)
+            }
+        } else {
+            // Thêm mới phòng
+            const { error: insertErr } = await supabase
+                .from('rooms')
+                .insert({
+                    name: roomNameTrim,
+                    group_id: row.groupId,
+                    default_capacity: row.capacity || 0,
+                    teacher_name: row.teacherName?.trim() || null,
+                })
+
+            if (insertErr) {
+                results.push(`❌ Thêm mới ${roomNameTrim}: ${insertErr.message}`)
+            } else {
+                addedCount++
+                results.push(`🟢 Thêm mới ${roomNameTrim} (sĩ số: ${row.capacity}${row.teacherName ? `, GV: ${row.teacherName}` : ''})`)
+            }
         }
     }
 
     revalidatePath('/dashboard/settings')
-    return { success: true, results }
+    return { success: true, addedCount, updatedCount, results }
 }
 
