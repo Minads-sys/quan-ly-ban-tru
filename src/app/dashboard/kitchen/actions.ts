@@ -40,9 +40,16 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     
     let reportDate = date
     if (!reportDate || isRestrictedRole) {
+        const vnNow = getVietnamNow()
+        const todayStr = getVietnamDateString(vnNow)
+        const isTodayWorking = workingDays.includes(vnNow.getDay()) && !offDays.includes(todayStr)
         const currentTime = getVietnamMinutesToday()
-        if (currentTime >= moc1TimeInMinutes) {
-            const vnNow = getVietnamNow()
+
+        if (isTodayWorking && currentTime < moc1TimeInMinutes) {
+            // Hôm nay là ngày học và chưa quá giờ chốt mốc 1 -> xem hôm nay
+            reportDate = todayStr
+        } else {
+            // Hôm nay là ngày nghỉ hoặc đã qua giờ chốt mốc 1 -> tìm ngày học gần nhất tiếp theo
             let next = new Date(vnNow.getTime() + 86400000)
             reportDate = getVietnamDateString(next)
             for (let i = 0; i < 30; i++) {
@@ -53,8 +60,6 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
                 }
                 next = new Date(next.getTime() + 86400000)
             }
-        } else {
-            reportDate = getVietnamDateString()
         }
     }
 
@@ -68,12 +73,13 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         query = query.eq('status', 'school_approved')
     }
 
-    // ⚡ Song song: reports + groups + rooms + settings
-    const [reportsResult, groupsResult, roomsResult, settingsResult] = await Promise.all([
+    // ⚡ Song song: reports + groups + rooms + settings + teacherMeal
+    const [reportsResult, groupsResult, roomsResult, settingsResult, teacherResult] = await Promise.all([
         query.order('created_at'),
         supabase.from('groups').select('*').order('name'),
         supabase.from('rooms').select('*, groups(name)').order('name'),
-        supabase.from('settings').select('*')
+        supabase.from('settings').select('*'),
+        supabase.from('teacher_meal_reports').select('*').eq('report_date', reportDate).maybeSingle()
     ])
 
     const reports = reportsResult.data as any[]
@@ -140,6 +146,15 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     const mappedSettings = mapTimeSettings(settings)
     const { isMoc1Closed, isMoc2Closed } = getMilestoneStatus(reportDate as string, getVietnamNow(), mappedSettings)
 
+    const teacherReport = teacherResult?.data as any
+    const teacherMeal = teacherReport ? {
+        id: teacherReport.id,
+        salty_count: teacherReport.salty_count || 0,
+        porridge_count: teacherReport.porridge_count || 0,
+        vegetarian_count: teacherReport.vegetarian_count || 0,
+        note: teacherReport.note || null,
+    } : null
+
     return {
         date: reportDate,
         totalSalty,
@@ -156,5 +171,6 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         isMoc2Closed,
         workingDays,
         offDays,
+        teacherMeal,
     }
 }

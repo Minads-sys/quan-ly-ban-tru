@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getKitchenSummary } from './actions'
 import { getTeacherMealReport, upsertTeacherMealReport } from './teacher-actions'
 import { formatToViewDate, getVietnamHours, getVietnamDateString, getDayOfWeek, getVietnamNow, getVietnamMinutesToday } from '@/utils/dateUtils'
@@ -75,6 +75,43 @@ export default function KitchenPage() {
     const [teacherFormVegetarian, setTeacherFormVegetarian] = useState(0)
     const [teacherFormNote, setTeacherFormNote] = useState('')
 
+    const dateRef = useRef('')
+
+    // Helper: cập nhật state suất ăn giáo viên
+    const applyTeacherMeal = useCallback((teacherMeal: {
+        salty_count?: number
+        porridge_count?: number
+        vegetarian_count?: number
+        note?: string | null
+    } | null | undefined) => {
+        if (teacherMeal) {
+            const s = teacherMeal.salty_count || 0
+            const p = teacherMeal.porridge_count || 0
+            const v = teacherMeal.vegetarian_count || 0
+            setTeacherSalty(s)
+            setTeacherPorridge(p)
+            setTeacherVegetarian(v)
+            setTeacherNote(teacherMeal.note || '')
+            setTeacherTotal(s + p + v)
+            setTeacherReportExists(true)
+            setTeacherFormSalty(s)
+            setTeacherFormPorridge(p)
+            setTeacherFormVegetarian(v)
+            setTeacherFormNote(teacherMeal.note || '')
+        } else {
+            setTeacherSalty(0)
+            setTeacherPorridge(0)
+            setTeacherVegetarian(0)
+            setTeacherNote('')
+            setTeacherTotal(0)
+            setTeacherReportExists(false)
+            setTeacherFormSalty(0)
+            setTeacherFormPorridge(0)
+            setTeacherFormVegetarian(0)
+            setTeacherFormNote('')
+        }
+    }, [])
+
     // Helper: kiểm tra ngày có phải ngày làm việc không
     const isWorkingDayCheck = useCallback((dateStr: string, wDays: number[], oDays: string[]) => {
         if (!dateStr || !dateStr.includes('-')) return true
@@ -117,7 +154,8 @@ export default function KitchenPage() {
         setLoading(true)
         setDayOffMessage(null)
 
-        const data = await getKitchenSummary(selectedDate || undefined, true)
+        const queryDate = selectedDate || dateRef.current || undefined
+        const data = await getKitchenSummary(queryDate, true)
         
         if ('error' in data) {
             setLoading(false)
@@ -140,45 +178,18 @@ export default function KitchenPage() {
             setActiveTab('distributor')
         }
 
-        // Cập nhật date từ server (lần đầu) — tìm ngày làm việc gần nhất
-        const isRestricted = ['kitchen', 'meal_distributor'].includes(role)
-        if (!selectedDate && data.date) {
-            if (isRestricted) {
-                // Bếp/Chia suất: server đã tính ngày phù hợp
-                setDate(data.date as string)
-                setPendingDate(data.date as string)
-            } else {
-                // Admin: tìm ngày làm việc gần nhất (sau giờ chốt mốc 1 → xem ngày tiếp theo)
-                const nearestDate = findNearestWorkingDay(serverWorkingDays, serverOffDays, data.moc1Close as string)
-                setDate(nearestDate)
-                setPendingDate(nearestDate)
-                // Nếu ngày gần nhất khác ngày server trả về, reload lại với ngày đúng
-                if (nearestDate !== data.date) {
-                    setLoading(true)
-                    const reloadData = await getKitchenSummary(nearestDate, true)
-                    if (!('error' in reloadData)) {
-                        setTotalSalty(reloadData.totalSalty as number)
-                        setTotalVegetarian(reloadData.totalVegetarian as number)
-                        setTotalPorridge(reloadData.totalPorridge as number)
-                        setTotalMeals(reloadData.totalMeals as number)
-                        setTotalCong(reloadData.totalCong as number)
-                        setGroupSummaries(reloadData.groupSummaries as GroupSummary[])
-                        if (reloadData.schoolInfo) setSchoolInfo(reloadData.schoolInfo)
-                        if (typeof reloadData.isMoc1Closed === 'boolean') setIsMoc1Closed(reloadData.isMoc1Closed)
-                        if (typeof reloadData.isMoc2Closed === 'boolean') setIsMoc2Closed(reloadData.isMoc2Closed)
-                    }
-                    setLoading(false)
-                    return
-                }
-            }
-        }
+        const effectiveDate = (data.date || selectedDate) as string
+        setDate(effectiveDate)
+        setPendingDate(effectiveDate)
+        dateRef.current = effectiveDate
 
         // Kiểm tra 14h lock cho Bếp & Chia suất
         const nowHours = getVietnamHours()
         if (nowHours >= 14) setIsAfter14h(true)
 
+        const isRestricted = ['kitchen', 'meal_distributor'].includes(role)
         const todayStr = getVietnamDateString()
-        const isToday = (selectedDate || data.date) === todayStr
+        const isToday = effectiveDate === todayStr
 
         // Kiểm tra điều kiện khóa: 14h hôm nay → mốc 1 ngày mai
         if (isRestricted && isToday && nowHours >= 14) {
@@ -189,6 +200,7 @@ export default function KitchenPage() {
              setTotalMeals(0)
              setTotalCong(0)
              setGroupSummaries([])
+             applyTeacherMeal(null)
              setLoading(false)
              return
         }
@@ -204,43 +216,21 @@ export default function KitchenPage() {
         if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
         if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
 
-        // Load teacher meal data
-        const effectiveDate = selectedDate || (data.date as string)
-        if (effectiveDate) {
+        // Load teacher meal data từ server action trả về hoặc fallback
+        if ('teacherMeal' in data) {
+            applyTeacherMeal((data as any).teacherMeal)
+        } else if (effectiveDate) {
             const teacherResult = await getTeacherMealReport(effectiveDate)
-            if (teacherResult.report) {
-                const tr = teacherResult.report
-                setTeacherSalty(tr.salty_count)
-                setTeacherPorridge(tr.porridge_count)
-                setTeacherVegetarian(tr.vegetarian_count)
-                setTeacherNote(tr.note || '')
-                setTeacherTotal(tr.salty_count + tr.porridge_count + tr.vegetarian_count)
-                setTeacherReportExists(true)
-                setTeacherFormSalty(tr.salty_count)
-                setTeacherFormPorridge(tr.porridge_count)
-                setTeacherFormVegetarian(tr.vegetarian_count)
-                setTeacherFormNote(tr.note || '')
-            } else {
-                setTeacherSalty(0)
-                setTeacherPorridge(0)
-                setTeacherVegetarian(0)
-                setTeacherNote('')
-                setTeacherTotal(0)
-                setTeacherReportExists(false)
-                setTeacherFormSalty(0)
-                setTeacherFormPorridge(0)
-                setTeacherFormVegetarian(0)
-                setTeacherFormNote('')
-            }
+            applyTeacherMeal(teacherResult.report)
         }
 
         setLoading(false)
-    }, [findNearestWorkingDay])
+    }, [applyTeacherMeal])
 
     // Load lần đầu (không truyền date → server tự tính)
     useEffect(() => { loadData() }, [loadData])
 
-    // ⚡ Realtime: tự động làm mới khi có thay đổi daily_reports
+    // ⚡ Realtime: tự động làm mới khi có thay đổi daily_reports hoặc teacher_meal_reports
     useRealtimeRefresh(['daily_reports', 'teacher_meal_reports'], loadData)
 
     // Khi user đổi date thủ công (bị khóa cho kitchen/meal_distributor)
@@ -256,6 +246,7 @@ export default function KitchenPage() {
     const handleDateConfirm = () => {
         if (isRestrictedRole || !pendingDate) return
         setDate(pendingDate)
+        dateRef.current = pendingDate
         
         // Kiểm tra ngày nghỉ
         if (!isWorkingDayCheck(pendingDate, workingDays, offDays)) {
@@ -267,6 +258,7 @@ export default function KitchenPage() {
             setTotalMeals(0)
             setTotalCong(0)
             setGroupSummaries([])
+            applyTeacherMeal(null)
             return
         }
         
@@ -280,12 +272,21 @@ export default function KitchenPage() {
             ['BÁO CÁO SUẤT ĂN BÁN TRÚ'],
             [`Ngày: ${date} (${getDayOfWeek(date)})`],
             [],
+            ['HỌC SINH', ''],
             ['Loại suất', 'Số lượng'],
-            ['🍖 Suất mặn', totalSalty],
-            ['🥬 Suất chay', totalVegetarian],
-            ['🥣 Suất cháo', totalPorridge],
-            ['TỔNG', totalMeals],
-            ['SỐ CÔNG', totalCong],
+            ['🍖 Suất mặn HS', totalSalty],
+            ['🥬 Suất chay HS', totalVegetarian],
+            ['🥣 Suất cháo HS', totalPorridge],
+            ['TỔNG SUẤT HS', totalMeals],
+            ['SỐ CÔNG HS', totalCong],
+            [],
+            ['GIÁO VIÊN', ''],
+            ['Loại suất', 'Số lượng'],
+            ['🍖 Suất mặn GV', teacherSalty],
+            ['🥬 Suất chay GV', teacherVegetarian],
+            ['🥣 Suất cháo GV', teacherPorridge],
+            ['TỔNG SUẤT GV', teacherTotal],
+            ['Ghi chú GV', teacherNote || 'Không'],
         ]
 
         // Sheet 2: Chi tiết theo nhóm
@@ -424,8 +425,8 @@ export default function KitchenPage() {
                     </div>
                 </div>
 
-                {/* Tab Switcher - Only for admin (không hiện cho kitchen, meal_distributor) */}
-                {!showSummaryOnly && userRole !== 'meal_distributor' && (
+                {/* Tab Switcher - Cho admin, kitchen, approver... (chỉ ẩn cho meal_distributor) */}
+                {userRole !== 'meal_distributor' && (
                     <div className="flex flex-col gap-2">
                         <div className="flex p-1 bg-gray-100 rounded-xl max-w-fit border border-gray-200">
                             <button
@@ -438,25 +439,32 @@ export default function KitchenPage() {
                             >
                                 🍳 Chế độ Bếp
                             </button>
-                            <button
-                                onClick={() => setActiveTab('distributor')}
-                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                                    activeTab === 'distributor' 
-                                    ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
-                                    : 'text-gray-600 hover:text-gray-700'
-                                }`}
-                            >
-                                🍽️ Chia suất
-                            </button>
+                            {!showSummaryOnly && (
+                                <button
+                                    onClick={() => setActiveTab('distributor')}
+                                    className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                        activeTab === 'distributor' 
+                                        ? 'bg-white text-teal-700 shadow-sm border border-gray-200' 
+                                        : 'text-gray-600 hover:text-gray-700'
+                                    }`}
+                                >
+                                    🍽️ Chia suất
+                                </button>
+                            )}
                             <button
                                 onClick={() => setActiveTab('teacher')}
-                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-1.5 ${
                                     activeTab === 'teacher' 
                                     ? 'bg-white text-rose-700 shadow-sm border border-gray-200' 
                                     : 'text-gray-600 hover:text-gray-700'
                                 }`}
                             >
-                                👩‍🏫 Suất GV
+                                <span>👩‍🏫 Suất GV</span>
+                                {teacherTotal > 0 && (
+                                    <span className="px-2 py-0.5 text-xs bg-rose-100 text-rose-700 rounded-full font-bold">
+                                        {teacherTotal}
+                                    </span>
+                                )}
                             </button>
                         </div>
                         {/* Ghi chú mốc tương ứng tab */}
