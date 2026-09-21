@@ -1,30 +1,83 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { createAdvancePayment } from './actions'
 import { getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
 
+export interface VoucherCreatedData {
+    amount: number
+    reason: string
+    payer_name: string
+    startDate: string
+    endDate: string
+    payment_date: string
+}
+
 interface VoucherFormProps {
+    defaultStartDate?: string
+    defaultEndDate?: string
+    defaultAmount?: number
+    schoolName?: string
+    bankAccount?: string
+    bankName?: string
     onSuccess: () => void
+    onSuccessWithData?: (data: VoucherCreatedData) => void
     onCancel: () => void
 }
 
-export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
+export function VoucherForm({
+    defaultStartDate,
+    defaultEndDate,
+    defaultAmount = 0,
+    schoolName = '',
+    bankAccount = '',
+    bankName = '',
+    onSuccess,
+    onSuccessWithData,
+    onCancel,
+}: VoucherFormProps) {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const now = getVietnamNow()
     const currentMonth = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`
 
+    const formatViewDate = (dStr: string) => {
+        if (!dStr) return ''
+        const [y, m, d] = dStr.split('-')
+        return `${d}/${m}/${y}`
+    }
+
+    const [periodStart, setPeriodStart] = useState<string>(defaultStartDate || '')
+    const [periodEnd, setPeriodEnd] = useState<string>(defaultEndDate || '')
+
+    const initialReason = useMemo(() => {
+        if (defaultStartDate && defaultEndDate) {
+            return `Tiền suất ăn bán trú từ ${formatViewDate(defaultStartDate)} đến ${formatViewDate(defaultEndDate)}`
+        }
+        return `Tạm ứng tiền bán trú tháng ${currentMonth}`
+    }, [defaultStartDate, defaultEndDate, currentMonth])
+
     const [formData, setFormData] = useState({
-        amount: 0,
-        reason: `Tạm ứng tiền bán trú tháng ${currentMonth}`,
-        payer_name: '',
-        account_number: '',
-        bank: '',
+        amount: defaultAmount,
+        reason: initialReason,
+        payer_name: schoolName,
+        account_number: bankAccount,
+        bank: bankName,
         report_month: currentMonth,
         payment_date: getVietnamDateString()
     })
+
+    const handlePeriodChange = (start: string, end: string) => {
+        setPeriodStart(start)
+        setPeriodEnd(end)
+        if (start && end) {
+            setFormData(prev => ({
+                ...prev,
+                reason: `Tiền suất ăn bán trú từ ${formatViewDate(start)} đến ${formatViewDate(end)}`
+            }))
+        }
+    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
@@ -53,7 +106,18 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
             if (result.error) {
                 setError(result.error)
             } else {
-                onSuccess()
+                if (onSuccessWithData) {
+                    onSuccessWithData({
+                        amount: formData.amount,
+                        reason: formData.reason,
+                        payer_name: formData.payer_name,
+                        startDate: periodStart || defaultStartDate || getVietnamDateString(),
+                        endDate: periodEnd || defaultEndDate || getVietnamDateString(),
+                        payment_date: formData.payment_date,
+                    })
+                } else {
+                    onSuccess()
+                }
             }
         } catch (err: any) {
             setError(err.message || 'Có lỗi xảy ra')
@@ -64,6 +128,27 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Dải ngày tính tiền (cho phép chọn hoặc kế thừa từ bộ lọc) */}
+            <div className="bg-teal-50/60 p-3 rounded-xl border border-teal-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <span className="font-bold text-teal-800">📅 Kỳ thanh toán:</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-gray-500">Từ:</span>
+                    <input
+                        type="date"
+                        value={periodStart}
+                        onChange={e => handlePeriodChange(e.target.value, periodEnd)}
+                        className="px-2 py-1 bg-white border border-teal-200 rounded font-semibold text-gray-700 outline-none"
+                    />
+                    <span className="text-gray-500">Đến:</span>
+                    <input
+                        type="date"
+                        value={periodEnd}
+                        onChange={e => handlePeriodChange(periodStart, e.target.value)}
+                        className="px-2 py-1 bg-white border border-teal-200 rounded font-semibold text-gray-700 outline-none"
+                    />
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <label className="text-sm font-bold text-gray-700">Tháng quyết toán</label>
@@ -151,14 +236,14 @@ export function VoucherForm({ onSuccess, onCancel }: VoucherFormProps) {
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                    className="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                     {submitting ? '⏳ Đang lưu...' : '💾 Tạo phiếu & Lưu'}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-6 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all"
+                    className="px-6 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all cursor-pointer"
                 >
                     Hủy
                 </button>

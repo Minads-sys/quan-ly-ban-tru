@@ -44,10 +44,11 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // QUAN TRỌNG: getUser() ở đây để refresh session token (bắt buộc cho Supabase SSR).
-    // Nhưng chúng ta không dùng kết quả để query profile DB nữa —
-    // thay vào đó đọc role từ cookie đã cache.
-    const { data: { user } } = await supabase.auth.getUser()
+    // ⚡ Dùng getSession() thay vì getUser() để tránh gọi mạng tới Supabase Auth (+100-300ms).
+    // getSession() đọc JWT token từ cookie local — gần như tức thì (0ms network).
+    // Middleware chỉ cần kiểm tra đăng nhập + lấy user.id → getSession() đủ an toàn.
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
 
     const pathname = request.nextUrl.pathname
 

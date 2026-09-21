@@ -25,11 +25,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Input text color = black, placeholder darker */
+/* Input text color = black by default, allow text-color classes and dark themes to override */
 input,
 textarea,
 select {
-  color: #000 !important;
+  color: #000;
 }
 
 input::placeholder,

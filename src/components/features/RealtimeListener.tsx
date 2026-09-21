@@ -35,7 +35,8 @@ export function RealtimeListener({ userRole }: RealtimeListenerProps) {
                     schema: 'public',
                     table: 'daily_reports',
                 },
-                (payload) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (payload: any) => {
                     addToast(
                         `📋 Có báo cáo mới được gửi!`,
                         'info'
@@ -49,7 +50,8 @@ export function RealtimeListener({ userRole }: RealtimeListenerProps) {
                     schema: 'public',
                     table: 'daily_reports',
                 },
-                (payload) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (payload: any) => {
                     const status = payload.new?.status
                     if (status === 'submitted') {
                         addToast(`📤 Một phòng vừa cập nhật báo cáo`, 'info')

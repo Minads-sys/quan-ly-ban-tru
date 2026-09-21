@@ -21,7 +21,7 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div className="text-sm font-bold">
-                        Cty TNHH Căn tin Châu Phương Thảo
+                        CÔNG TY TNHH CHÂU PHƯƠNG THẢO
                     </div>
                     <div className="text-right">
                         <div className="text-sm font-bold">Mẫu số 01 - TT</div>
@@ -55,7 +55,7 @@ export function VoucherPrint({ payment, onClose }: VoucherPrintProps) {
                     </div>
                     <div className="flex">
                         <span className="min-w-[150px]">Đơn vị nhận:</span>
-                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">Cty TNHH Căn tin Châu Phương Thảo</span>
+                        <span className="font-bold border-b border-dotted border-gray-400 flex-1">CÔNG TY TNHH CHÂU PHƯƠNG THẢO</span>
                     </div>
                 </div>
 

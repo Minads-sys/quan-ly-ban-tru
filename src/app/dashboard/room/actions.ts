@@ -222,12 +222,13 @@ export async function submitReport(formData: FormData) {
         return { error: 'Số suất mặn không thể âm. Kiểm tra lại số liệu.' }
     }
 
+    // ⚡ Gọi 1 lần duy nhất — tái sử dụng cho cả kiểm tra giờ VÀ kiểm tra mốc 2
+    const settings = await getTimeSettings(supabase)
+    const now = getVietnamNow()
+    const state = getFormState(now, settings)
+
     // Kiểm tra giờ — chỉ cho class_teacher/room_manager
     if (['class_teacher', 'room_manager'].includes(profile.role)) {
-        const settings = await getTimeSettings(supabase)
-        const now = getVietnamNow()
-        const state = getFormState(now, settings)
-
         if (!state.isOpen) {
             return { error: `${state.phaseLabel}. Không thể báo suất. Liên hệ Admin.` }
         }
@@ -250,9 +251,7 @@ export async function submitReport(formData: FormData) {
         .single()
 
     if (existing) {
-        const settings = await getTimeSettings(supabase)
-        const now = getVietnamNow()
-        const state = getFormState(now, settings)
+        // ⚡ Dùng lại `state` đã tính ở trên — KHÔNG gọi getTimeSettings() lần 2
         let moc1Snapshot = existing.moc1_snapshot
 
         if (state.phase === 'moc2' && !moc1Snapshot) {

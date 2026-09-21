@@ -14,7 +14,7 @@ export async function getSettings() {
     return { settings: data }
 }
 
-/** Cập nhật setting */
+/** Cập nhật setting đơn lẻ */
 export async function updateSetting(key: string, value: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -30,6 +30,34 @@ export async function updateSetting(key: string, value: string) {
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
+    revalidatePath('/dashboard/finance')
+    revalidatePath('/dashboard/reports')
+    return { success: true }
+}
+
+/** Cập nhật hàng loạt settings trong 1 lần gọi (Batch atomic upsert) */
+export async function updateSettings(settings: Record<string, string>) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Chưa đăng nhập' }
+
+    const rows = Object.entries(settings).map(([key, value]) => ({
+        key,
+        value,
+        updated_at: new Date().toISOString()
+    }))
+
+    const { error } = await supabase
+        .from('settings')
+        .upsert(rows, { onConflict: 'key' })
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/dashboard/settings')
+    revalidatePath('/dashboard/finance')
+    revalidatePath('/dashboard/reports')
+    revalidatePath('/dashboard/school')
+    revalidatePath('/dashboard/kitchen')
     return { success: true }
 }
 

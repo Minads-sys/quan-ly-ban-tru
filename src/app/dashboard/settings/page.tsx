@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-    getSettings, updateSetting,
+    getSettings, updateSetting, updateSettings,
     getGroups, createGroup, deleteGroup, updateGroup,
     getRooms, createRoom, updateRoom, deleteRoom,
     getUsers, createUser, updateUser, changeUserPassword,
@@ -10,7 +10,7 @@ import {
     importRoomsFromExcel,
 } from './actions'
 
-type Tab = 'time' | 'rooms' | 'classes' | 'users'
+type Tab = 'time' | 'rooms' | 'classes' | 'users' | 'company'
 
 interface Group { id: string; name: string; rooms: { count: number }[] }
 interface Room { id: string; name: string; group_id: string; default_capacity: number; groups: { name: string } | null; teacherName?: string }
@@ -35,9 +35,27 @@ interface PreviewRow {
 }
 
 export default function SettingsPage() {
-    const [tab, setTab] = useState<Tab>('time')
+    const [tab, setTabState] = useState<Tab>('time')
     const [loading, setLoading] = useState(true)
+    const [savingTime, setSavingTime] = useState(false)
+    const [savingSchool, setSavingSchool] = useState(false)
+    const [savingCompany, setSavingCompany] = useState(false)
     const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+    // Khôi phục tab đang làm việc khi tải lại trang
+    useEffect(() => {
+        try {
+            const savedTab = localStorage.getItem('settings_active_tab') as Tab | null
+            if (savedTab && ['time', 'rooms', 'classes', 'users', 'company'].includes(savedTab)) {
+                setTabState(savedTab)
+            }
+        } catch {}
+    }, [])
+
+    const setTab = (newTab: Tab) => {
+        setTabState(newTab)
+        try { localStorage.setItem('settings_active_tab', newTab) } catch {}
+    }
 
     // Data
     const [moc1Open, setMoc1Open] = useState('07:00')
@@ -49,12 +67,26 @@ export default function SettingsPage() {
     const [offDays, setOffDays] = useState<string[]>([])
     const [schoolName, setSchoolName] = useState('')
     const [schoolAddress, setSchoolAddress] = useState('')
+    const [schoolRepresentative, setSchoolRepresentative] = useState('LÊ THỊ HÀ GIANG')
+    const [principalName, setPrincipalName] = useState('TRẦN KHẮC HUY')
     const [mealPrice, setMealPrice] = useState(25000)
     const [teacherMealPrice, setTeacherMealPrice] = useState(30000)
     const [groups, setGroups] = useState<Group[]>([])
     const [rooms, setRooms] = useState<Room[]>([])
     const [classes, setClasses] = useState<ClassItem[]>([])
     const [users, setUsers] = useState<User[]>([])
+
+    // Doanh nghiệp & Thanh toán (Giấy đề nghị thanh toán A4)
+    const [companyName, setCompanyName] = useState('CÔNG TY TNHH CHÂU PHƯƠNG THẢO')
+    const [companyAddress, setCompanyAddress] = useState('20A Ngô Đức Kế, Phường Bình Thạnh, TP Hồ Chí Minh')
+    const [companyTaxCode, setCompanyTaxCode] = useState('0317986511')
+    const [companyRepresentative, setCompanyRepresentative] = useState('Bà NGUYỄN THỊ THU TRANG')
+    const [companyPosition, setCompanyPosition] = useState('Chủ tịch hội đồng thành viên')
+    const [companyCity, setCompanyCity] = useState('Tp.HCM')
+    const [bankAccountHolder, setBankAccountHolder] = useState('CÔNG TY TNHH CHÂU PHƯƠNG THẢO')
+    const [bankAccountNumber, setBankAccountNumber] = useState('667879888')
+    const [bankName, setBankName] = useState('Ngân hàng Á Châu - ACB')
+    const [allowedPrintRoles, setAllowedPrintRoles] = useState<string[]>(['admin'])
 
     // Forms
     const [newGroupName, setNewGroupName] = useState('')
@@ -110,6 +142,8 @@ export default function SettingsPage() {
 
                 setSchoolName(get('school_name') || '')
                 setSchoolAddress(get('school_address') || '')
+                setSchoolRepresentative(get('school_representative') || 'LÊ THỊ HÀ GIANG')
+                setPrincipalName(get('principal_name') || 'TRẦN KHẮC HUY')
                 setMealPrice(parseInt(get('meal_price') || '25000') || 25000)
                 setTeacherMealPrice(parseInt(get('teacher_meal_price') || '30000') || 30000)
                 break
@@ -136,6 +170,25 @@ export default function SettingsPage() {
                 setUsers(usersData.users as User[])
                 break
             }
+            case 'company': {
+                const settingsData = await getSettings()
+                const allSettings = settingsData.settings as { key: string; value: string }[]
+                const get = (k: string) => allSettings?.find(s => s.key === k)?.value
+                if (get('company_name')) setCompanyName(get('company_name')!)
+                if (get('company_address')) setCompanyAddress(get('company_address')!)
+                if (get('company_tax_code')) setCompanyTaxCode(get('company_tax_code')!)
+                if (get('company_representative')) setCompanyRepresentative(get('company_representative')!)
+                if (get('company_position')) setCompanyPosition(get('company_position')!)
+                if (get('company_city')) setCompanyCity(get('company_city')!)
+                if (get('company_bank_account_holder')) setBankAccountHolder(get('company_bank_account_holder')!)
+                if (get('company_bank_account_number')) setBankAccountNumber(get('company_bank_account_number')!)
+                if (get('company_bank_name')) setBankName(get('company_bank_name')!)
+                if (get('principal_name')) setPrincipalName(get('principal_name')!)
+                if (get('payment_request_allowed_roles')) {
+                    try { setAllowedPrintRoles(JSON.parse(get('payment_request_allowed_roles')!)) } catch {}
+                }
+                break
+            }
         }
         setLoading(false)
     }, [])
@@ -144,35 +197,70 @@ export default function SettingsPage() {
 
     function showMsg(type: 'success' | 'error', text: string) {
         setMsg({ type, text })
-        setTimeout(() => setMsg(null), 3000)
+        setTimeout(() => setMsg(null), 4000)
     }
 
     // ---- TIME ----
     async function handleSaveTime() {
-        const results = await Promise.all([
-            updateSetting('moc1_open', moc1Open),
-            updateSetting('moc1_close', moc1Close),
-            updateSetting('moc2_open', moc2Open),
-            updateSetting('moc2_close', moc2Close),
-            updateSetting('deadline_no_limit', noTimeLimit ? 'true' : 'false'),
-            updateSetting('working_days', JSON.stringify(workingDays)),
-            updateSetting('off_days', JSON.stringify(offDays)),
-        ])
-        const err = results.find(r => r.error)
-        if (err?.error) showMsg('error', err.error)
-        else showMsg('success', 'Đã lưu cài đặt thời gian!')
+        setSavingTime(true)
+        const result = await updateSettings({
+            moc1_open: moc1Open,
+            moc1_close: moc1Close,
+            moc2_open: moc2Open,
+            moc2_close: moc2Close,
+            deadline_no_limit: noTimeLimit ? 'true' : 'false',
+            working_days: JSON.stringify(workingDays),
+            off_days: JSON.stringify(offDays),
+        })
+        setSavingTime(false)
+        if (result.error) showMsg('error', result.error)
+        else {
+            showMsg('success', 'Đã lưu cài đặt thời gian!')
+            await loadTabData('time')
+        }
     }
 
     async function handleSaveSchoolInfo() {
-        const results = await Promise.all([
-            updateSetting('school_name', schoolName),
-            updateSetting('school_address', schoolAddress),
-            updateSetting('meal_price', mealPrice.toString()),
-            updateSetting('teacher_meal_price', teacherMealPrice.toString()),
-        ])
-        const err = results.find(r => r.error)
-        if (err?.error) showMsg('error', err.error)
-        else showMsg('success', 'Đã lưu thông tin cấu hình!')
+        setSavingSchool(true)
+        const result = await updateSettings({
+            school_name: schoolName.trim(),
+            school_address: schoolAddress.trim(),
+            school_representative: schoolRepresentative.trim(),
+            principal_name: principalName.trim() || 'TRẦN KHẮC HUY',
+            meal_price: mealPrice.toString(),
+            teacher_meal_price: teacherMealPrice.toString(),
+        })
+        setSavingSchool(false)
+        if (result.error) showMsg('error', result.error)
+        else {
+            showMsg('success', 'Đã lưu thông tin cấu hình!')
+            await loadTabData('time')
+        }
+    }
+
+    // ---- COMPANY & IN ẤN ----
+    async function handleSaveCompanyInfo() {
+        setSavingCompany(true)
+        const result = await updateSettings({
+            company_name: companyName.trim(),
+            company_address: companyAddress.trim(),
+            company_tax_code: companyTaxCode.trim(),
+            company_representative: companyRepresentative.trim(),
+            company_position: companyPosition.trim(),
+            company_city: companyCity.trim(),
+            company_bank_account_holder: bankAccountHolder.trim(),
+            company_bank_account_number: bankAccountNumber.trim(),
+            company_bank_name: bankName.trim(),
+            principal_name: principalName.trim() || 'TRẦN KHẮC HUY',
+            payment_request_allowed_roles: JSON.stringify(allowedPrintRoles),
+        })
+        setSavingCompany(false)
+        if (result.error) {
+            showMsg('error', result.error)
+        } else {
+            showMsg('success', 'Đã lưu thông tin doanh nghiệp & phân quyền in ấn thành công!')
+            await loadTabData('company')
+        }
     }
 
     // ---- GROUPS ----
@@ -598,6 +686,7 @@ export default function SettingsPage() {
         { key: 'time', icon: '⏰', label: 'Thời gian', color: 'blue' },
         { key: 'rooms', icon: '🏫', label: 'Phòng & Nhóm', color: 'emerald' },
         { key: 'users', icon: '👤', label: 'Giáo viên', color: 'amber' },
+        { key: 'company', icon: '🏢', label: 'Doanh nghiệp & In ấn', color: 'purple' },
     ]
 
     const filteredRooms = rooms.filter(r => {
@@ -619,6 +708,19 @@ export default function SettingsPage() {
     return (
         <div>
             <h2 className="text-xl font-bold text-gray-800 mb-4">⚙️ Cài đặt hệ thống</h2>
+
+            {/* Floating Toast Notification */}
+            {msg && (
+                <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 ${
+                    msg.type === 'success'
+                        ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                        : 'bg-red-600 text-white border-red-500 shadow-red-600/30'
+                }`}>
+                    <span className="text-base">{msg.type === 'success' ? '✅' : '❌'}</span>
+                    <span>{msg.text}</span>
+                    <button onClick={() => setMsg(null)} className="ml-2 text-white/80 hover:text-white font-bold text-xs cursor-pointer">✕</button>
+                </div>
+            )}
 
             {msg && (
                 <div className={`rounded-xl p-3 mb-4 text-sm font-medium border ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{msg.text}</div>
@@ -766,8 +868,17 @@ export default function SettingsPage() {
                     </div>
 
                     <button onClick={handleSaveTime}
-                        className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all w-fit">
-                        💾 Lưu cài đặt thời gian
+                        disabled={savingTime}
+                        className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all w-fit disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                        {savingTime ? (
+                            <>
+                                <span className="inline-block animate-spin">⏳</span> Đang lưu thời gian...
+                            </>
+                        ) : (
+                            <>
+                                <span>💾</span> Lưu cài đặt thời gian
+                            </>
+                        )}
                     </button>
 
                     {/* Thông tin trường */}
@@ -790,6 +901,18 @@ export default function SettingsPage() {
                                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none" />
                             </div>
                             <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Đại diện nhà trường (Ký biên bản đối chiếu)</label>
+                                <input type="text" value={schoolRepresentative} onChange={e => setSchoolRepresentative(e.target.value)}
+                                    placeholder="VD: LÊ THỊ HÀ GIANG"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 focus:border-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Hiệu trưởng ký duyệt (Giấy đề nghị thanh toán)</label>
+                                <input type="text" value={principalName} onChange={e => setPrincipalName(e.target.value)}
+                                    placeholder="VD: TRẦN KHẮC HUY"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 focus:border-blue-500 outline-none uppercase" />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">Đơn giá suất ăn HS (VNĐ)</label>
                                 <input type="number" value={mealPrice} onChange={e => setMealPrice(parseInt(e.target.value) || 0)}
                                     placeholder="25000"
@@ -803,8 +926,17 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <button onClick={handleSaveSchoolInfo}
-                            className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all">
-                            💾 Lưu cấu hình
+                            disabled={savingSchool}
+                            className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 shadow-md transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer">
+                            {savingSchool ? (
+                                <>
+                                    <span className="inline-block animate-spin">⏳</span> Đang lưu cấu hình...
+                                </>
+                            ) : (
+                                <>
+                                    <span>💾</span> Lưu cấu hình
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -1189,6 +1321,228 @@ export default function SettingsPage() {
                             ))}
                             {users.length === 0 && <p className="px-5 py-4 text-sm text-gray-400 italic">Chưa có tài khoản nào</p>}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* =================== TAB: COMPANY & IN ẤN =================== */}
+            {tab === 'company' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Cột 1: Thông tin Doanh nghiệp */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                            <div>
+                                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                                    <span>🏢</span> Thông tin Doanh nghiệp cung cấp suất ăn
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Thông tin này sẽ hiển thị trên Giấy đề nghị thanh toán khổ A4 và các văn bản báo cáo.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Tên công ty / Đơn vị</label>
+                                    <input
+                                        type="text"
+                                        value={companyName}
+                                        onChange={e => setCompanyName(e.target.value)}
+                                        placeholder="CÔNG TY TNHH CHÂU PHƯƠNG THẢO"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-purple-500 outline-none font-semibold text-gray-800"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Địa chỉ trụ sở</label>
+                                    <input
+                                        type="text"
+                                        value={companyAddress}
+                                        onChange={e => setCompanyAddress(e.target.value)}
+                                        placeholder="20A Ngô Đức Kế, Phường Bình Thạnh, TP Hồ Chí Minh"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-purple-500 outline-none text-gray-800"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Mã số thuế</label>
+                                        <input
+                                            type="text"
+                                            value={companyTaxCode}
+                                            onChange={e => setCompanyTaxCode(e.target.value)}
+                                            placeholder="0317986511"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-purple-700 focus:border-purple-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Địa danh lập giấy</label>
+                                        <input
+                                            type="text"
+                                            value={companyCity}
+                                            onChange={e => setCompanyCity(e.target.value)}
+                                            placeholder="Tp.HCM"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-purple-500 outline-none text-gray-800"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Đại diện ký tên</label>
+                                        <input
+                                            type="text"
+                                            value={companyRepresentative}
+                                            onChange={e => setCompanyRepresentative(e.target.value)}
+                                            placeholder="Bà NGUYỄN THỊ THU TRANG"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold focus:border-purple-500 outline-none text-gray-800"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Chức vụ đại diện</label>
+                                        <input
+                                            type="text"
+                                            value={companyPosition}
+                                            onChange={e => setCompanyPosition(e.target.value)}
+                                            placeholder="Chủ tịch hội đồng thành viên"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-purple-500 outline-none text-gray-800"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Hiệu trưởng duyệt ký (Bên Nhà trường trên Giấy đề nghị TT)</label>
+                                    <input
+                                        type="text"
+                                        value={principalName}
+                                        onChange={e => setPrincipalName(e.target.value)}
+                                        placeholder="VD: TRẦN KHẮC HUY"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold focus:border-purple-500 outline-none text-gray-800 uppercase"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cột 2: Tài khoản & Phân quyền in ấn */}
+                        <div className="space-y-6">
+                            {/* Tài khoản nhận tiền */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                                        <span>🏦</span> Tài khoản nhận tiền thanh toán
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Thông tin tài khoản để nhà trường thực hiện chuyển khoản thanh toán tiền suất ăn.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Tên chủ tài khoản (Người nhận)</label>
+                                        <input
+                                            type="text"
+                                            value={bankAccountHolder}
+                                            onChange={e => setBankAccountHolder(e.target.value)}
+                                            placeholder="CÔNG TY TNHH CHÂU PHƯƠNG THẢO"
+                                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold focus:border-purple-500 outline-none text-gray-800 uppercase"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Số tài khoản</label>
+                                            <input
+                                                type="text"
+                                                value={bankAccountNumber}
+                                                onChange={e => setBankAccountNumber(e.target.value)}
+                                                placeholder="667879888"
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-teal-700 focus:border-purple-500 outline-none font-mono"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Ngân hàng</label>
+                                            <input
+                                                type="text"
+                                                value={bankName}
+                                                onChange={e => setBankName(e.target.value)}
+                                                placeholder="Ngân hàng Á Châu - ACB"
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold focus:border-purple-500 outline-none text-gray-800"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Phân quyền in ấn */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                                        <span>🔒</span> Phân quyền in Giấy đề nghị thanh toán (A4)
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Chỉ Admin và các vai trò/người dùng được chọn dưới đây mới có quyền in và xuất file PDF.
+                                    </p>
+                                </div>
+
+                                <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs text-purple-800 font-medium">
+                                    🛡️ <strong>Quản trị viên (Admin)</strong> mặc định luôn có quyền tạo, in và xuất PDF văn bản này.
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                        Cấp thêm quyền in cho các vai trò khác:
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { role: 'kitchen', label: 'Bếp / Kế toán' },
+                                            { role: 'school_approver', label: 'GV cấp trường' },
+                                            { role: 'reporter', label: 'Báo suất' },
+                                            { role: 'group_manager', label: 'Quản lý nhóm' },
+                                        ].map(item => (
+                                            <label
+                                                key={item.role}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer transition-colors ${
+                                                    allowedPrintRoles.includes(item.role)
+                                                        ? 'bg-purple-50 border-purple-300 text-purple-800'
+                                                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allowedPrintRoles.includes(item.role)}
+                                                    onChange={e => {
+                                                        if (e.target.checked) {
+                                                            setAllowedPrintRoles([...allowedPrintRoles, item.role])
+                                                        } else {
+                                                            setAllowedPrintRoles(allowedPrintRoles.filter(r => r !== item.role))
+                                                        }
+                                                    }}
+                                                    className="rounded text-purple-600 focus:ring-purple-500"
+                                                />
+                                                <span>{item.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            onClick={handleSaveCompanyInfo}
+                            disabled={savingCompany}
+                            className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                            {savingCompany ? (
+                                <>
+                                    <span className="inline-block animate-spin">⏳</span> Đang lưu cài đặt...
+                                </>
+                            ) : (
+                                <>
+                                    <span>💾</span> Lưu thông tin Doanh nghiệp & Cài đặt in ấn
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             )}

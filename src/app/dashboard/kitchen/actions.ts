@@ -13,13 +13,9 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     // ⚡ Đọc từ cookie (middleware đã set), không cần query DB
     const { userRole } = await getSessionInfo()
 
-    // ⚡ Tính ngày trong action luôn (bỏ gọi getSettings riêng ở page)
-    const { data: settingsDataRaw } = await supabase
-        .from('settings')
-        .select('key, value')
-        .in('key', ['moc1_close', 'working_days', 'off_days'])
-    
-    const get = (key: string, def: string) => settingsDataRaw?.find(s => s.key === key)?.value || def
+    // ⚡ MỘT query duy nhất cho settings — dùng cho cả tính ngày VÀ schoolInfo/milestones
+    const { data: allSettings } = await supabase.from('settings').select('*')
+    const get = (key: string, def: string) => allSettings?.find(s => s.key === key)?.value || def
     const moc1Close = get('moc1_close', '16:00')
     const [moc1H, moc1M] = moc1Close.split(':').map(Number)
     const moc1TimeInMinutes = moc1H * 60 + moc1M
@@ -73,22 +69,20 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
         query = query.eq('status', 'school_approved')
     }
 
-    // ⚡ Song song: reports + groups + rooms + settings + teacherMeal
-    const [reportsResult, groupsResult, roomsResult, settingsResult, teacherResult] = await Promise.all([
+    // ⚡ Song song: reports + groups + rooms + teacherMeal (settings đã lấy ở trên)
+    const [reportsResult, groupsResult, roomsResult, teacherResult] = await Promise.all([
         query.order('created_at'),
         supabase.from('groups').select('*').order('name'),
         supabase.from('rooms').select('*, groups(name)').order('name'),
-        supabase.from('settings').select('*'),
         supabase.from('teacher_meal_reports').select('*').eq('report_date', reportDate).maybeSingle()
     ])
 
     const reports = reportsResult.data as any[]
     const groups = groupsResult.data as any[]
     const allRooms = roomsResult.data as any[]
-    const settings = settingsResult.data as any[]
 
-    const schoolName = settings?.find(s => s.key === 'school_name')?.value || ''
-    const schoolAddress = settings?.find(s => s.key === 'school_address')?.value || ''
+    const schoolName = get('school_name', '')
+    const schoolAddress = get('school_address', '')
 
     // Tính tổng
     let totalSalty = 0
@@ -143,7 +137,7 @@ export async function getKitchenSummary(date?: string, onlyApproved: boolean = f
     const totalCong = groupSummaries.reduce((sum, gs) => sum + gs.cong, 0)
     
     // Tính phase
-    const mappedSettings = mapTimeSettings(settings)
+    const mappedSettings = mapTimeSettings(allSettings)
     const { isMoc1Closed, isMoc2Closed } = getMilestoneStatus(reportDate as string, getVietnamNow(), mappedSettings)
 
     const teacherReport = teacherResult?.data as any
