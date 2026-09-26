@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { getVietnamNow, getVietnamDateString } from '@/utils/dateUtils'
 
@@ -160,11 +161,15 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
     try {
         const wdStr = get('working_days', '')
         if (wdStr) workingDays = JSON.parse(wdStr)
-    } catch {}
+    } catch (e) {
+        console.error('[getTimeSettings] error parsing working_days:', e)
+    }
     try {
         const odStr = get('off_days', '')
         if (odStr) offDays = JSON.parse(odStr)
-    } catch {}
+    } catch (e) {
+        console.error('[getTimeSettings] error parsing off_days:', e)
+    }
 
     return {
         moc1Open: get('moc1_open', '07:00'),
@@ -181,16 +186,15 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
 // Gửi hoặc cập nhật báo cáo suất ăn (GV Lớp dùng class_id)
 // ==================================================
 export async function submitReport(formData: FormData) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     // Lấy thông tin profile
     const { data: profile } = await supabase
         .from('profiles')
         .select('role, room_id, class_id')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
     if (!profile) return { error: 'Không tìm thấy profile' }
@@ -277,7 +281,7 @@ export async function submitReport(formData: FormData) {
                 salty_count: saltyCount,
                 note,
                 status: 'submitted',
-                updated_by: user.id,
+                updated_by: userId,
                 moc1_snapshot: moc1Snapshot,
             })
             .eq('id', existing.id)
@@ -294,8 +298,8 @@ export async function submitReport(formData: FormData) {
             salty_count: saltyCount,
             note,
             status: 'submitted',
-            created_by: user.id,
-            updated_by: user.id,
+            created_by: userId,
+            updated_by: userId,
         }
 
         // Set class_id or room_id
@@ -327,15 +331,14 @@ export async function submitReport(formData: FormData) {
 // Lấy thông tin lớp/phòng và báo cáo (dựa trên phase)
 // ==================================================
 export async function getRoomData() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     const { data: profile } = await supabase
         .from('profiles')
         .select('room_id, class_id')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
     // GV Lớp: dùng class_id

@@ -5,16 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings, getMilestoneStatus } from '@/utils/formState'
-import { getSessionInfo } from '@/lib/session'
+import { requireAuth } from '@/lib/auth'
 import { getVietnamNow } from '@/utils/dateUtils'
 
 /** Lấy danh sách lớp + báo cáo trong phòng (cho room_manager) */
 export async function getGroupReports(selectedDate?: string) {
-    const supabase = await createClient()
-
-    // ⚡ Đọc user ID từ cookie (middleware đã set)
-    const { userId } = await getSessionInfo()
-    if (!userId) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -125,11 +123,9 @@ export async function getGroupReports(selectedDate?: string) {
 
 /** Duyệt phòng: chuyển tất cả submitted → school_approved (tạm tắt duyệt cấp trường) */
 export async function approveReport(reportId: string) {
-    const supabase = await createClient()
-
-    // ⚡ Đọc user ID từ cookie
-    const { userId } = await getSessionInfo()
-    if (!userId) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     // Kiểm tra quyền
     const { data: profile } = await supabase.from('profiles').select('role, room_id, group_id').eq('id', userId).single()
@@ -168,11 +164,9 @@ export async function approveReport(reportId: string) {
 
 /** Từ chối một báo cáo */
 export async function rejectReport(reportId: string) {
-    const supabase = await createClient()
-
-    // ⚡ Đọc user ID từ cookie
-    const { userId } = await getSessionInfo()
-    if (!userId) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     // Kiểm tra quyền
     const { data: profile } = await supabase.from('profiles').select('role, room_id, group_id').eq('id', userId).single()
@@ -210,11 +204,9 @@ export async function rejectReport(reportId: string) {
 
 /** Duyệt tất cả submitted trong phòng → school_approved (tạm tắt duyệt cấp trường) */
 export async function approveAll(selectedDate?: string) {
-    const supabase = await createClient()
-
-    // ⚡ Đọc user ID từ cookie
-    const { userId } = await getSessionInfo()
-    if (!userId) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     const { data: profile } = await supabase
         .from('profiles')

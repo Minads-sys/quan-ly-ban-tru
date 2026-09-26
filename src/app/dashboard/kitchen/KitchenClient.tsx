@@ -37,12 +37,20 @@ interface GroupSummary {
     totalRooms: number
 }
 
+interface TeacherMealInfo {
+    id?: string
+    salty_count?: number
+    porridge_count?: number
+    vegetarian_count?: number
+    note?: string | null
+}
+
 type InitialData = Awaited<ReturnType<typeof getKitchenSummary>>
 
 export function KitchenClient({ initialData }: { initialData: InitialData }) {
     // ⚡ Khởi tạo state từ initialData (server đã fetch sẵn) — không cần loading spinner ban đầu
     const initRole = (initialData.userRole as string) || ''
-    const initTeacher = (initialData as any).teacherMeal as { salty_count?: number; porridge_count?: number; vegetarian_count?: number; note?: string | null } | null | undefined
+    const initTeacher = initialData.teacherMeal as TeacherMealInfo | null | undefined
 
     const [date, setDate] = useState((initialData.date as string) || '')
     const [pendingDate, setPendingDate] = useState((initialData.date as string) || '')
@@ -223,8 +231,8 @@ export function KitchenClient({ initialData }: { initialData: InitialData }) {
         if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
 
         // Load teacher meal data từ server action trả về hoặc fallback
-        if ('teacherMeal' in data) {
-            applyTeacherMeal((data as any).teacherMeal)
+        if ('teacherMeal' in data && data.teacherMeal !== undefined) {
+            applyTeacherMeal(data.teacherMeal as TeacherMealInfo | null)
         } else if (effectiveDate) {
             const teacherResult = await getTeacherMealReport(effectiveDate)
             applyTeacherMeal(teacherResult.report)

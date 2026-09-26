@@ -21,12 +21,16 @@ async function getTimeSettings(supabase: any): Promise<TimeSettings> {
     try {
         const wdStr = get('working_days', '')
         if (wdStr) workingDays = JSON.parse(wdStr)
-    } catch {}
+    } catch (e) {
+        console.error('[bulk-actions/getTimeSettings] error parsing working_days:', e)
+    }
     
     try {
         const odStr = get('off_days', '')
         if (odStr) offDays = JSON.parse(odStr)
-    } catch {}
+    } catch (e) {
+        console.error('[bulk-actions/getTimeSettings] error parsing off_days:', e)
+    }
 
     return {
         moc1Open: get('moc1_open', '07:00'),

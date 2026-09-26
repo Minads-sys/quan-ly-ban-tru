@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getCachedSettings } from '@/lib/cachedSettings'
-import { getSessionInfo } from '@/lib/session'
+import { requireAuth } from '@/lib/auth'
 
 export interface ReportFilter {
     period: 'today' | 'yesterday' | 'this_month' | 'last_month' | 'custom'
@@ -38,12 +38,9 @@ export interface ReportSummary {
 }
 
 export async function getReportsData(filter: ReportFilter): Promise<ReportSummary | { error: string }> {
-    const supabase = await createClient()
-    const { userRole, userId } = await getSessionInfo()
-
-    if (!userId) {
-        return { error: 'Not authenticated' }
-    }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Not authenticated' } }
+    const { supabase, userRole } = auth
 
     // Role check: Only admin, school_approver, reporter should see reports
     const allowedRoles = ['admin', 'school_approver', 'reporter', 'kitchen', 'meal_distributor'] // Allowed for kitchen/distributor as well if needed in future, but we'll restrict UI in nav

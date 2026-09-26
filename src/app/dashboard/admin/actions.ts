@@ -1,25 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 /** Tìm kiếm báo cáo theo khoảng ngày */
 export async function searchReportsRange(startDate: string, endDate: string) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Kiểm tra quyền admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Không có quyền truy cập' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     const { data: reports } = await supabase
         .from('daily_reports')
@@ -52,21 +41,9 @@ export async function overrideReport(
         absent_list: { name: string; reason?: string }[]
     }
 ) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Kiểm tra quyền admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Chỉ Admin mới được ghi đè dữ liệu' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase, userId } = auth
 
     const { error } = await supabase
         .from('daily_reports')
@@ -78,7 +55,7 @@ export async function overrideReport(
             salty_count: data.salty_count,
             note: data.note,
             absent_list: data.absent_list,
-            updated_by: user.id,
+            updated_by: userId,
         })
         .eq('id', reportId)
 
@@ -102,20 +79,9 @@ export async function createReportForRoom(
         absent_list: { name: string; reason?: string }[]
     }
 ) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Chỉ Admin mới được tạo báo cáo' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase, userId } = auth
 
     const { error } = await supabase
         .from('daily_reports')
@@ -130,8 +96,8 @@ export async function createReportForRoom(
             note: data.note,
             absent_list: data.absent_list,
             status: 'school_approved',
-            created_by: user.id,
-            updated_by: user.id,
+            created_by: userId,
+            updated_by: userId,
         })
 
     if (error) return { error: error.message }
@@ -142,13 +108,23 @@ export async function createReportForRoom(
 
 /** Lấy danh sách phòng */
 export async function getAllRooms() {
-    const supabase = await createClient()
-    const { data: rooms } = await supabase
-        .from('rooms')
-        .select('*, groups(name)')
-        .neq('name', 'Dữ liệu lịch sử (Import)')
-        .order('name')
-    return { rooms: rooms || [] }
+    try {
+        const { supabase } = await requireAdmin()
+        const { data: rooms } = await supabase
+            .from('rooms')
+            .select('*, groups(name)')
+            .neq('name', 'Dữ liệu lịch sử (Import)')
+            .order('name')
+        return { rooms: rooms || [] }
+    } catch {
+        const supabase = await createClient()
+        const { data: rooms } = await supabase
+            .from('rooms')
+            .select('*, groups(name)')
+            .neq('name', 'Dữ liệu lịch sử (Import)')
+            .order('name')
+        return { rooms: rooms || [] }
+    }
 }
 
 /** Nhập dữ liệu lịch sử từ Excel */
@@ -159,21 +135,9 @@ export async function importHistoricalReports(rows: {
     vegetarian_count: number,
     note?: string
 }[]) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Kiểm tra quyền admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Chỉ Admin mới được nhập dữ liệu lịch sử' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase, userId } = auth
 
     // 1. Đảm bảo có nhóm "Hệ thống"
     let { data: group } = await supabase
@@ -224,8 +188,8 @@ export async function importHistoricalReports(rows: {
         vegetarian_count: row.vegetarian_count,
         note: row.note || 'Import lịch sử',
         status: 'school_approved',
-        created_by: user.id,
-        updated_by: user.id
+        created_by: userId,
+        updated_by: userId
     }))
 
     // 4. Thực hiện insert (upsert theo date + room_id nếu có constraint, 
@@ -248,21 +212,9 @@ export async function importHistoricalTeacherMeals(rows: {
     vegetarian_count: number,
     note?: string
 }[]) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Kiểm tra quyền admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Chỉ Admin mới được nhập dữ liệu lịch sử' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase, userId } = auth
 
     const upsertData = rows.map(row => ({
         report_date: row.report_date,
@@ -270,8 +222,8 @@ export async function importHistoricalTeacherMeals(rows: {
         porridge_count: row.porridge_count,
         vegetarian_count: row.vegetarian_count,
         note: row.note || 'Import lịch sử',
-        created_by: user.id,
-        updated_by: user.id
+        created_by: userId,
+        updated_by: userId
     }))
 
     // Sử dụng upsert dựa trên report_date. 

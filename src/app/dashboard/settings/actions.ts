@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { getCachedSettings } from '@/lib/cachedSettings'
 
@@ -16,9 +17,9 @@ export async function getSettings() {
 
 /** Cập nhật setting đơn lẻ */
 export async function updateSetting(key: string, value: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     const { error } = await supabase
         .from('settings')
@@ -37,9 +38,9 @@ export async function updateSetting(key: string, value: string) {
 
 /** Cập nhật hàng loạt settings trong 1 lần gọi (Batch atomic upsert) */
 export async function updateSettings(settings: Record<string, string>) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     const rows = Object.entries(settings).map(([key, value]) => ({
         key,
@@ -88,7 +89,9 @@ export async function getGroups() {
 
 /** Tạo nhóm mới */
 export async function createGroup(name: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('groups').insert({ name })
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -97,7 +100,9 @@ export async function createGroup(name: string) {
 
 /** Xóa nhóm */
 export async function deleteGroup(id: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('groups').delete().eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -106,7 +111,9 @@ export async function deleteGroup(id: string) {
 
 /** Sửa tên nhóm */
 export async function updateGroup(id: string, name: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('groups').update({ name }).eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -149,7 +156,9 @@ export async function getRooms() {
 
 /** Tạo phòng mới */
 export async function createRoom(name: string, groupId: string, defaultCapacity: number, teacherName: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('rooms').insert({
         name,
         group_id: groupId,
@@ -163,7 +172,9 @@ export async function createRoom(name: string, groupId: string, defaultCapacity:
 
 /** Cập nhật phòng */
 export async function updateRoom(id: string, name: string, groupId: string, defaultCapacity: number, teacherName: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('rooms').update({
         name,
         group_id: groupId,
@@ -177,7 +188,9 @@ export async function updateRoom(id: string, name: string, groupId: string, defa
 
 /** Xóa phòng */
 export async function deleteRoom(id: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('rooms').delete().eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -207,13 +220,9 @@ export async function createUser(
     roomId: string | null,
     groupId: string | null
 ) {
-    const supabase = await createClient()
-
-    // Kiểm tra quyền admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin') return { error: 'Không có quyền' }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     // Dùng admin client nếu có service_role key
     try {
@@ -262,7 +271,9 @@ export async function updateUser(
     roomId: string | null,
     groupId: string | null
 ) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     const { error } = await supabase
         .from('profiles')
@@ -281,13 +292,8 @@ export async function updateUser(
 
 /** Admin đổi mật khẩu user */
 export async function changeUserPassword(userId: string, newPassword: string) {
-    const supabase = await createClient()
-
-    // Kiểm tra quyền admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin') return { error: 'Không có quyền đổi mật khẩu' }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
 
     if (!newPassword || newPassword.length < 6) {
         return { error: 'Mật khẩu phải có ít nhất 6 ký tự' }
@@ -320,7 +326,9 @@ export async function getClasses() {
 
 /** Tạo lớp mới */
 export async function createClass(name: string, roomId: string, defaultCapacity: number) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('classes').insert({
         name,
         room_id: roomId,
@@ -333,7 +341,9 @@ export async function createClass(name: string, roomId: string, defaultCapacity:
 
 /** Cập nhật lớp */
 export async function updateClass(id: string, name: string, roomId: string, defaultCapacity: number) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('classes').update({
         name,
         room_id: roomId,
@@ -346,7 +356,9 @@ export async function updateClass(id: string, name: string, roomId: string, defa
 
 /** Xóa lớp */
 export async function deleteClass(id: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
     const { error } = await supabase.from('classes').delete().eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/dashboard/settings')
@@ -355,12 +367,9 @@ export async function deleteClass(id: string) {
 
 /** Import phòng từ Excel (nếu đã có thì cập nhật, chưa có thì thêm mới) */
 export async function importRoomsFromExcel(rows: { roomName: string; teacherName: string; capacity: number; groupId: string }[]) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin') return { error: 'Không có quyền' }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     let addedCount = 0
     let updatedCount = 0
@@ -424,4 +433,3 @@ export async function importRoomsFromExcel(rows: { roomName: string; teacherName
     revalidatePath('/dashboard/settings')
     return { success: true, addedCount, updatedCount, results }
 }
-

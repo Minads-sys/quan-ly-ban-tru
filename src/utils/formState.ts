@@ -19,12 +19,16 @@ export function mapTimeSettings(data: any[] | null): TimeSettings {
     try {
         const wdStr = get('working_days', '')
         if (wdStr) workingDays = JSON.parse(wdStr)
-    } catch {}
+    } catch (e) {
+        console.error('[mapTimeSettings] error parsing working_days:', e)
+    }
     
     try {
         const odStr = get('off_days', '')
         if (odStr) offDays = JSON.parse(odStr)
-    } catch {}
+    } catch (e) {
+        console.error('[mapTimeSettings] error parsing off_days:', e)
+    }
 
     return {
         moc1Open: get('moc1_open', '07:00'),

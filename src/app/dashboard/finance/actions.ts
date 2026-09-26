@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, requireAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { getVietnamNow } from '@/utils/dateUtils'
 
@@ -19,10 +20,9 @@ export interface AdvancePayment {
 
 /** Lấy danh sách tạm ứng */
 export async function getAdvancePayments(startDate?: string, endDate?: string) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase } = auth
 
     let query = supabase
         .from('advance_payments')
@@ -52,27 +52,15 @@ export async function createAdvancePayment(data: {
     report_month: string
     payment_date: string
 }) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    // Kiểm tra quyền admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Chỉ Admin mới có quyền thực hiện thao tác này' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase, userId } = auth
 
     const { error } = await supabase
         .from('advance_payments')
         .insert({
             ...data,
-            created_by: user.id
+            created_by: userId
         })
 
     if (error) return { error: error.message }
@@ -83,20 +71,9 @@ export async function createAdvancePayment(data: {
 
 /** Xóa phiếu tạm ứng */
 export async function deleteAdvancePayment(id: string) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { error: 'Không có quyền xóa' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { error: e.message } }
+    const { supabase } = auth
 
     const { error } = await supabase
         .from('advance_payments')
@@ -151,10 +128,9 @@ async function saveStoredPaymentRequestsFallback(supabase: any, list: PaymentReq
 
 /** Lấy danh sách Giấy Đề Nghị Thanh Toán */
 export async function getPaymentRequests(startDate?: string, endDate?: string): Promise<{ data: PaymentRequest[] } | { error: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase } = auth
 
     try {
         let query = supabase.from('payment_requests').select('*').order('created_at', { ascending: false })
@@ -164,7 +140,9 @@ export async function getPaymentRequests(startDate?: string, endDate?: string): 
         if (!error && data) {
             return { data: data as PaymentRequest[] }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('[getPaymentRequests] error:', e)
+    }
 
     // Fallback store in settings
     const list = await getStoredPaymentRequestsFallback(supabase)
@@ -187,10 +165,9 @@ export async function createPaymentRequest(data: {
     total_amount: number
     note?: string
 }): Promise<{ success: boolean; data?: PaymentRequest; error?: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { success: false, error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     // Sinh mã: DNTT-YYYYMM-XX
     const datePart = data.end_date.replace(/-/g, '').slice(0, 6)
@@ -214,7 +191,7 @@ export async function createPaymentRequest(data: {
         voucher_id: null,
         note: data.note || null,
         created_at: new Date().toISOString(),
-        created_by: user.id
+        created_by: userId
     }
 
     try {
@@ -228,7 +205,9 @@ export async function createPaymentRequest(data: {
             revalidatePath('/dashboard/finance')
             return { success: true, data: inserted as PaymentRequest }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('[createPaymentRequest] error:', e)
+    }
 
     // Fallback store in settings
     const list = await getStoredPaymentRequestsFallback(supabase)
@@ -254,17 +233,18 @@ export async function completePaymentRequest(
         bank?: string
     }
 ): Promise<{ success: boolean; voucher?: AdvancePayment; error?: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { success: false, error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     // 1. Lấy bản ghi Payment Request
     let targetRequest: PaymentRequest | null = null
     try {
         const { data } = await supabase.from('payment_requests').select('*').eq('id', id).single()
         if (data) targetRequest = data as PaymentRequest
-    } catch (e) {}
+    } catch (e) {
+        console.error('[completePaymentRequest find] error:', e)
+    }
 
     let isFallback = false
     let fallbackList: PaymentRequest[] = []
@@ -292,7 +272,7 @@ export async function completePaymentRequest(
         bank: paymentData.payment_method === 'cash' ? 'Tiền mặt' : (paymentData.bank || 'Ngân hàng ACB'),
         report_month: paymentData.payment_date.slice(0, 7),
         payment_date: paymentData.payment_date,
-        created_by: user.id
+        created_by: userId
     }
 
     const { data: voucher, error: voucherErr } = await supabase
@@ -318,7 +298,9 @@ export async function completePaymentRequest(
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
-        } catch (e) {}
+        } catch (e) {
+            console.error('[completePaymentRequest update] error:', e)
+        }
     } else {
         const idx = fallbackList.findIndex(p => p.id === id)
         if (idx !== -1) {
@@ -336,20 +318,9 @@ export async function completePaymentRequest(
 
 /** Xóa / Hủy Giấy Đề Nghị Thanh Toán */
 export async function deletePaymentRequest(id: string): Promise<{ success: boolean; error?: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (profile?.role !== 'admin') {
-        return { success: false, error: 'Chỉ Admin mới có quyền xóa Giấy Đề Nghị Thanh Toán' }
-    }
+    let auth
+    try { auth = await requireAdmin() } catch (e: any) { return { success: false, error: e.message } }
+    const { supabase } = auth
 
     try {
         const { error } = await supabase.from('payment_requests').delete().eq('id', id)
@@ -357,7 +328,9 @@ export async function deletePaymentRequest(id: string): Promise<{ success: boole
             revalidatePath('/dashboard/finance')
             return { success: true }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('[deletePaymentRequest] error:', e)
+    }
 
     const list = await getStoredPaymentRequestsFallback(supabase)
     const nextList = list.filter(p => p.id !== id)
@@ -368,10 +341,9 @@ export async function deletePaymentRequest(id: string): Promise<{ success: boole
 
 /** Lấy tóm tắt công nợ theo thời gian */
 export async function getDebtSummary(startDate: string, endDate: string) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase } = auth
 
     // 1. Lấy đơn giá suất ăn HS + GV
     const { data: settingsData } = await supabase
@@ -447,10 +419,9 @@ export interface TeacherDebtDay {
 
 /** Lấy chi tiết nợ giáo viên theo từng ngày báo cáo */
 export async function getTeacherDebtReport(startDate: string, endDate: string) {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase } = auth
 
     // Lấy đơn giá GV
     const { data: settingsData } = await supabase
@@ -523,18 +494,9 @@ export interface CompanyPaymentSettings {
 
 /** Lấy thông tin công ty, ngân hàng và quyền in Giấy đề nghị thanh toán */
 export async function getCompanyAndPaymentSettings(): Promise<{ settings: CompanyPaymentSettings } | { error: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    const userRole = profile?.role || ''
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId, userRole } = auth
 
     const { data: settingsData } = await supabase
         .from('settings')
@@ -546,16 +508,20 @@ export async function getCompanyAndPaymentSettings(): Promise<{ settings: Compan
     let allowedRoles: string[] = ['admin']
     try {
         allowedRoles = JSON.parse(allowedRolesRaw)
-    } catch {}
+    } catch (e) {
+        console.error('[getPaymentRequestPrintData] error parsing allowedRoles:', e)
+    }
 
     const allowedUsersRaw = getVal('payment_request_allowed_users', '[]')
     let allowedUsers: string[] = []
     try {
         allowedUsers = JSON.parse(allowedUsersRaw)
-    } catch {}
+    } catch (e) {
+        console.error('[getPaymentRequestPrintData] error parsing allowedUsers:', e)
+    }
 
     // Admin luôn có quyền; hoặc vai trò nằm trong danh sách được phân quyền; hoặc user ID cụ thể
-    const canPrint = userRole === 'admin' || allowedRoles.includes(userRole) || allowedUsers.includes(user.id)
+    const canPrint = userRole === 'admin' || allowedRoles.includes(userRole) || allowedUsers.includes(userId)
 
     return {
         settings: {
@@ -629,18 +595,9 @@ export async function getReconciliationData(
     endDate: string,
     customUnitPrice?: number
 ): Promise<{ data: ReconciliationResult } | { error: string }> {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    const userRole = profile?.role || ''
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userRole } = auth
 
     // 1. Lấy cài đặt hệ thống
     const { data: settingsData } = await supabase
@@ -651,7 +608,11 @@ export async function getReconciliationData(
 
     const allowedRolesRaw = getVal('payment_request_allowed_roles', '["admin"]')
     let allowedRoles: string[] = ['admin']
-    try { allowedRoles = JSON.parse(allowedRolesRaw) } catch {}
+    try {
+        allowedRoles = JSON.parse(allowedRolesRaw)
+    } catch (e) {
+        console.error('[createPaymentRequest] error parsing allowedRoles:', e)
+    }
 
     const canPrint = userRole === 'admin' || allowedRoles.includes(userRole)
 
@@ -753,4 +714,191 @@ export async function getReconciliationData(
         }
     }
 }
+
+export interface FinancePageData {
+    payments: AdvancePayment[]
+    paymentRequests: PaymentRequest[]
+    debtSummary: {
+        totalMeals: number
+        totalMealMoney: number
+        totalAdvance: number
+        debt: number
+        mealPrice: number
+        teacherTotalMeals: number
+        teacherTotalMoney: number
+        teacherMealPrice: number
+        overallDebt: number
+        totalAllMoney: number
+    }
+    teacherDebtRows: TeacherDebtDay[]
+    companySettings: CompanyPaymentSettings
+}
+
+/**
+ * Gom toàn bộ dữ liệu cần thiết cho trang Finance trong 1 lần gọi duy nhất.
+ * Tối ưu: 1 lần auth, 1 lần load settings, chạy song song các DB queries.
+ */
+export async function getFinancePageData(startDate: string, endDate: string): Promise<FinancePageData | { error: string }> {
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId, userRole } = auth
+
+    let advanceQuery = supabase
+        .from('advance_payments')
+        .select('*')
+        .order('payment_date', { ascending: false })
+    if (startDate) advanceQuery = advanceQuery.gte('payment_date', startDate)
+    if (endDate) advanceQuery = advanceQuery.lte('payment_date', endDate)
+
+    let dailyReportsQuery = supabase
+        .from('daily_reports')
+        .select('salty_count, porridge_count, vegetarian_count')
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+        .eq('status', 'school_approved')
+
+    let teacherReportsQuery = supabase
+        .from('teacher_meal_reports')
+        .select(`
+            report_date,
+            salty_count,
+            vegetarian_count,
+            porridge_count,
+            teacher_name,
+            classes ( name, rooms ( name ) )
+        `)
+        .gte('report_date', startDate)
+        .lte('report_date', endDate)
+        .order('report_date', { ascending: false })
+
+    let prQuery = supabase
+        .from('payment_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+    if (startDate) prQuery = prQuery.gte('end_date', startDate)
+    if (endDate) prQuery = prQuery.lte('start_date', endDate)
+
+    // Chạy song song tất cả các queries
+    const [settingsResult, advancesResult, dailyReportsResult, teacherReportsResult, prResult] = await Promise.all([
+        supabase.from('settings').select('key, value'),
+        advanceQuery,
+        dailyReportsQuery,
+        teacherReportsQuery,
+        prQuery,
+    ])
+
+    const allSettings = settingsResult.data || []
+    const getVal = (k: string, def: string) => allSettings.find(s => s.key === k)?.value || def
+
+    const mealPrice = parseInt(getVal('meal_price', '25000')) || 25000
+    const teacherMealPrice = parseInt(getVal('teacher_meal_price', '35000')) || 35000
+
+    // Payments
+    const payments = (advancesResult.data || []) as AdvancePayment[]
+    const totalAdvance = payments.reduce((sum, a) => sum + (Number(a.amount) || 0), 0)
+
+    // Daily Reports (Student)
+    const studentReports = dailyReportsResult.data || []
+    const totalMeals = studentReports.reduce((sum, r) => 
+        sum + (Number(r.salty_count) || 0) + (Number(r.porridge_count) || 0) + (Number(r.vegetarian_count) || 0), 0)
+    const totalMealMoney = totalMeals * mealPrice
+
+    // Teacher Reports
+    const teacherReports = teacherReportsResult.data || []
+    const teacherDebtRows: TeacherDebtDay[] = teacherReports.map((r: any) => {
+        const total = (r.salty_count || 0) + (r.vegetarian_count || 0) + (r.porridge_count || 0)
+        return {
+            report_date: r.report_date,
+            salty_count: r.salty_count || 0,
+            vegetarian_count: r.vegetarian_count || 0,
+            porridge_count: r.porridge_count || 0,
+            total_meals: total,
+            total_money: total * teacherMealPrice,
+            teacher_name: r.teacher_name || null,
+            class_name: r.classes?.name || null,
+            room_name: r.classes?.rooms?.name || null,
+        }
+    })
+
+    const teacherTotalMeals = teacherDebtRows.reduce((sum, r) => sum + r.total_meals, 0)
+    const teacherTotalMoney = teacherDebtRows.reduce((sum, r) => sum + r.total_money, 0)
+
+    // Debt Summary
+    const totalAllMoney = totalMealMoney + teacherTotalMoney
+    const overallDebt = totalAllMoney - totalAdvance
+
+    const debtSummary = {
+        totalMeals,
+        totalMealMoney,
+        totalAdvance,
+        debt: totalMealMoney - totalAdvance,
+        overallDebt,
+        mealPrice,
+        teacherTotalMeals,
+        teacherTotalMoney,
+        teacherMealPrice,
+        totalAllMoney,
+    }
+
+    // Company Settings
+    const allowedRolesRaw = getVal('payment_request_allowed_roles', '["admin"]')
+    let allowedRoles: string[] = ['admin']
+    try { allowedRoles = JSON.parse(allowedRolesRaw) } catch (e) {
+        console.error('[getFinancePageData allowedRoles] error:', e)
+    }
+
+    const allowedUsersRaw = getVal('payment_request_allowed_users', '[]')
+    let allowedUsers: string[] = []
+    try { allowedUsers = JSON.parse(allowedUsersRaw) } catch (e) {
+        console.error('[getFinancePageData allowedUsers] error:', e)
+    }
+
+    const canPrint = userRole === 'admin' || allowedRoles.includes(userRole) || allowedUsers.includes(userId)
+
+    const companySettings: CompanyPaymentSettings = {
+        companyName: getVal('company_name', 'CÔNG TY TNHH CHÂU PHƯƠNG THẢO'),
+        companyAddress: getVal('company_address', '20A Ngô Đức Kế, Phường Bình Thạnh, TP Hồ Chí Minh'),
+        companyTaxCode: getVal('company_tax_code', '0317986511'),
+        companyRepresentative: getVal('company_representative', 'Bà NGUYỄN THỊ THU TRANG'),
+        companyPosition: getVal('company_position', 'Chủ tịch hội đồng thành viên'),
+        bankAccountHolder: getVal('company_bank_account_holder', 'CÔNG TY TNHH CĂN TIN CHÂU PHƯƠNG THẢO'),
+        bankAccountNumber: getVal('company_bank_account_number', '667879888'),
+        bankName: getVal('company_bank_name', 'Ngân hàng Á Châu - ACB'),
+        schoolName: getVal('school_name', 'Trường THPT Thanh Đa'),
+        schoolRepresentative: getVal('school_representative', 'LÊ THỊ HÀ GIANG'),
+        principalName: getVal('principal_name', 'TRẦN KHẮC HUY'),
+        city: getVal('company_city', 'Tp Hồ Chí Minh'),
+        canPrint,
+        userRole,
+        allowedPrintRoles: allowedRoles,
+    }
+
+    // Payment Requests
+    let paymentRequests: PaymentRequest[] = []
+    if (!prResult.error && prResult.data) {
+        paymentRequests = prResult.data as PaymentRequest[]
+    } else {
+        const storedVal = getVal('stored_payment_requests', '')
+        let list: PaymentRequest[] = []
+        if (storedVal) {
+            try { list = JSON.parse(storedVal) } catch (e) {
+                console.error('[getFinancePageData fallback PR] error:', e)
+            }
+        }
+        let filtered = list
+        if (startDate) filtered = filtered.filter(item => item.end_date >= startDate)
+        if (endDate) filtered = filtered.filter(item => item.start_date <= endDate)
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        paymentRequests = filtered
+    }
+
+    return {
+        payments,
+        paymentRequests,
+        debtSummary,
+        teacherDebtRows,
+        companySettings,
+    }
+}
+
 

@@ -1,24 +1,18 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
 import { getFormState, mapTimeSettings } from '@/utils/formState'
 
 /** Lấy tất cả reports theo nhóm cho school_approver */
 export async function getSchoolReports(selectedDate?: string) {
-    const supabase = await createClient()
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userRole } = auth
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['admin', 'school_approver'].includes(profile.role)) {
+    if (!['admin', 'school_approver'].includes(userRole)) {
         return { error: 'Không có quyền' }
     }
 
@@ -77,9 +71,9 @@ export async function getSchoolReports(selectedDate?: string) {
 
 /** Duyệt cấp trường cho 1 phòng (tất cả báo cáo room_approved → school_approved) */
 export async function approveRoom(roomId: string, selectedDate?: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     let activeDate = selectedDate
     if (!activeDate) {
@@ -91,7 +85,7 @@ export async function approveRoom(roomId: string, selectedDate?: string) {
 
     const { error } = await supabase
         .from('daily_reports')
-        .update({ status: 'school_approved', updated_by: user.id })
+        .update({ status: 'school_approved', updated_by: userId })
         .eq('report_date', activeDate)
         .eq('status', 'room_approved')
         .eq('room_id', roomId)
@@ -103,9 +97,9 @@ export async function approveRoom(roomId: string, selectedDate?: string) {
 
 /** Duyệt toàn bộ nhóm */
 export async function approveGroup(groupId: string, selectedDate?: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     let activeDate = selectedDate
     if (!activeDate) {
@@ -126,7 +120,7 @@ export async function approveGroup(groupId: string, selectedDate?: string) {
 
     const { error } = await supabase
         .from('daily_reports')
-        .update({ status: 'school_approved', updated_by: user.id })
+        .update({ status: 'school_approved', updated_by: userId })
         .eq('report_date', activeDate)
         .eq('status', 'room_approved')
         .in('room_id', roomIds)
@@ -138,9 +132,9 @@ export async function approveGroup(groupId: string, selectedDate?: string) {
 
 /** Duyệt toàn trường */
 export async function approveSchool(selectedDate?: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Chưa đăng nhập' }
+    let auth
+    try { auth = await requireAuth() } catch { return { error: 'Chưa đăng nhập' } }
+    const { supabase, userId } = auth
 
     let activeDate = selectedDate
     if (!activeDate) {
@@ -152,7 +146,7 @@ export async function approveSchool(selectedDate?: string) {
 
     const { error } = await supabase
         .from('daily_reports')
-        .update({ status: 'school_approved', updated_by: user.id })
+        .update({ status: 'school_approved', updated_by: userId })
         .eq('report_date', activeDate)
         .eq('status', 'room_approved')
 

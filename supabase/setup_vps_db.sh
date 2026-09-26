@@ -189,6 +189,12 @@ BEGIN
   END LOOP;
 END $$;
 
+-- ============ PERFORMANCE INDEXES ============
+CREATE INDEX IF NOT EXISTS idx_teacher_meal_reports_date ON public.teacher_meal_reports(report_date);
+CREATE INDEX IF NOT EXISTS idx_advance_payments_payment_date ON public.advance_payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_daily_reports_status_date ON public.daily_reports(status, report_date);
+CREATE INDEX IF NOT EXISTS idx_profiles_id_role ON public.profiles(id, role);
+
 SCHEMA
 
 # 3. Verify
