@@ -16,6 +16,7 @@ interface TimeSettings {
     noLimit: boolean
     workingDays: number[]
     offDays: string[]
+    manualLocks?: Record<string, { moc1?: boolean; moc2?: boolean }>
 }
 
 type Phase = 'moc1' | 'moc2' | 'locked'
@@ -105,20 +106,33 @@ function getFormState(now: Date, settings: TimeSettings): FormState {
     const dayBeforeTomorrowStr = formatDate(dayBeforeTomorrow)
     const isOnDayBeforeMeal = nowDateStr === dayBeforeTomorrowStr
 
+    const manual = settings.manualLocks?.[tomorrowStr]
+    const isMoc1ManuallyClosed = !!manual?.moc1
+    const isMoc2ManuallyClosed = !!manual?.moc2
+
     // Moc 2: sang ngay an
     if (current < m2c && nowDateStr === tomorrowStr) {
+        if (isMoc2ManuallyClosed) {
+            return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: 'Đã chốt Mốc 2 chia suất' }
+        }
         return { reportDate: tomorrowStr, phase: 'moc2', isOpen: true, phaseLabel: `Moc 2 - Bo sung (truoc ${settings.moc2Close})` }
     }
 
     // Moc 1 mo: tu sang ngay lam viec truoc - het gio dong moc1 ngay truoc ngay an
     // Truong hop 1: Dang o ngay lam viec truoc (prevWorkDay), trong gio Moc 1
     if (isOnPrevWorkDay && current >= m1o && current < m1c) {
+        if (isMoc1ManuallyClosed) {
+            return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
+        }
         return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Moc 1 - Bao suat ngay mai (truoc ${settings.moc1Close})` }
     }
     // Truong hop 2: Dang o ngay truoc ngay an (CN neu T2 la ngay an, T7 nghi)
     // Va day KHONG PHAI la ngay lam viec truoc (tuc la T7 nghi -> CN la ngay truoc, prevWorkDay la T6)
     // -> Moc 1 van mo trong ngay nay cho den gio dong
     if (isOnDayBeforeMeal && !isOnPrevWorkDay && current < m1c) {
+        if (isMoc1ManuallyClosed) {
+            return { reportDate: tomorrowStr, phase: 'locked', isOpen: false, phaseLabel: `Đã chốt Mốc 1. Chờ mở Mốc 2 lúc ${settings.moc2Open}` }
+        }
         return { reportDate: tomorrowStr, phase: 'moc1', isOpen: true, phaseLabel: `Moc 1 - Bao suat ngay mai (truoc ${settings.moc1Close})` }
     }
     // Truong hop 3: Dang o ngay lam viec truoc, qua gio dong Moc 1
@@ -152,12 +166,13 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
     const { data } = await supabase
         .from('settings')
         .select('key, value')
-        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit', 'working_days', 'off_days'])
+        .in('key', ['moc1_open', 'moc1_close', 'moc2_open', 'moc2_close', 'deadline_no_limit', 'working_days', 'off_days', 'manual_closed_milestones'])
 
     const get = (key: string, def: string) => data?.find(s => s.key === key)?.value || def
 
     let workingDays = [1, 2, 3, 4, 5]
     let offDays: string[] = []
+    let manualLocks: Record<string, { moc1?: boolean; moc2?: boolean }> = {}
     try {
         const wdStr = get('working_days', '')
         if (wdStr) workingDays = JSON.parse(wdStr)
@@ -170,6 +185,12 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
     } catch (e) {
         console.error('[getTimeSettings] error parsing off_days:', e)
     }
+    try {
+        const mlStr = get('manual_closed_milestones', '')
+        if (mlStr) manualLocks = JSON.parse(mlStr)
+    } catch (e) {
+        console.error('[getTimeSettings] error parsing manual_closed_milestones:', e)
+    }
 
     return {
         moc1Open: get('moc1_open', '07:00'),
@@ -179,6 +200,7 @@ async function getTimeSettings(supabase: Awaited<ReturnType<typeof createClient>
         noLimit: get('deadline_no_limit', 'false') === 'true',
         workingDays,
         offDays,
+        manualLocks,
     }
 }
 

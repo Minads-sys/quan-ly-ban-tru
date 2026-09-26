@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getGroupReports, approveReport, rejectReport, approveAll } from './actions'
+import { getGroupReports, approveReport, rejectReport, approveAll, toggleMilestoneLock } from './actions'
 import { getDayOfWeek } from '@/utils/dateUtils'
 
 interface ClassWithReport {
@@ -43,6 +43,11 @@ export default function GroupPage() {
     const [userRole, setUserRole] = useState('')
     const [isMoc1Closed, setIsMoc1Closed] = useState(false)
     const [isMoc2Closed, setIsMoc2Closed] = useState(false)
+    const [canCloseMoc1, setCanCloseMoc1] = useState(false)
+    const [canReopenMoc1, setCanReopenMoc1] = useState(false)
+    const [canCloseMoc2, setCanCloseMoc2] = useState(false)
+    const [canReopenMoc2, setCanReopenMoc2] = useState(false)
+    const [milestoneLoading, setMilestoneLoading] = useState<'moc1' | 'moc2' | null>(null)
 
     const loadData = useCallback(async () => {
         const data = await getGroupReports(selectedDate || undefined)
@@ -54,6 +59,10 @@ export default function GroupPage() {
         if (data.userRole) setUserRole(data.userRole as string)
         if (typeof data.isMoc1Closed === 'boolean') setIsMoc1Closed(data.isMoc1Closed)
         if (typeof data.isMoc2Closed === 'boolean') setIsMoc2Closed(data.isMoc2Closed)
+        if (typeof data.canCloseMoc1 === 'boolean') setCanCloseMoc1(data.canCloseMoc1)
+        if (typeof data.canReopenMoc1 === 'boolean') setCanReopenMoc1(data.canReopenMoc1)
+        if (typeof data.canCloseMoc2 === 'boolean') setCanCloseMoc2(data.canCloseMoc2)
+        if (typeof data.canReopenMoc2 === 'boolean') setCanReopenMoc2(data.canReopenMoc2)
         setLoading(false)
     }, [selectedDate])
 
@@ -80,6 +89,23 @@ export default function GroupPage() {
         await approveAll(selectedDate || undefined)
         await loadData()
         setActionLoading(null)
+    }
+
+    async function handleToggleMilestone(milestone: 'moc1' | 'moc2', close: boolean) {
+        const actionText = close ? 'chốt' : 'mở lại'
+        const milestoneName = milestone === 'moc1' ? 'Mốc 1 (Đi chợ)' : 'Mốc 2 (Chia suất)'
+        const dateText = selectedDate || today
+        if (!confirm(`Bạn có chắc chắn muốn ${actionText} ${milestoneName} cho ngày ${dateText}?`)) {
+            return
+        }
+        setMilestoneLoading(milestone)
+        const res = await toggleMilestoneLock(dateText, milestone, close)
+        if (res?.error) {
+            alert(res.error)
+        } else {
+            await loadData()
+        }
+        setMilestoneLoading(null)
     }
 
     const pendingCount = classes.filter(c => c.report?.status === 'submitted').length
@@ -158,16 +184,85 @@ export default function GroupPage() {
                             </span>
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 xl:ml-2">
-                            <span className={`px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm ${
-                                isMoc1Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'
-                            }`}>
-                                ⏱️ {isMoc1Closed ? 'Đã chốt Mốc 1 đi chợ' : 'Chưa chốt Mốc 1 đi chợ'}
-                            </span>
-                            <span className={`px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm ${
-                                isMoc2Closed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
-                            }`}>
-                                ⏱️ {isMoc2Closed ? 'Đã chốt Mốc 2 chia suất' : 'Chưa chốt Mốc 2 chia suất'}
-                            </span>
+                            {/* Mốc 1: Nút chốt hoặc Nhãn đã chốt */}
+                            {!isMoc1Closed ? (
+                                canCloseMoc1 && !isReadOnly ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleMilestone('moc1', true)}
+                                        disabled={milestoneLoading === 'moc1'}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                        title="Bấm để chốt sớm Mốc 1 đi chợ (khóa báo suất Mốc 1)"
+                                    >
+                                        {milestoneLoading === 'moc1' ? (
+                                            <span>⏳ Đang xử lý...</span>
+                                        ) : (
+                                            <>
+                                                <span>🔒</span> Chốt Mốc 1 đi chợ
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <span className="px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm bg-red-50 text-red-600 border-red-200">
+                                        ⏱️ Chưa chốt Mốc 1 đi chợ
+                                    </span>
+                                )
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    <span>✅ Đã chốt Mốc 1 đi chợ</span>
+                                    {canReopenMoc1 && !isReadOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleMilestone('moc1', false)}
+                                            disabled={milestoneLoading === 'moc1'}
+                                            className="ml-1 text-[11px] underline text-emerald-800 hover:text-red-600 cursor-pointer font-normal normal-case"
+                                            title="Mở lại Mốc 1 để giáo viên tiếp tục báo suất"
+                                        >
+                                            (Mở lại)
+                                        </button>
+                                    )}
+                                </span>
+                            )}
+
+                            {/* Mốc 2: Nút chốt hoặc Nhãn đã chốt */}
+                            {!isMoc2Closed ? (
+                                canCloseMoc2 && !isReadOnly ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleMilestone('moc2', true)}
+                                        disabled={milestoneLoading === 'moc2'}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                        title="Bấm để chốt sớm Mốc 2 chia suất (khóa bổ sung Mốc 2)"
+                                    >
+                                        {milestoneLoading === 'moc2' ? (
+                                            <span>⏳ Đang xử lý...</span>
+                                        ) : (
+                                            <>
+                                                <span>🔒</span> Chốt Mốc 2 chia suất
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <span className="px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm bg-amber-50 text-amber-600 border-amber-200">
+                                        ⏱️ Chưa chốt Mốc 2 chia suất
+                                    </span>
+                                )
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold uppercase border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
+                                    <span>✅ Đã chốt Mốc 2 chia suất</span>
+                                    {canReopenMoc2 && !isReadOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleMilestone('moc2', false)}
+                                            disabled={milestoneLoading === 'moc2'}
+                                            className="ml-1 text-[11px] underline text-emerald-800 hover:text-red-600 cursor-pointer font-normal normal-case"
+                                            title="Mở lại Mốc 2 để giáo viên tiếp tục bổ sung"
+                                        >
+                                            (Mở lại)
+                                        </button>
+                                    )}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getSettings } from '@/app/dashboard/settings/actions'
-import { getFormState, mapTimeSettings, getMilestoneStatus } from '@/utils/formState'
+import { getFormState, mapTimeSettings, getMilestoneStatus, parseTimeObj, getPreviousWorkingDay } from '@/utils/formState'
 import { requireAuth } from '@/lib/auth'
 import { getVietnamNow } from '@/utils/dateUtils'
 
@@ -68,7 +68,7 @@ export async function getGroupReports(selectedDate?: string) {
     }
     
     // Tính trạng thái mốc 1 và mốc 2 dựa trên ngày activeDate
-    const { isMoc1Closed, isMoc2Closed } = getMilestoneStatus(activeDate, now, mappedSettings)
+    const milestoneInfo = getMilestoneStatus(activeDate, now, mappedSettings)
 
     const dbRooms = roomsResult.data
     const roomIds = dbRooms?.map(r => r.id) || []
@@ -116,8 +116,14 @@ export async function getGroupReports(selectedDate?: string) {
         roomName: headerName,
         userRole: profile.role,
         schoolInfo: { name: schoolName, address: schoolAddress },
-        isMoc1Closed,
-        isMoc2Closed
+        isMoc1Closed: milestoneInfo.isMoc1Closed,
+        isMoc2Closed: milestoneInfo.isMoc2Closed,
+        canCloseMoc1: milestoneInfo.canCloseMoc1,
+        canReopenMoc1: milestoneInfo.canReopenMoc1,
+        canCloseMoc2: milestoneInfo.canCloseMoc2,
+        canReopenMoc2: milestoneInfo.canReopenMoc2,
+        isMoc1ManuallyClosed: milestoneInfo.isMoc1ManuallyClosed,
+        isMoc2ManuallyClosed: milestoneInfo.isMoc2ManuallyClosed,
     }
 }
 
@@ -260,3 +266,113 @@ export async function approveAll(selectedDate?: string) {
     revalidatePath('/dashboard/group')
     return { success: true }
 }
+
+/**
+ * Chốt hoặc Mở lại Mốc 1 / Mốc 2 bằng tay
+ * Điều kiện theo giờ cài đặt:
+ * - Chốt Mốc 1: Phải trong khung giờ mở Mốc 1 (sau khi mở và trước khi tự động hết giờ)
+ * - Chốt Mốc 2: Phải trong khung giờ mở Mốc 2 (sau khi mở và trước khi tự động hết giờ)
+ * - Mở lại: Chỉ mở lại được khi còn trước giờ đóng tự động theo cài đặt
+ */
+export async function toggleMilestoneLock(
+    reportDate: string,
+    milestone: 'moc1' | 'moc2',
+    close: boolean
+) {
+    let auth
+    try {
+        auth = await requireAuth()
+    } catch {
+        return { error: 'Chưa đăng nhập' }
+    }
+    const { supabase, userId, userRole } = auth
+
+    const allowedRoles = ['admin', 'room_manager', 'group_manager', 'school_approver']
+    if (!allowedRoles.includes(userRole)) {
+        return { error: 'Bạn không có quyền thực hiện thao tác này' }
+    }
+
+    if (!reportDate || !/^\d{4}-\d{2}-\d{2}$/.test(reportDate)) {
+        return { error: 'Ngày báo cáo không hợp lệ' }
+    }
+
+    const { data: settingsData } = await supabase.from('settings').select('*')
+    const mappedSettings = mapTimeSettings(settingsData)
+    const now = getVietnamNow()
+
+    const d = new Date(reportDate)
+    d.setHours(0, 0, 0, 0)
+    const prevWorkDay = getPreviousWorkingDay(d, mappedSettings)
+    const m1o = parseTimeObj(prevWorkDay, mappedSettings.moc1Open, 0)
+    const m1c = parseTimeObj(d, mappedSettings.moc1Close, -1)
+    const m2o = parseTimeObj(d, mappedSettings.moc2Open, -1)
+    const m2c = parseTimeObj(d, mappedSettings.moc2Close, 0)
+
+    if (close) {
+        if (milestone === 'moc1') {
+            if (!mappedSettings.noLimit && now < m1o) {
+                return { error: `Chưa đến giờ mở Mốc 1 (mở lúc ${mappedSettings.moc1Open})` }
+            }
+            if (now >= m1c) {
+                return { error: `Đã quá giờ đóng Mốc 1 (${mappedSettings.moc1Close}), hệ thống đã tự động chốt` }
+            }
+        } else if (milestone === 'moc2') {
+            if (!mappedSettings.noLimit && now < m2o) {
+                return { error: `Chưa đến giờ mở Mốc 2 (mở lúc ${mappedSettings.moc2Open})` }
+            }
+            if (now >= m2c) {
+                return { error: `Đã quá giờ đóng Mốc 2 (${mappedSettings.moc2Close}), hệ thống đã tự động chốt` }
+            }
+        }
+    } else {
+        // Mở lại
+        if (milestone === 'moc1' && now >= m1c) {
+            return { error: `Đã quá giờ đóng Mốc 1 (${mappedSettings.moc1Close}), không thể mở lại` }
+        }
+        if (milestone === 'moc2' && now >= m2c) {
+            return { error: `Đã quá giờ đóng Mốc 2 (${mappedSettings.moc2Close}), không thể mở lại` }
+        }
+    }
+
+    let currentLocks: Record<string, { moc1?: boolean; moc2?: boolean; updated_at?: string; updated_by?: string }> = {}
+    const rawLocks = settingsData?.find(s => s.key === 'manual_closed_milestones')?.value
+    if (rawLocks) {
+        try {
+            currentLocks = JSON.parse(rawLocks)
+        } catch (e) {
+            console.error('Error parsing manual_closed_milestones:', e)
+        }
+    }
+
+    if (!currentLocks[reportDate]) {
+        currentLocks[reportDate] = {}
+    }
+
+    currentLocks[reportDate][milestone] = close
+    currentLocks[reportDate].updated_at = now.toISOString()
+    currentLocks[reportDate].updated_by = userId
+
+    const adminSupabase = createAdminClient()
+    const { error: upsertErr } = await adminSupabase
+        .from('settings')
+        .upsert(
+            {
+                key: 'manual_closed_milestones',
+                value: JSON.stringify(currentLocks),
+                description: 'Danh sách mốc chốt thủ công theo ngày'
+            },
+            { onConflict: 'key' }
+        )
+
+    if (upsertErr) {
+        console.error('Error saving manual_closed_milestones:', upsertErr)
+        return { error: 'Lỗi khi lưu trạng thái chốt: ' + upsertErr.message }
+    }
+
+    revalidatePath('/dashboard/group')
+    revalidatePath('/dashboard/room')
+    revalidatePath('/dashboard/kitchen')
+
+    return { success: true }
+}
+
